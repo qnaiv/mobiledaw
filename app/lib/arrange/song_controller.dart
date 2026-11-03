@@ -162,6 +162,18 @@ class SongController extends ChangeNotifier {
     return _edit(() => engine.movePlacement(pl.id, pl.startBar + deltaBars));
   }
 
+  /// 選んでいるクリップを1小節伸ばす・縮める（複製も一緒に）。ぶつかる・1小節より短くなるなら false
+  bool resizeSelected(int deltaBars) {
+    final pl = selected;
+    if (pl == null) return false;
+    return resizeClip(pl.clipId, pl.lengthBars + deltaBars);
+  }
+
+  bool resizeClip(int clipId, int lengthBars) {
+    if (lengthBars < 1) return false;
+    return _edit(() => engine.setClipLength(clipId, lengthBars));
+  }
+
   void deleteSelected() {
     final pl = selected;
     if (pl == null) return;

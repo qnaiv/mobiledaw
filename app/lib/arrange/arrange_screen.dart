@@ -578,11 +578,21 @@ class _SelectionBar extends StatelessWidget {
                   onPressed: sel.startBar > 0 ? () => _move(song, -1) : null,
                 ),
                 _BarAction(icon: Icons.arrow_downward, label: '下へ', onPressed: () => _move(song, 1)),
+                _BarAction(
+                  icon: Icons.unfold_less,
+                  label: '縮める',
+                  onPressed: sel.lengthBars > 1 ? () => _resize(song, -1) : null,
+                ),
+                _BarAction(icon: Icons.unfold_more, label: '伸ばす', onPressed: () => _resize(song, 1)),
                 _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
                 _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
               ],
             ),
     );
+  }
+
+  void _resize(SongController song, int delta) {
+    if (!song.resizeSelected(delta)) HapticFeedback.heavyImpact(); // 下のクリップとぶつかる
   }
 
   void _move(SongController song, int delta) {

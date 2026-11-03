@@ -120,8 +120,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _header(track, label, pl, scale),
+                _header(track, label, pl, scale, clip),
                 _toolbar(clip),
+                if (_selection.isNotEmpty) _selectionRow(clip),
                 Expanded(child: _roll(clip, columns, scale, track)),
                 if (below + above > 0)
                   Padding(
@@ -157,7 +158,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   // ---- ヘッダーと道具 -----------------------------------------------------------
 
-  Widget _header(TrackData? track, String label, PlacementData pl, Scale scale) {
+  Widget _header(TrackData? track, String label, PlacementData pl, Scale scale, ClipData clip) {
+    final bars = (clip.lengthTicks / song.project.ticksPerBar).ceil();
     final key = '${noteName(scale.root)} ${song.project.scale}';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -186,10 +188,72 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                 const SizedBox(height: 2),
                 Text(
                   '小節 ${pl.startBar + 1}–${pl.endBar} · ${_chromatic ? '全音表示' : '$key のみ表示'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: DawColors.muted),
                 ),
               ],
             ),
+          ),
+          // クリップの長さ（小節）。複製も一緒に変わる
+          _RoundIcon(
+            icon: Icons.remove,
+            label: 'クリップを1小節縮める',
+            onPressed: bars > 1 ? () => _resizeClip(clip, bars - 1) : null,
+          ),
+          SizedBox(
+            width: 44,
+            child: Column(
+              children: [
+                Text('$bars', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                const Text('小節', style: TextStyle(fontSize: 10, color: DawColors.muted)),
+              ],
+            ),
+          ),
+          _RoundIcon(icon: Icons.add, label: 'クリップを1小節伸ばす', onPressed: () => _resizeClip(clip, bars + 1)),
+        ],
+      ),
+    );
+  }
+
+  void _resizeClip(ClipData clip, int bars) {
+    if (!song.resizeClip(clip.id, bars)) {
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('下のクリップとぶつかるので伸ばせません')));
+    }
+  }
+
+  /// 選んだノートの長さをグリッド1つ分ずつ変える・消す
+  Widget _selectionRow(ClipData clip) {
+    final ids = _selection.toList();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+      decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text('選んだノート ${ids.length} 個', style: const TextStyle(fontSize: 12, color: DawColors.muted)),
+          ),
+          TextButton.icon(
+            onPressed: () => song.resizeNotes(clip.id, ids, -_step),
+            icon: const Icon(Icons.unfold_less, size: 18),
+            label: const Text('短く'),
+          ),
+          TextButton.icon(
+            onPressed: () => song.resizeNotes(clip.id, ids, _step),
+            icon: const Icon(Icons.unfold_more, size: 18),
+            label: const Text('長く'),
+          ),
+          IconButton(
+            tooltip: '選んだノートを削除',
+            onPressed: () {
+              song.deleteNotes(clip.id, ids);
+              setState(_selection.clear);
+            },
+            icon: const Icon(Icons.delete_outline, size: 20),
           ),
         ],
       ),
@@ -218,16 +282,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
             onTap: () => setState(() => _tool = _Tool.select),
           ),
           const Spacer(),
-          if (_selection.isNotEmpty)
-            _RoundIcon(
-              icon: Icons.delete_outline,
-              label: '選んだノートを削除',
-              onPressed: () {
-                song.deleteNotes(clip.id, _selection.toList());
-                setState(_selection.clear);
-              },
-            ),
-          const SizedBox(width: 6),
           _RoundIcon(icon: Icons.undo, label: '元に戻す', onPressed: song.canUndo ? song.undo : null),
           const SizedBox(width: 6),
           _RoundIcon(icon: Icons.redo, label: 'やり直す', onPressed: song.canRedo ? song.redo : null),
@@ -618,6 +672,17 @@ class _RollPainter extends CustomPainter {
     );
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
     canvas.drawRRect(rrect, Paint()..color = fill);
+    // 下端のつまみ（ここを上下になぞると長さが変わる）
+    if (rect.height >= 14) {
+      final w = math.min(18.0, rect.width - 8);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromCenter(center: Offset(rect.center.dx, rect.bottom - 4), width: w, height: 3),
+          const Radius.circular(2),
+        ),
+        Paint()..color = DawColors.background.withValues(alpha: 0.45),
+      );
+    }
     if (outline != null) {
       canvas.drawRRect(
         rrect,

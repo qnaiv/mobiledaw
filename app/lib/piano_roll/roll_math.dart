@@ -91,11 +91,11 @@ NoteData? noteAt(ClipData clip, RollGeometry g, double x, double y) {
   return null;
 }
 
-/// ノートの下端をつまんだか（長さを変える操作）。下端から 14px か、ノートの下 1/3
+/// ノートの下端をつまんだか（長さを変える操作）。ノートの下の半分弱（10〜22px）
 bool isNearBottom(NoteData n, RollGeometry g, double y) {
   final bottom = g.tickY(n.endTick);
   final h = bottom - g.tickY(n.tick);
-  return bottom - y <= (h / 3).clamp(10, 14);
+  return bottom - y <= (h * 0.45).clamp(10, 22);
 }
 
 /// 範囲選択（2点で囲んだ四角）に入るノート

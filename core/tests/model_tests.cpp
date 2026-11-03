@@ -217,3 +217,53 @@ TEST(model_history_limit_and_revision) {
 }
 
 } // namespace
+
+// ---- クリップの長さ ----------------------------------------------------------
+namespace {
+
+using namespace mdaw;
+
+TEST(model_resize_clip_extends_all_copies) {
+    Fixture f;
+    f.addNotes({note(0, 60), note(kPpq * 3, 62)});
+    auto place = std::make_unique<PlaceClip>(f.clip, 4);
+    CHECK(f.history.execute(std::move(place)));
+
+    CHECK(f.history.execute(std::make_unique<ResizeClip>(f.clip, 2)));
+    CHECK(f.theClip().lengthTicks == kPpq * 8);
+    for (const auto& pl : f.project.placements)
+        CHECK(pl.lengthBars == 2);
+    CHECK(f.project.lengthBars() == 6);
+
+    CHECK(f.history.undo());
+    CHECK(f.theClip().lengthTicks == kPpq * 4);
+    for (const auto& pl : f.project.placements)
+        CHECK(pl.lengthBars == 1);
+}
+
+TEST(model_resize_clip_shrink_drops_notes_and_undo_restores) {
+    Fixture f;
+    CHECK(f.history.execute(std::make_unique<ResizeClip>(f.clip, 2)));
+    f.addNotes({note(0, 60), note(kPpq * 5, 64), note(kPpq * 6, 67)});
+    CHECK(f.history.execute(std::make_unique<ResizeClip>(f.clip, 1)));
+    CHECK(f.theClip().notes.size() == 1);
+    CHECK(f.history.undo());
+    CHECK(f.theClip().notes.size() == 3);
+    CHECK(f.theClip().notes[1].pitch == 64); // 並び順も元どおり
+}
+
+TEST(model_resize_clip_refuses_overlap) {
+    Fixture f;
+    // 同じトラックの2小節目に別のクリップ
+    CHECK(f.history.execute(std::make_unique<CreateClip>(f.track, 1, 1)));
+    CHECK(!f.history.execute(std::make_unique<ResizeClip>(f.clip, 2)));
+    CHECK(f.theClip().lengthTicks == kPpq * 4);
+    // 同じクリップの複製どうしもぶつからないこと
+    Fixture g;
+    CHECK(g.history.execute(std::make_unique<PlaceClip>(g.clip, 2)));
+    CHECK(g.history.execute(std::make_unique<ResizeClip>(g.clip, 2)));
+    CHECK(!g.history.execute(std::make_unique<ResizeClip>(g.clip, 3)));
+    CHECK(!g.history.execute(std::make_unique<ResizeClip>(g.clip, 0)));
+}
+
+} // namespace

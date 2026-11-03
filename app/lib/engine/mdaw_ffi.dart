@@ -181,6 +181,8 @@ class MdawEngine {
       int Function(_EnginePtr, int, int)>('mdaw_place_clip');
   late final _removePlacement = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64), int Function(_EnginePtr, int)>(
       'mdaw_remove_placement');
+  late final _setClipLength = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32),
+      int Function(_EnginePtr, int, int)>('mdaw_set_clip_length');
   late final _movePlacement = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32),
       int Function(_EnginePtr, int, int)>('mdaw_move_placement');
   late final _addNote = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int64, Int64, Int32, Float),
@@ -259,6 +261,8 @@ class MdawEngine {
   /// 同じクリップをもう一つ置く（複製）。戻り値は placementId
   int placeClip(int clipId, int startBar) => _placeClip(_handle, clipId, startBar);
   bool removePlacement(int placementId) => _removePlacement(_handle, placementId) != 0;
+  /// クリップの長さ（小節）。複製もすべて同じ長さに。縮めてはみ出したノートは消える
+  bool setClipLength(int clipId, int lengthBars) => _setClipLength(_handle, clipId, lengthBars) != 0;
   bool movePlacement(int placementId, int newStartBar) => _movePlacement(_handle, placementId, newStartBar) != 0;
 
   int addNote(int clipId, {required int tick, required int length, required int pitch, double velocity = 0.8}) =>

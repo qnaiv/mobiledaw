@@ -154,6 +154,24 @@ private:
     int oldStart_ = 0;
 };
 
+// クリップの長さを小節単位で変える。そのクリップの配置（複製も）はすべて同じ長さになる。
+// 縮めてはみ出したノートは消える（Undo で戻る）。伸ばして他のクリップとぶつかるなら何もしない。
+class ResizeClip final : public Command {
+public:
+    static constexpr int kMaxBars = 64;
+    ResizeClip(Id clipId, int lengthBars) : clipId_(clipId), bars_(lengthBars) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "ResizeClip"; }
+
+private:
+    Id clipId_;
+    int bars_;
+    int64_t oldLength_ = 0;
+    std::vector<std::pair<Id, int>> oldPlacementBars_;
+    std::vector<Note> removed_;
+};
+
 // ---- トラックと全体 -----------------------------------------------------------
 
 class AddTrack final : public Command {

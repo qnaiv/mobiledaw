@@ -232,6 +232,62 @@ void RemovePlacement::revert(Project& p) {
 }
 
 //==============================================================================
+bool ResizeClip::apply(Project& p) {
+    auto* clip = p.findClip(clipId_);
+    if (clip == nullptr || bars_ < 1 || bars_ > kMaxBars)
+        return false;
+    const int64_t newLength = p.ticksPerBar() * bars_;
+    if (newLength == clip->lengthTicks)
+        return false;
+
+    // 伸びた配置どうし・他のクリップとぶつからないか（同じクリップの複製も新しい長さで比べる）
+    auto lengthOf = [&](const Placement& pl) { return pl.clipId == clipId_ ? bars_ : pl.lengthBars; };
+    for (const auto& a : p.placements) {
+        if (a.clipId != clipId_)
+            continue;
+        for (const auto& b : p.placements) {
+            if (b.id == a.id || b.trackId != a.trackId)
+                continue;
+            if (a.startBar < b.startBar + lengthOf(b) && b.startBar < a.startBar + bars_)
+                return false;
+        }
+    }
+
+    oldLength_ = clip->lengthTicks;
+    oldPlacementBars_.clear();
+    for (auto& pl : p.placements) {
+        if (pl.clipId == clipId_) {
+            oldPlacementBars_.emplace_back(pl.id, pl.lengthBars);
+            pl.lengthBars = bars_;
+        }
+    }
+    removed_.clear();
+    auto& notes = clip->notes;
+    for (auto it = notes.begin(); it != notes.end();) {
+        if (it->tick >= newLength) {
+            removed_.push_back(*it);
+            it = notes.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    clip->lengthTicks = newLength;
+    return true;
+}
+
+void ResizeClip::revert(Project& p) {
+    auto* clip = p.findClip(clipId_);
+    if (clip == nullptr)
+        return;
+    clip->lengthTicks = oldLength_;
+    clip->notes.insert(clip->notes.end(), removed_.begin(), removed_.end());
+    clip->sortNotes();
+    for (const auto& [id, bars] : oldPlacementBars_)
+        if (auto* pl = p.findPlacement(id))
+            pl->lengthBars = bars;
+}
+
+//==============================================================================
 bool MovePlacement::apply(Project& p) {
     auto* pl = p.findPlacement(placementId_);
     if (pl == nullptr || newStart_ < 0 || newStart_ == pl->startBar)

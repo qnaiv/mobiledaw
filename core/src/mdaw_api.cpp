@@ -126,6 +126,10 @@ int32_t mdaw_remove_placement(mdaw_engine* e, mdaw_id placement) {
     return run(e, std::make_unique<mdaw::RemovePlacement>(placement));
 }
 
+int32_t mdaw_set_clip_length(mdaw_engine* e, mdaw_id clip, int32_t bars) {
+    return run(e, std::make_unique<mdaw::ResizeClip>(clip, bars));
+}
+
 int32_t mdaw_move_placement(mdaw_engine* e, mdaw_id placement, int32_t newStartBar) {
     return run(e, std::make_unique<mdaw::MovePlacement>(placement, newStartBar));
 }

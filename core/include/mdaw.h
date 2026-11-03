@@ -83,6 +83,8 @@ MDAW_API mdaw_id mdaw_create_clip(mdaw_engine* engine, mdaw_id track_id, int32_t
                                   mdaw_id* out_placement_id);
 MDAW_API mdaw_id mdaw_place_clip(mdaw_engine* engine, mdaw_id clip_id, int32_t start_bar); /* 複製を置く */
 MDAW_API int32_t mdaw_remove_placement(mdaw_engine* engine, mdaw_id placement_id);
+/* クリップの長さ（小節、1〜64）。その複製もすべて同じ長さになる。縮めてはみ出したノートは消える */
+MDAW_API int32_t mdaw_set_clip_length(mdaw_engine* engine, mdaw_id clip_id, int32_t length_bars);
 MDAW_API int32_t mdaw_move_placement(mdaw_engine* engine, mdaw_id placement_id, int32_t new_start_bar);
 MDAW_API mdaw_id mdaw_add_note(mdaw_engine* engine, mdaw_id clip_id, int64_t tick, int64_t length, int32_t pitch,
                                float velocity);
