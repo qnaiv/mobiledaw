@@ -113,6 +113,33 @@ class SongController extends ChangeNotifier {
 
   bool renameTrack(int trackId, String name) => _edit(() => engine.renameTrack(trackId, name.trim()));
 
+  // ---- ミキサー ---------------------------------------------------------------
+
+  bool _mixerGesture = false;
+
+  /// スライダーを触り始めた。離すまでの変更を1つの Undo にまとめる
+  void beginMixerGesture() {
+    if (_mixerGesture) return;
+    _mixerGesture = true;
+    engine.beginEditGroup();
+  }
+
+  void endMixerGesture() {
+    if (!_mixerGesture) return;
+    _mixerGesture = false;
+    engine.endEditGroup();
+    _refresh(force: true); // Undo ボタンの状態を更新
+  }
+
+  /// 指定したものだけ変える（他は今の値のまま）
+  bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
+    final t = project.track(trackId);
+    if (t == null) return false;
+    final m = t.mixer;
+    return _edit(() => engine.setTrackMixer(trackId,
+        gain: gain ?? m.gain, pan: pan ?? m.pan, mute: mute ?? m.mute, solo: solo ?? m.solo));
+  }
+
   /// 確かめ用のデモ曲。Undo 1回で消せる
   void loadDemo(DemoSong demo) {
     engine.stopPlayback();

@@ -112,6 +112,25 @@ TEST(api_edit_undo_redo) {
     mdaw_destroy(e);
 }
 
+TEST(api_track_mixer) {
+    mdaw_engine* e = mdaw_create();
+    const mdaw_id track = mdaw_add_track(e, "Kick", 0xFFFFFFFFu);
+    CHECK(mdaw_set_track_mixer(e, track, 1.5f, -0.5f, 0, 1) == 1);
+    auto mixerOf = [&] {
+        Json j(e);
+        return (*j.root.getProperty("tracks", juce::var()).getArray())[1].getProperty("mixer", juce::var());
+    };
+    CHECK(std::abs(static_cast<double>(mixerOf().getProperty("gain", 0.0)) - 1.5) < 1e-6);
+    CHECK(static_cast<bool>(mixerOf().getProperty("solo", false)));
+    CHECK(mdaw_set_track_mixer(e, track, 1.5f, -0.5f, 0, 1) == 0);  // 変わらない
+    CHECK(mdaw_set_track_mixer(e, track, 9.0f, 0.0f, 0, 0) == 1);   // 大きすぎる値は 2 に
+    CHECK(std::abs(static_cast<double>(mixerOf().getProperty("gain", 0.0)) - 2.0) < 1e-6);
+    CHECK(mdaw_set_track_mixer(e, 999, 1.0f, 0.0f, 0, 0) == 0);
+    CHECK(mdaw_undo(e) == 1);
+    CHECK(std::abs(static_cast<double>(mixerOf().getProperty("gain", 0.0)) - 1.5) < 1e-6);
+    mdaw_destroy(e);
+}
+
 TEST(api_rejects_bad_input) {
     mdaw_engine* e = mdaw_create();
     const auto v = mdaw_project_version(e);

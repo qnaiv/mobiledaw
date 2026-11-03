@@ -320,6 +320,26 @@ bool AddTrack::apply(Project& p) {
 void AddTrack::revert(Project& p) { eraseById(p.tracks, track_.id); }
 
 //==============================================================================
+bool SetTrackMixer::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr || !std::isfinite(next_.gain) || !std::isfinite(next_.pan))
+        return false;
+    Mixer m = next_;
+    m.gain = std::clamp(m.gain, 0.0f, 2.0f);
+    m.pan = std::clamp(m.pan, -1.0f, 1.0f);
+    const Mixer& cur = t->mixer;
+    if (m.gain == cur.gain && m.pan == cur.pan && m.mute == cur.mute && m.solo == cur.solo)
+        return false;
+    old_ = cur;
+    t->mixer = m;
+    return true;
+}
+
+void SetTrackMixer::revert(Project& p) {
+    if (auto* t = p.findTrack(trackId_))
+        t->mixer = old_;
+}
+
 bool RenameTrack::apply(Project& p) {
     auto* t = p.findTrack(trackId_);
     if (t == nullptr || t->name == name_ || name_.empty() || name_.size() > 64)

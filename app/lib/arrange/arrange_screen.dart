@@ -10,6 +10,7 @@ import '../piano_roll/piano_roll_screen.dart';
 import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'demo_song.dart';
+import 'mixer_sheet.dart';
 import 'song_controller.dart';
 import 'timeline_math.dart';
 
@@ -90,6 +91,11 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               onTap: () => Navigator.pop(context, 'track'),
             ),
             ListTile(
+              leading: const Icon(Icons.tune),
+              title: const Text('ミキサー（音量バランス）'),
+              onTap: () => Navigator.pop(context, 'mixer'),
+            ),
+            ListTile(
               leading: const Icon(Icons.speed),
               title: Text('テンポ（${song.project.tempo.round()} BPM）'),
               onTap: () => Navigator.pop(context, 'tempo'),
@@ -120,6 +126,8 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
     switch (action) {
       case 'track':
         song.addTrack();
+      case 'mixer':
+        await showMixerSheet(context, song);
       case 'tempo':
         await _editTempo();
       case final String a when a.startsWith('demo:'):
@@ -544,29 +552,6 @@ class _TrackHeader extends StatelessWidget {
   final SongController song;
   final _Grid grid;
 
-  /// トラック名をタップで名前を変える
-  Future<void> _rename(BuildContext context, TrackData track) async {
-    final controller = TextEditingController(text: track.name);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('トラックの名前'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 24,
-          onSubmitted: (v) => Navigator.pop(context, v),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('やめる')),
-          FilledButton(onPressed: () => Navigator.pop(context, controller.text), child: const Text('決める')),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (name != null && name.trim().isNotEmpty) song.renameTrack(track.id, name);
-  }
-
   @override
   Widget build(BuildContext context) {
     final tracks = song.project.tracks;
@@ -593,7 +578,7 @@ class _TrackHeader extends StatelessWidget {
               top: 0,
               bottom: 0,
               child: GestureDetector(
-                onTap: () => _rename(context, tracks[i]),
+                onTap: () => showMixerSheet(context, song, focusTrackId: tracks[i].id),
                 child: Container(
                 decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -610,7 +595,19 @@ class _TrackHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                    const Text('シンセ', style: TextStyle(fontSize: 10, color: DawColors.muted)),
+                    Text(
+                        tracks[i].mixer.mute
+                            ? 'ミュート'
+                            : tracks[i].mixer.solo
+                                ? 'ソロ'
+                                : gainLabel(tracks[i].mixer.gain),
+                        style: TextStyle(
+                            fontSize: 10,
+                            color: tracks[i].mixer.mute
+                                ? DawColors.danger
+                                : tracks[i].mixer.solo
+                                    ? DawColors.accent
+                                    : DawColors.muted)),
                   ],
                 ),
               ),

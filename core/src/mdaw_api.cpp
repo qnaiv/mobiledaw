@@ -114,6 +114,15 @@ int32_t mdaw_rename_track(mdaw_engine* e, mdaw_id track, const char* name) {
     return run(e, std::make_unique<mdaw::RenameTrack>(track, name ? name : ""));
 }
 
+int32_t mdaw_set_track_mixer(mdaw_engine* e, mdaw_id track, float gain, float pan, int32_t mute, int32_t solo) {
+    mdaw::Mixer m;
+    m.gain = gain;
+    m.pan = pan;
+    m.mute = mute != 0;
+    m.solo = solo != 0;
+    return run(e, std::make_unique<mdaw::SetTrackMixer>(track, m));
+}
+
 mdaw_id mdaw_create_clip(mdaw_engine* e, mdaw_id track, int32_t startBar, int32_t bars, mdaw_id* outPlacement) {
     if (outPlacement != nullptr)
         *outPlacement = 0;

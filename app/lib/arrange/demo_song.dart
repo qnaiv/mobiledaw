@@ -103,16 +103,26 @@ void buildFutureBassDemo(MdawEngine e) {
     final pluck = e.addTrack('Pluck', 0xFF9A7CF2);
     final kick = e.addTrack('Kick', 0xFFF28C38);
 
-    // 厚く広がるのこぎり波（大きくデチューン）
-    _sound(e, chordsTrack, cutoff: 6500, attack: 0.01, decay: 0.5, sustain: 0.75, release: 0.3, detune: 32);
+    // 厚く広がるのこぎり波（大きくデチューン）。4音重なるのでミキサーで下げる
+    _sound(e, chordsTrack, cutoff: 5200, attack: 0.01, decay: 0.5, sustain: 0.7, release: 0.3, detune: 28);
     e.setTrackParam(chordsTrack, MdawParam.masterGain, 0.5);
-    _sound(e, sub, cutoff: 380, attack: 0.004, decay: 0.3, sustain: 0.9, release: 0.06, detune: 0);
-    _sound(e, lead, cutoff: 4200, attack: 0.003, decay: 0.16, sustain: 0.25, release: 0.12, detune: 10);
-    _sound(e, pluck, cutoff: 3000, attack: 0.002, decay: 0.12, sustain: 0.0, release: 0.1, detune: 14);
-    e.setTrackParam(pluck, MdawParam.masterGain, 0.45);
-    _sound(e, kick, cutoff: 160, attack: 0.001, decay: 0.14, sustain: 0.0, release: 0.05, detune: 0);
-    e.setTrackParam(kick, MdawParam.resonance, 4);
+    // スマホのスピーカーは 100Hz より下がほぼ出ないので、Sub と Kick は少し高めにして倍音を残す
+    _sound(e, sub, cutoff: 900, attack: 0.004, decay: 0.3, sustain: 0.9, release: 0.06, detune: 0);
+    _sound(e, lead, cutoff: 5000, attack: 0.003, decay: 0.18, sustain: 0.45, release: 0.12, detune: 10);
+    _sound(e, pluck, cutoff: 5000, attack: 0.002, decay: 0.2, sustain: 0.12, release: 0.12, detune: 14);
+    e.setTrackParam(pluck, MdawParam.masterGain, 0.8);
+    _sound(e, kick, cutoff: 700, attack: 0.001, decay: 0.11, sustain: 0.0, release: 0.04, detune: 0);
+    e.setTrackParam(kick, MdawParam.resonance, 2);
     e.setTrackParam(kick, MdawParam.masterGain, 0.9);
+
+    // 音量バランス（ミキサー）。トラック名をタップすると後から変えられる
+    void mix(int track, double gain, [double pan = 0]) =>
+        e.setTrackMixer(track, gain: gain, pan: pan, mute: false, solo: false);
+    mix(chordsTrack, 0.4);
+    mix(sub, 1.0);
+    mix(lead, 1.0, 0.1);
+    mix(pluck, 1.0, -0.25);
+    mix(kick, 1.5);
 
     // A♭M7 → B♭ → Gm7 → Cm9（切ない王道に色をつけたもの）。なめらかにつながる高さで
     final preset = minorPresets.firstWhere((x) => x.name == 'フューチャーベース');
@@ -136,12 +146,12 @@ void buildFutureBassDemo(MdawEngine e) {
     // Pluck：溜めの間、コードを1オクターブ上で16分のアルペジオ
     final (arp, _) = e.createClip(pluck, 0, lengthBars: 4);
     for (var i = 0; i < 4; i++) {
-      fill(arp, rhythmize([for (final x in voiced[i]) x + 12], start: i * tpb, length: tpb, rhythm: ChordRhythm.arpUpDown, velocity: 0.6));
+      fill(arp, rhythmize([for (final x in voiced[i]) x + 12], start: i * tpb, length: tpb, rhythm: ChordRhythm.arpUpDown, velocity: 0.95));
     }
 
     // Sub：ドロップで根音をコードと同じ所で鳴らす
     final (subClip, _) = e.createClip(sub, 4, lengthBars: 4);
-    const roots = [32, 34, 31, 36]; // A♭1 B♭1 G1 C2
+    const roots = [44, 46, 43, 48]; // A♭2 B♭2 G2 C3
     for (var i = 0; i < 4; i++) {
       fill(subClip, rhythmize([roots[i], roots[i] + 7, roots[i] + 12], start: i * tpb, length: tpb, rhythm: ChordRhythm.syncopated)
           .where((n) => n.pitch == roots[i])
@@ -151,7 +161,7 @@ void buildFutureBassDemo(MdawEngine e) {
     // Kick：ドロップの半分の速さのノリ（1拍目と3拍目の裏寄り）
     final (kickClip, _) = e.createClip(kick, 4, lengthBars: 1);
     for (final t in [0, 1680, 2880]) {
-      e.addNote(kickClip, tick: t, length: 360, pitch: 24, velocity: 1.0);
+      e.addNote(kickClip, tick: t, length: 360, pitch: 40, velocity: 1.0); // E2（82Hz）
     }
     for (final bar in [5, 6, 7]) {
       e.placeClip(kickClip, bar);
@@ -166,7 +176,7 @@ void buildFutureBassDemo(MdawEngine e) {
       (12.0, 1.5, 75), (13.5, 0.5, 74), (14.0, 2.0, 72),
     ];
     for (final (start, len, pitch) in tune) {
-      e.addNote(melody, tick: (start * _beat).round(), length: (len * _beat).round() - 20, pitch: pitch, velocity: 0.85);
+      e.addNote(melody, tick: (start * _beat).round(), length: (len * _beat).round() - 20, pitch: pitch, velocity: 0.9);
     }
     e.placeClip(melody, 4);
   });

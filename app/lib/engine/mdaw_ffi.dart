@@ -186,6 +186,8 @@ class MdawEngine {
       int Function(_EnginePtr, Pointer<Utf8>, int)>('mdaw_add_track');
   late final _renameTrack = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>),
       int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_rename_track');
+  late final _setTrackMixer = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Float, Float, Int32, Int32),
+      int Function(_EnginePtr, int, double, double, int, int)>('mdaw_set_track_mixer');
   late final _createClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32, Int32, Pointer<Uint64>),
       int Function(_EnginePtr, int, int, int, Pointer<Uint64>)>('mdaw_create_clip');
   late final _placeClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32),
@@ -267,6 +269,10 @@ class MdawEngine {
     }
   }
 
+  /// 音量（0〜2）・パン（-1〜1）・ミュート・ソロ。変わらなければ false
+  bool setTrackMixer(int trackId, {required double gain, required double pan, required bool mute, required bool solo}) =>
+      _setTrackMixer(_handle, trackId, gain, pan, mute ? 1 : 0, solo ? 1 : 0) != 0;
+
   /// 新しいクリップを作って置く。戻り値は (clipId, placementId)
   (int, int) createClip(int trackId, int startBar, {int lengthBars = 1}) {
     final out = calloc<Uint64>();
@@ -316,6 +322,10 @@ class MdawEngine {
   bool setTrackParam(int trackId, int paramId, double value) => _setTrackParam(_handle, trackId, paramId, value) != 0;
   bool setTrackParamLive(int trackId, int paramId, double value) =>
       _setTrackParamLive(_handle, trackId, paramId, value) != 0;
+
+  /// スライダーのように始まりと終わりが別のイベントになる操作用。必ず [endEditGroup] と対で
+  void beginEditGroup() => _beginGroup(_handle);
+  void endEditGroup() => _endGroup(_handle);
 
   /// [edits] の中の編集を1つの Undo にまとめる（1ジェスチャー＝1 Undo）
   T editGroup<T>(T Function() edits) {

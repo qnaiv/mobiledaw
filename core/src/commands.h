@@ -188,6 +188,20 @@ private:
     Track track_;
 };
 
+// トラックの音量・パン・ミュート・ソロをまとめて変える
+class SetTrackMixer final : public Command {
+public:
+    SetTrackMixer(Id trackId, Mixer mixer) : trackId_(trackId), next_(mixer) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetTrackMixer"; }
+
+private:
+    Id trackId_;
+    Mixer next_;
+    Mixer old_;
+};
+
 class RenameTrack final : public Command {
 public:
     RenameTrack(Id trackId, std::string name) : trackId_(trackId), name_(std::move(name)) {}
