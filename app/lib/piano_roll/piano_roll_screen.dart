@@ -56,6 +56,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   final _hKeys = ScrollController(); // 鍵盤の横（ロールに合わせる）
   final _v = ScrollController(); // ロールの縦
   final _playhead = ValueNotifier<int?>(null); // クリップ先頭からの tick。再生していないときは null
+  final _playing = ValueNotifier<bool>(false);
+  (int, int)? _loop; // いま繰り返している範囲（曲頭からの tick）
   late final Ticker _ticker;
 
   int _step = ticksPerBeat ~/ 2; // 1/8
@@ -81,7 +83,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     _h.addListener(() {
       if (_hKeys.hasClients && _hKeys.offset != _h.offset) _hKeys.jumpTo(_h.offset);
     });
-    _ticker = createTicker((_) => _playhead.value = _localPlayhead())..start();
+    _ticker = createTicker((_) {
+      _playhead.value = _localPlayhead();
+      _playing.value = song.engine.isPlaying;
+    })
+      ..start();
   }
 
   int? _localPlayhead() {
@@ -99,6 +105,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   void dispose() {
     _ticker.dispose();
     _playhead.dispose();
+    _playing.dispose();
+    if (_loop != null) song.clearLoop(); // アレンジに戻ったら曲全体のループに
     _h.dispose();
     _hKeys.dispose();
     _v.dispose();
@@ -124,6 +132,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
         final scale = scaleOf(project);
         final track = project.track(pl.trackId);
         final label = clipLabels(project)[clip.id] ?? '';
+        _followLoop(pl, clip);
 
         return Scaffold(
           body: SafeArea(
@@ -133,7 +142,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                 _header(track, label, pl, scale, clip),
                 _toolbar(clip),
                 Expanded(child: _roll(clip, scale, track)),
-                _bottomControls(),
+                _bottomControls(pl, clip),
               ],
             ),
           ),
@@ -228,12 +237,59 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     );
   }
 
-  Widget _bottomControls() {
+  /// このクリップの範囲（最初の1回ぶん）
+  (int, int) _clipRange(PlacementData pl, ClipData clip) {
+    final start = pl.startBar * song.project.ticksPerBar;
+    return (start, start + clip.lengthTicks);
+  }
+
+  /// ループ再生中にクリップの長さが変わったら、繰り返す範囲も合わせる
+  void _followLoop(PlacementData pl, ClipData clip) {
+    final loop = _loop;
+    if (loop == null) return;
+    final range = _clipRange(pl, clip);
+    if (range != loop) {
+      _loop = range;
+      song.engine.setLoop(range.$1, range.$2);
+    }
+  }
+
+  void _togglePlay(PlacementData pl, ClipData clip) {
+    if (song.engine.isPlaying) {
+      song.engine.stopPlayback();
+      return;
+    }
+    final range = _clipRange(pl, clip);
+    _loop = range;
+    song.playLoop(range.$1, range.$2);
+  }
+
+  Widget _bottomControls(PlacementData pl, ClipData clip) {
     final step = gridSteps.indexOf(_step);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
       child: Row(
         children: [
+          // このクリップだけをループ再生（他のトラックも一緒に鳴る）
+          Expanded(
+            flex: 2,
+            child: SizedBox(
+              height: 44,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _playing,
+                builder: (context, playing, _) => FilledButton.icon(
+                  onPressed: () => _togglePlay(pl, clip),
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  icon: Icon(playing ? Icons.stop : Icons.repeat),
+                  label: Text(playing ? '止める' : 'ループ再生', style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: _ValueButton(
               caption: 'グリッド',

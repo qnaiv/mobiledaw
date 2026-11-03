@@ -70,23 +70,49 @@ void Engine::handle(const Event& e) noexcept {
         case Event::Type::Play:
             if (!playing_) {
                 playing_ = true;
-                rewindTo(position_);
+                // ループの外にいたら頭から
+                rewindTo(position_ >= loopStart() && position_ < loopEnd() ? position_ : loopStart());
             }
             break;
         case Event::Type::Stop:
             playing_ = false;
             releaseSequencedNotes();
-            rewindTo(0.0);
+            rewindTo(loopStart());
             break;
         case Event::Type::Seek: {
             releaseSequencedNotes();
             double t = static_cast<double>(std::max<int64_t>(e.tick, 0));
-            if (current_ != nullptr && current_->loopEndTicks > 0)
-                t = std::fmod(t, static_cast<double>(current_->loopEndTicks));
+            const double ls = loopStart(), le = loopEnd();
+            if (le > ls && (t < ls || t >= le))
+                t = ls + std::fmod(std::max(0.0, t - ls), le - ls);
             rewindTo(t);
             break;
         }
+        case Event::Type::SetLoop: {
+            if (e.tick2 > e.tick && e.tick >= 0) {
+                loopStart_ = e.tick;
+                loopEnd_ = e.tick2;
+            } else {
+                loopStart_ = loopEnd_ = 0;
+            }
+            // 止まっているときはループの頭へ。再生中は範囲の外にいるときだけ頭へ
+            if (!playing_ || position_ < loopStart() || position_ >= loopEnd()) {
+                releaseSequencedNotes();
+                rewindTo(loopStart());
+            }
+            break;
+        }
     }
+}
+
+double Engine::loopStart() const noexcept {
+    return loopEnd_ > loopStart_ ? static_cast<double>(loopStart_) : 0.0;
+}
+
+double Engine::loopEnd() const noexcept {
+    if (loopEnd_ > loopStart_)
+        return static_cast<double>(loopEnd_);
+    return current_ != nullptr ? static_cast<double>(current_->loopEndTicks) : 0.0;
 }
 
 void Engine::rewindTo(double tick) noexcept {
@@ -140,11 +166,10 @@ void Engine::adoptPendingSnapshot() noexcept {
         }
     }
 
-    // 曲が短くなって再生位置がはみ出したら頭へ
-    const double loopEnd = static_cast<double>(current_->loopEndTicks);
-    if (position_ >= loopEnd) {
+    // 曲が短くなって再生位置がはみ出したらループの頭へ
+    if (position_ >= loopEnd() || position_ < loopStart()) {
         releaseSequencedNotes();
-        rewindTo(0.0);
+        rewindTo(loopStart());
     } else {
         cursor_ = current_->firstEventAfter(firedUpTo_);
     }
@@ -244,10 +269,11 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
 }
 
 void Engine::render(float* interleaved, int frames, int channels) noexcept {
+    // 先に新しい曲データを受け取り、そのあとで再生操作を反映する（位置の判定に最新の長さを使うため）
+    adoptPendingSnapshot();
     Event e;
     while (queue_.pop(e))
         handle(e);
-    adoptPendingSnapshot();
 
     const double sr = sampleRate();
     int done = 0;
@@ -259,7 +285,7 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
         if (sequencing) {
             fireDueEvents();
             ticksPerSample = current_->tempo * static_cast<double>(kPpq) / (60.0 * sr);
-            loopEnd = static_cast<double>(current_->loopEndTicks);
+            loopEnd = this->loopEnd();
             // 次のイベント（かループの終わり）までで区切る：イベントはサンプル単位で正確に鳴る
             double next = loopEnd;
             if (cursor_ < current_->events.size())
@@ -274,7 +300,7 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
             position_ += n * ticksPerSample;
             if (position_ >= loopEnd - kTickEpsilon) {
                 releaseSequencedNotes();
-                rewindTo(std::max(0.0, position_ - loopEnd));
+                rewindTo(loopStart() + std::max(0.0, position_ - loopEnd));
             }
         }
         done += n;

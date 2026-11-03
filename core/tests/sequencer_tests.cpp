@@ -309,3 +309,38 @@ TEST(sequencer_many_publishes_while_playing) {
 }
 
 } // namespace
+
+namespace {
+
+using namespace mdaw;
+
+// ピアノロールでクリップだけを繰り返す（範囲ループ）
+TEST(sequencer_loop_range_repeats_only_that_part) {
+    Song s;
+    const Id clip = s.createClip(s.track, 1); // 2小節目
+    s.addNotes(clip, {note(0, 60, kPpq / 4)});
+    const Id other = s.createClip(s.track, 0); // 1小節目（範囲の外）
+    s.addNotes(other, {note(0, 48, kPpq / 4)});
+    auto snap = buildSnapshot(s.project);
+    snap->tracks[0].synth.releaseS = 0.02f;
+    Engine e;
+    e.prepare(kRate);
+    e.publish(std::move(snap));
+    const int64_t bar = kPpq * 4;
+    e.setLoop(bar, bar * 2);
+    e.play(); // 位置 0 は範囲の外なので、範囲の頭から
+    const int barSamples = kSamplesPerBeat * 4;
+    auto out = render(e, barSamples * 2 + 2000);
+    CHECK(firstNonZero(out.l) >= 0 && firstNonZero(out.l) <= 1); // すぐ2小節目のノート（エンベロープの最初の1サンプルは0）
+    CHECK(peak(out.l, barSamples / 2, barSamples) == 0.0f); // 1小節目のノートは鳴らない
+    CHECK(std::abs(firstNonZero(out.l, barSamples / 2) - barSamples) <= 1); // 1小節後にまた頭から
+    CHECK(e.playheadTick() >= bar && e.playheadTick() < bar * 2);
+
+    // 範囲を外すと曲全体に戻る（次は1小節目から）
+    e.stop();
+    e.setLoop(0, 0);
+    render(e, 4800);
+    CHECK(e.playheadTick() == 0);
+}
+
+} // namespace

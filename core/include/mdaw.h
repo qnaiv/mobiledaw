@@ -59,6 +59,8 @@ MDAW_API int32_t mdaw_set_param(mdaw_engine* engine, int32_t param_id, float val
 MDAW_API int32_t mdaw_transport_play(mdaw_engine* engine);
 MDAW_API int32_t mdaw_transport_stop(mdaw_engine* engine);
 MDAW_API int32_t mdaw_transport_seek(mdaw_engine* engine, int64_t tick);
+/* ループする範囲を [start_tick, end_tick) に絞る（ピアノロールでクリップだけを繰り返す）。end <= start で曲全体に戻す */
+MDAW_API int32_t mdaw_transport_set_loop(mdaw_engine* engine, int64_t start_tick, int64_t end_tick);
 MDAW_API int32_t mdaw_transport_is_playing(mdaw_engine* engine);
 MDAW_API int64_t mdaw_transport_position_ticks(mdaw_engine* engine);
 

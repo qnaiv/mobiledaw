@@ -140,6 +140,9 @@ class MdawEngine {
   late final _seek = _lib.lookupFunction<Int32 Function(_EnginePtr, Int64), int Function(_EnginePtr, int)>(
       'mdaw_transport_seek',
       isLeaf: true);
+  late final _setLoop = _lib.lookupFunction<Int32 Function(_EnginePtr, Int64, Int64), int Function(_EnginePtr, int, int)>(
+      'mdaw_transport_set_loop',
+      isLeaf: true);
   late final _isPlaying = _lib
       .lookupFunction<Int32 Function(_EnginePtr), int Function(_EnginePtr)>('mdaw_transport_is_playing', isLeaf: true);
   late final _position = _lib.lookupFunction<Int64 Function(_EnginePtr), int Function(_EnginePtr)>(
@@ -151,6 +154,12 @@ class MdawEngine {
   /// 止めて曲頭へ戻る
   void stopPlayback() => _stopPlayback(_handle);
   void seek(int tick) => _seek(_handle, tick);
+
+  /// ループする範囲を [start, end) の tick に絞る（ピアノロールでクリップだけを繰り返す）
+  void setLoop(int start, int end) => _setLoop(_handle, start, end);
+
+  /// 曲全体のループに戻す
+  void clearLoop() => _setLoop(_handle, 0, 0);
   bool get isPlaying => _isPlaying(_handle) != 0;
 
   /// 再生位置（tick）。画面のフレームごとに読んでよい

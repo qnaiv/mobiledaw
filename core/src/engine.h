@@ -13,12 +13,13 @@
 namespace mdaw {
 
 struct Event {
-    enum class Type : uint8_t { NoteOn, NoteOff, AllNotesOff, Param, TrackParam, Play, Stop, Seek };
+    enum class Type : uint8_t { NoteOn, NoteOff, AllNotesOff, Param, TrackParam, Play, Stop, Seek, SetLoop };
     Type type = Type::NoteOn;
     uint8_t slot = 0;   // TrackParam のトラック
     int16_t index = 0;  // ノート番号 or パラメータID
     float value = 0.0f;
-    int64_t tick = 0;   // Seek の位置
+    int64_t tick = 0;   // Seek の位置、SetLoop の始まり
+    int64_t tick2 = 0;  // SetLoop の終わり
 };
 
 // 音声スレッド側の本体。
@@ -40,21 +41,23 @@ public:
     void render(float* interleaved, int frames, int channels) noexcept;
 
     // ---- UIスレッドから呼ぶ（試聴） ----
-    bool noteOn(int note, float velocity) noexcept { return push({Event::Type::NoteOn, 0, (int16_t) note, velocity, 0}); }
-    bool noteOff(int note) noexcept { return push({Event::Type::NoteOff, 0, (int16_t) note, 0.0f, 0}); }
-    bool allNotesOff() noexcept { return push({Event::Type::AllNotesOff, 0, 0, 0.0f, 0}); }
-    bool setParam(int id, float value) noexcept { return push({Event::Type::Param, 0, (int16_t) id, value, 0}); }
+    bool noteOn(int note, float velocity) noexcept { return push({Event::Type::NoteOn, 0, (int16_t) note, velocity, 0, 0}); }
+    bool noteOff(int note) noexcept { return push({Event::Type::NoteOff, 0, (int16_t) note, 0.0f, 0, 0}); }
+    bool allNotesOff() noexcept { return push({Event::Type::AllNotesOff, 0, 0, 0.0f, 0, 0}); }
+    bool setParam(int id, float value) noexcept { return push({Event::Type::Param, 0, (int16_t) id, value, 0, 0}); }
     // 再生中のトラックの音色をその場で変える（マクロを動かしている間）。確定値はスナップショットで届く
     bool setTrackParam(int slot, int id, float value) noexcept {
         if (slot < 0 || slot >= kMaxSlots)
             return false;
-        return push({Event::Type::TrackParam, (uint8_t) slot, (int16_t) id, value, 0});
+        return push({Event::Type::TrackParam, (uint8_t) slot, (int16_t) id, value, 0, 0});
     }
 
     // ---- UIスレッドから呼ぶ（再生操作） ----
-    bool play() noexcept { return push({Event::Type::Play, 0, 0, 0.0f, 0}); }
-    bool stop() noexcept { return push({Event::Type::Stop, 0, 0, 0.0f, 0}); } // 止めて曲頭へ戻る
-    bool seek(int64_t tick) noexcept { return push({Event::Type::Seek, 0, 0, 0.0f, tick}); }
+    bool play() noexcept { return push({Event::Type::Play, 0, 0, 0.0f, 0, 0}); }
+    bool stop() noexcept { return push({Event::Type::Stop, 0, 0, 0.0f, 0, 0}); } // 止めてループの頭へ戻る
+    bool seek(int64_t tick) noexcept { return push({Event::Type::Seek, 0, 0, 0.0f, tick, 0}); }
+    // ループする範囲（tick）を [start, end) に絞る。end <= start なら曲全体に戻す
+    bool setLoop(int64_t start, int64_t end) noexcept { return push({Event::Type::SetLoop, 0, 0, 0.0f, start, end}); }
 
     // ---- コアスレッドから呼ぶ ----
     // 新しい再生用データを渡す。音声スレッドは次のバッファの頭で差し替える。
@@ -84,6 +87,8 @@ private:
     void fireDueEvents() noexcept;
     void releaseSequencedNotes() noexcept;
     void rewindTo(double tick) noexcept;
+    double loopStart() const noexcept;
+    double loopEnd() const noexcept;
     void renderSegment(float* interleaved, int n, int channels) noexcept;
 
     SpscQueue<Event, 1024> queue_;
@@ -100,6 +105,8 @@ private:
     bool playing_ = false;
     double position_ = 0.0;   // tick
     double firedUpTo_ = -1.0; // この tick までのイベントは処理済み
+    int64_t loopStart_ = 0;   // 範囲ループ（loopEnd_ が 0 なら曲全体）
+    int64_t loopEnd_ = 0;
     size_t cursor_ = 0;       // 次に見るイベント
 
     std::atomic<double> sampleRate_{48000.0};

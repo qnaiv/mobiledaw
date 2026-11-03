@@ -77,6 +77,9 @@ int32_t mdaw_set_param(mdaw_engine* e, int32_t id, float value) { return e && e-
 int32_t mdaw_transport_play(mdaw_engine* e) { return e && e->engine.play() ? 1 : 0; }
 int32_t mdaw_transport_stop(mdaw_engine* e) { return e && e->engine.stop() ? 1 : 0; }
 int32_t mdaw_transport_seek(mdaw_engine* e, int64_t tick) { return e && e->engine.seek(tick) ? 1 : 0; }
+int32_t mdaw_transport_set_loop(mdaw_engine* e, int64_t start, int64_t end) {
+    return e && e->engine.setLoop(start, end) ? 1 : 0;
+}
 int32_t mdaw_transport_is_playing(mdaw_engine* e) { return e && e->engine.isPlaying() ? 1 : 0; }
 int64_t mdaw_transport_position_ticks(mdaw_engine* e) { return e ? e->engine.playheadTick() : 0; }
 

@@ -231,13 +231,24 @@ class SongController extends ChangeNotifier {
 
   // ---- 再生 -----------------------------------------------------------------
 
+  /// アレンジ画面の再生：曲全体をループ
   void togglePlay() {
     if (engine.isPlaying) {
       engine.stopPlayback();
     } else {
+      engine.clearLoop();
       engine.play();
     }
   }
+
+  /// ピアノロールの再生：そのクリップの範囲だけを繰り返す（他のトラックも一緒に鳴る）
+  void playLoop(int startTick, int endTick) {
+    engine.setLoop(startTick, endTick);
+    engine.play();
+  }
+
+  /// 範囲ループをやめて曲全体に戻す（止まっていれば曲頭へ）
+  void clearLoop() => engine.clearLoop();
 
   void rewind() {
     engine.seek(0);
