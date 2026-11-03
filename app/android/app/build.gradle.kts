@@ -41,10 +41,24 @@ android {
         }
     }
 
+    // リリース用の署名鍵。CI が GitHub のシークレットから鍵を取り出し、環境変数で場所とパスワードを渡す。
+    // 毎回同じ鍵で署名するので、新しい APK をアンインストールせずに上書きでインストールできる。
+    // 鍵が渡されないとき（手元のビルド）はデバッグ鍵で署名する。
+    val releaseKeystore = System.getenv("MDAW_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("MDAW_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MDAW_KEY_ALIAS")
+                keyPassword = System.getenv("MDAW_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // 自分用なのでデバッグ鍵で署名する
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
@@ -52,4 +66,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // アップデートの APK をインストーラーへ渡す FileProvider
+    implementation("androidx.core:core:1.13.1")
 }

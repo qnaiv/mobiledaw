@@ -8,6 +8,8 @@ import 'engine/mdaw_ffi.dart';
 import 'music/scale.dart';
 import 'ui/scale_keyboard.dart';
 import 'ui/theme.dart';
+import 'update/update_banner.dart';
+import 'update/updater.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -120,6 +122,7 @@ class _SoundCheckScreenState extends State<SoundCheckScreen> {
               Text('C minor · 鍵盤は下ほど強く鳴る · 指を滑らせると音が移る',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: DawColors.muted)),
               const SizedBox(height: 16),
+              const UpdateBanner(),
               _StatusPanel(status: _status, error: _error),
               const SizedBox(height: 20),
               _MacroSlider(
@@ -200,6 +203,7 @@ class _StatusPanel extends StatelessWidget {
       ('出力遅延（推定）', s == null ? '—' : fmt(s.outputLatencyMs)),
       ('音切れ回数', s == null || s.xruns < 0 ? '—' : '${s.xruns}'),
       ('鳴っている声', s == null ? '—' : '${s.activeVoices} / 8'),
+      ('アプリの版', currentBuild == 0 ? '手元のビルド' : 'build $currentBuild'),
     ];
     return Container(
       padding: const EdgeInsets.all(14),

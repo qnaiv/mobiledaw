@@ -57,7 +57,13 @@ flutter run --release           # 実機につないで起動
 
 ### CI
 
-push するたびに GitHub Actions がコアのテストと APK のビルドを行う。APK は Actions の実行結果の Artifacts（`mobiledaw-apk`）からダウンロードして実機に入れられる。
+push するたびに GitHub Actions がコアのテストと APK のビルドを行う。APK は Actions の実行結果の Artifacts（`mobiledaw-apk`）からもダウンロードできる。
+
+### アップデート
+
+- `main` に push すると、CI が固定の署名鍵で署名した APK を GitHub のリリース（タグ `build-<実行番号>`）に置く。リリースは新しい10件だけ残す
+- アプリは起動時に最新リリースを確かめ、自分のビルド番号より新しければ画面上部に「アップデート」の帯を出す。「入れる」でダウンロードしてインストーラーが開く（初回だけ「この提供元のアプリを許可」が要る）
+- 署名鍵は Actions のシークレット `ANDROID_KEYSTORE_BASE64` / `ANDROID_KEYSTORE_PASSWORD` / `ANDROID_KEY_ALIAS` / `ANDROID_KEY_PASSWORD`。控えは持ち主の Google ドライブにある。シークレットが無いとデバッグ鍵で署名し、リリースは作らない
 
 ## ライセンス
 
