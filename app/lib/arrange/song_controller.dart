@@ -170,6 +170,31 @@ class SongController extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---- ノート（縦ピアノロールから） ---------------------------------------------
+
+  ClipData? clip(int clipId) => project.clip(clipId);
+
+  /// 置けたらノートの ID、置けなければ 0
+  int addNote(int clipId, {required int tick, required int length, required int pitch, double velocity = 0.8}) =>
+      _edit(() => engine.addNote(clipId, tick: tick, length: length, pitch: pitch, velocity: velocity));
+
+  bool moveNotes(int clipId, List<int> ids, {int deltaTicks = 0, int deltaPitch = 0}) =>
+      _edit(() => engine.moveNotes(clipId, ids, deltaTicks: deltaTicks, deltaPitch: deltaPitch));
+
+  bool resizeNotes(int clipId, List<int> ids, int deltaTicks) =>
+      _edit(() => engine.resizeNotes(clipId, ids, deltaTicks));
+
+  bool deleteNotes(int clipId, List<int> ids) => _edit(() => engine.deleteNotes(clipId, ids));
+
+  /// 試聴鍵盤とノートを置いたときの音を、そのトラックの音色にする
+  void previewTrack(int trackId) => engine.previewTrack(trackId);
+
+  /// ノートを置いた・動かしたときに短く鳴らす
+  void audition(int pitch, {double velocity = 0.8}) {
+    engine.noteOn(pitch, velocity);
+    Timer(const Duration(milliseconds: 180), () => engine.noteOff(pitch));
+  }
+
   // ---- 再生 -----------------------------------------------------------------
 
   void togglePlay() {

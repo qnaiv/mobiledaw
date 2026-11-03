@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../model/project.dart';
 import '../music/scale.dart';
+import '../piano_roll/piano_roll_screen.dart';
 import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'song_controller.dart';
@@ -166,6 +167,13 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
     );
     if (result != null) song.setTempo(result);
   }
+}
+
+/// クリップの中身を縦ピアノロールで開く
+void openPianoRoll(BuildContext context, SongController song, int placementId) {
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => PianoRollScreen(song: song, placementId: placementId)),
+  );
 }
 
 // ---- ヘッダー ------------------------------------------------------------------
@@ -330,7 +338,11 @@ class _TimelineState extends State<_Timeline> {
     final track = p.tracks[col];
     final hit = p.placementAt(track.id, bar);
     if (hit != null) {
-      song.select(song.selectedPlacementId == hit.id ? null : hit.id);
+      if (song.selectedPlacementId == hit.id) {
+        openPianoRoll(context, song, hit.id); // 選んでいるクリップをもう一度タップで中身を開く
+      } else {
+        song.select(hit.id);
+      }
     } else if (song.selectedPlacementId != null) {
       song.select(null); // 選択中ならまず外すだけ（うっかり置かないように）
     } else {
@@ -554,7 +566,7 @@ class _SelectionBar extends StatelessWidget {
       child: sel == null
           ? const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Text('空いているマスをタップでクリップを置く · クリップをタップで選ぶ',
+              child: Text('空いているマスをタップでクリップを置く · タップで選び、もう一度タップで中身を開く',
                   style: TextStyle(fontSize: 12, color: DawColors.muted)),
             )
           : Row(
@@ -567,7 +579,7 @@ class _SelectionBar extends StatelessWidget {
                 ),
                 _BarAction(icon: Icons.arrow_downward, label: '下へ', onPressed: () => _move(song, 1)),
                 _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
-                const _BarAction(icon: Icons.piano, label: 'ノート', onPressed: null), // 縦ピアノロールは次の作業
+                _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
               ],
             ),
     );
