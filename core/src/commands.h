@@ -202,6 +202,11 @@ class CompoundCommand final : public Command {
 public:
     explicit CompoundCommand(const char* label) : label_(label) {}
     void add(CommandPtr c) { children_.push_back(std::move(c)); }
+    // すでにモデルへ適用済みのコマンドを加える（ジェスチャー中に1つずつ反映し、最後にまとめる用）
+    void addApplied(CommandPtr c) {
+        children_.push_back(std::move(c));
+        applied_ = children_.size();
+    }
     bool apply(Project& p) override;
     void revert(Project& p) override;
     const char* name() const override { return label_; }

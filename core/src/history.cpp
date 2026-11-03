@@ -13,6 +13,16 @@ bool History::execute(CommandPtr command) {
     return true;
 }
 
+void History::recordApplied(CommandPtr command) {
+    if (!command)
+        return;
+    undo_.push_back(std::move(command));
+    if (undo_.size() > limit_)
+        undo_.pop_front();
+    redo_.clear();
+    ++revision_;
+}
+
 bool History::undo() {
     if (undo_.empty())
         return false;

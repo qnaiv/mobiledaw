@@ -16,6 +16,8 @@ public:
 
     // 適用できたら履歴に積んで true。Redo の履歴は消える。
     bool execute(CommandPtr command);
+    // すでにモデルへ適用済みのコマンドを履歴に積む（編集グループの締めくくり用）
+    void recordApplied(CommandPtr command);
     bool undo();
     bool redo();
     void clear();
