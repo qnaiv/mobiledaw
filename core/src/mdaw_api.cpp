@@ -44,6 +44,12 @@ int32_t mdaw_note_off(mdaw_engine* e, int32_t note) { return e && e->engine.note
 int32_t mdaw_all_notes_off(mdaw_engine* e) { return e && e->engine.allNotesOff() ? 1 : 0; }
 int32_t mdaw_set_param(mdaw_engine* e, int32_t id, float value) { return e && e->engine.setParam(id, value) ? 1 : 0; }
 
+int32_t mdaw_transport_play(mdaw_engine* e) { return e && e->engine.play() ? 1 : 0; }
+int32_t mdaw_transport_stop(mdaw_engine* e) { return e && e->engine.stop() ? 1 : 0; }
+int32_t mdaw_transport_seek(mdaw_engine* e, int64_t tick) { return e && e->engine.seek(tick) ? 1 : 0; }
+int32_t mdaw_transport_is_playing(mdaw_engine* e) { return e && e->engine.isPlaying() ? 1 : 0; }
+int64_t mdaw_transport_position_ticks(mdaw_engine* e) { return e ? e->engine.playheadTick() : 0; }
+
 int32_t mdaw_sample_rate(mdaw_engine* e) { return e && e->output ? e->output->sampleRate() : 0; }
 int32_t mdaw_frames_per_burst(mdaw_engine* e) { return e && e->output ? e->output->framesPerBurst() : 0; }
 int32_t mdaw_buffer_size_frames(mdaw_engine* e) { return e && e->output ? e->output->bufferSizeFrames() : 0; }

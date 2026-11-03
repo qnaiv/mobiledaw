@@ -50,6 +50,14 @@ MDAW_API int32_t mdaw_note_off(mdaw_engine* engine, int32_t note);
 MDAW_API int32_t mdaw_all_notes_off(mdaw_engine* engine);
 MDAW_API int32_t mdaw_set_param(mdaw_engine* engine, int32_t param_id, float value);
 
+/* 再生操作（曲の中身は M2 の「プロジェクト操作」で渡す）。戻り値 1 = キューに積めた。
+   stop は止めて曲頭へ戻る。position は 960 PPQ の tick。 */
+MDAW_API int32_t mdaw_transport_play(mdaw_engine* engine);
+MDAW_API int32_t mdaw_transport_stop(mdaw_engine* engine);
+MDAW_API int32_t mdaw_transport_seek(mdaw_engine* engine, int64_t tick);
+MDAW_API int32_t mdaw_transport_is_playing(mdaw_engine* engine);
+MDAW_API int64_t mdaw_transport_position_ticks(mdaw_engine* engine);
+
 /* 状態の取得（表示用）。 */
 MDAW_API int32_t mdaw_sample_rate(mdaw_engine* engine);
 MDAW_API int32_t mdaw_frames_per_burst(mdaw_engine* engine);

@@ -66,7 +66,8 @@ set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/model.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/commands.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/history.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/project_json.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/project_json.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/playback.cpp)
 
 set(MDAW_WARNINGS -Wall -Wextra -Wno-unused-parameter)
 
@@ -109,6 +110,7 @@ if(MDAW_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/engine_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/model_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/json_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/sequencer_tests.cpp
         $<TARGET_OBJECTS:mdaw_juce>)
     target_include_directories(mdaw_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

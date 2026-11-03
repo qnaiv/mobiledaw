@@ -23,6 +23,13 @@ public:
         return true;
     }
 
+    // 書き手側から呼ぶ：あと1つ積めるか
+    bool canPush() const noexcept {
+        const auto head = head_.load(std::memory_order_relaxed);
+        const auto tail = tail_.load(std::memory_order_acquire);
+        return head - tail < Capacity;
+    }
+
     bool pop(T& out) noexcept {
         const auto tail = tail_.load(std::memory_order_relaxed);
         const auto head = head_.load(std::memory_order_acquire);

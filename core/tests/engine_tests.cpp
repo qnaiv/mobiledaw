@@ -145,6 +145,11 @@ TEST(test_c_api_without_audio_device) {
     CHECK(mdaw_note_on(e, 60, 1.0f) == 1);
     CHECK(mdaw_set_param(e, MDAW_PARAM_CUTOFF_HZ, 1000.0f) == 1);
     CHECK(mdaw_output_latency_ms(e) < 0.0);
+    CHECK(mdaw_transport_play(e) == 1);
+    CHECK(mdaw_transport_seek(e, 960) == 1);
+    CHECK(mdaw_transport_stop(e) == 1);
+    CHECK(mdaw_transport_is_playing(e) == 0); // 音声スレッドが動いていないので状態は変わらない
+    CHECK(mdaw_transport_position_ticks(e) == 0);
     mdaw_stop(e);
     mdaw_destroy(e);
 }
