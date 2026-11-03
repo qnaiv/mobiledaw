@@ -213,6 +213,25 @@ class SongController extends ChangeNotifier {
 
   bool deleteNotes(int clipId, List<int> ids) => _edit(() => engine.deleteNotes(clipId, ids));
 
+  /// コードの音をまとめて置く（1つの Undo）。置けたノートの ID を返す
+  List<int> addChord(int clipId, {required int tick, required int length, required List<int> pitches}) {
+    return _edit(() => engine.editGroup(() => [
+          for (final p in pitches) engine.addNote(clipId, tick: tick, length: length, pitch: p),
+        ].where((id) => id != 0).toList()));
+  }
+
+  /// コードを短く鳴らす
+  void auditionChord(List<int> pitches) {
+    for (final p in pitches) {
+      engine.noteOn(p, 0.7);
+    }
+    Timer(const Duration(milliseconds: 450), () {
+      for (final p in pitches) {
+        engine.noteOff(p);
+      }
+    });
+  }
+
   /// ノートの頭を動かす（終わりはそのまま）。移動と長さ変更を1つの Undo にまとめる
   bool trimNotesStart(int clipId, List<int> ids, int deltaTicks) {
     if (deltaTicks == 0) return false;

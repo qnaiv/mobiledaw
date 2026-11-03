@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import '../arrange/song_controller.dart';
 import '../arrange/timeline_math.dart';
 import '../model/project.dart';
+import '../music/chords.dart';
 import '../music/scale.dart';
 import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
@@ -76,6 +77,14 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   int _step = ticksPerBeat ~/ 2; // 1/8
   bool _chromatic = false;
+
+  // コード入力モード
+  bool _chordMode = false;
+  int _chordDegree = 0; // 選んでいるコード（キーの中の番号）
+  bool _seventh = false; // 7thを足す
+  int _chordLenIndex = 0; // 置く長さ（_chordLengths の何番目か）
+  int? _suggestFrom; // 直前に置いたコード（おすすめの元）
+  List<int> _suggest = const []; // 次に合うコード（合う順）
   final Set<int> _selection = {};
   _Drag? _drag;
   bool _centered = false; // 開いたときに一度だけノートのある音域へスクロールする
@@ -156,6 +165,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                 _header(track, label, pl, scale, clip),
                 _toolbar(clip),
                 Expanded(child: _roll(clip, scale, track)),
+                if (_chordMode) _chordPanel(scale, clip),
                 _bottomControls(pl, clip),
               ],
             ),
@@ -225,8 +235,10 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           Expanded(
             child: Text(
               ids.isEmpty
-                  ? 'タップで置く · ノートをタップでつまみ · 長押しなぞりで範囲選択 · 2本指で縮尺'
-                  : '選んだノート ${ids.length} 個 · つまみで長さ、真ん中で移動',
+                  ? (_chordMode
+                      ? 'コードを選んでタップで置く · ノートをタップで選ぶ · 2本指で縮尺'
+                      : 'タップで置く · タップで選ぶ · 長押しで移動 · 何もない所を長押しで範囲選択')
+                  : '選んだノート ${ids.length} 個 · つまみで長さ、掴むか長押しで移動 · ゴミ箱で削除',
               maxLines: 2,
               style: const TextStyle(fontSize: 11, color: DawColors.muted),
             ),
@@ -278,6 +290,109 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     song.playLoop(range.$1, range.$2);
   }
 
+  // ---- コード入力 -------------------------------------------------------------
+
+  List<Chord> _chords(Scale scale) => diatonicChords(scale, minor: song.project.scale != 'major');
+
+  /// 置く長さの選択肢（tick と表示名）
+  List<(int, String)> get _chordLengths {
+    final tpb = song.project.ticksPerBar;
+    return [(tpb, '1小節'), (tpb ~/ 2, '2拍'), (ticksPerBeat, '1拍'), (_step, 'グリッド')];
+  }
+
+  void _selectChord(Scale scale, int degree) {
+    setState(() => _chordDegree = degree);
+    final chord = _chords(scale)[degree];
+    song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
+  }
+
+  void _placeChord(ClipData clip, int tick, int tappedPitch) {
+    final scale = scaleOf(song.project);
+    final chord = _chords(scale)[_chordDegree];
+    final pitches = chord.pitchesNear(tappedPitch, withSeventh: _seventh);
+    final length = math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - tick);
+    final ids = song.addChord(clip.id, tick: tick, length: length, pitches: pitches);
+    song.auditionChord(pitches);
+    final next = suggestNext(chord.degree, minor: song.project.scale != 'major');
+    setState(() {
+      _selection
+        ..clear()
+        ..addAll(ids);
+      _suggestFrom = chord.degree;
+      _suggest = next;
+      _chordDegree = next.first; // 一番のおすすめを選んだ状態に（続けてタップでつながる）
+    });
+  }
+
+  /// 鍵盤の代わりに並ぶコードのボタン。置いた直後は次に合うコードが光る
+  Widget _chordPanel(Scale scale, ClipData clip) {
+    final chords = _chords(scale);
+    final from = _suggestFrom;
+    final length = _chordLengths[_chordLenIndex];
+    String label(Chord c) => _seventh ? c.seventhName : c.name;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  from == null
+                      ? 'コードを選んで、ロールをタップした高さに置く'
+                      : '${label(chords[from])} のあとに：'
+                          '${[for (var i = 0; i < _suggest.length; i++) '${i + 1} ${label(chords[_suggest[i]])}'].join('  ')}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 12, color: DawColors.muted),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _chordLenIndex = (_chordLenIndex + 1) % _chordLengths.length),
+                child: Text('長さ ${length.$2}', style: const TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
+          for (final row in [chords.sublist(0, 4), chords.sublist(4)])
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  for (final c in row)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: _ChordButton(
+                          name: label(c),
+                          mood: c.mood,
+                          selected: c.degree == _chordDegree,
+                          rank: _suggest.indexOf(c.degree) + 1,
+                          onTap: () => _selectChord(scale, c.degree),
+                        ),
+                      ),
+                    ),
+                  if (row.length < 4)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 3),
+                        child: _ChordButton(
+                          name: '7th',
+                          mood: _seventh ? '足す' : '足さない',
+                          selected: _seventh,
+                          rank: 0,
+                          onTap: () => setState(() => _seventh = !_seventh),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _bottomControls(PlacementData pl, ClipData clip) {
     final step = gridSteps.indexOf(_step);
     return Padding(
@@ -301,6 +416,19 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   label: Text(playing ? '止める' : 'ループ再生', style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ValueButton(
+              caption: 'コード',
+              value: _chordMode ? 'ON' : 'OFF',
+              highlighted: _chordMode,
+              onTap: () => setState(() {
+                _chordMode = !_chordMode;
+                _suggestFrom = null;
+                _suggest = const [];
+              }),
             ),
           ),
           const SizedBox(width: 8),
@@ -352,7 +480,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       child: LayoutBuilder(
         builder: (context, box) {
           final viewportW = box.maxWidth - _labelWidth;
-          final viewportH = box.maxHeight - _keyboardHeight - 6;
+          final keyboardH = _chordMode ? 0.0 : _keyboardHeight + 6;
+          final viewportH = box.maxHeight - keyboardH;
           final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
           final rowHeight = _rowHeightFor(viewportH, rows);
           final g = RollGeometry(
@@ -389,7 +518,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (d) => _onTap(clip, g, _toContent(d.localPosition)),
                   onLongPressStart: (d) => _onLongPressStart(clip, g, _toContent(d.localPosition)),
-                  onLongPressMoveUpdate: (d) => _onLongPressMove(_toContent(d.localPosition)),
+                  onLongPressMoveUpdate: (d) => _onLongPressMove(g, _toContent(d.localPosition)),
                   onLongPressEnd: (_) => _onLongPressEnd(clip, g),
                   // 1本指はなぞり（スクロール・編集）、2本指はピンチで縮尺
                   onScaleStart: (d) {
@@ -447,7 +576,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   ),
                 ),
               ),
-              // 試聴鍵盤（ロールと一緒に横へ動く）
+              // 試聴鍵盤（ロールと一緒に横へ動く）。コード入力中はコードのボタンに置き換わる
+              if (!_chordMode)
               Positioned(
                 left: _labelWidth,
                 right: 0,
@@ -578,9 +708,13 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       setState(_selection.clear);
       return;
     }
-    // 何もないところ：ノートを置いて選ぶ（すぐつまみで伸ばせる）
     final tick = g.tickAt(at.dy);
     final pitch = g.columns[col];
+    if (_chordMode) {
+      _placeChord(clip, tick, pitch);
+      return;
+    }
+    // 何もないところ：ノートを置いて選ぶ（すぐつまみで伸ばせる）
     final id = song.addNote(clip.id, tick: tick, length: math.min(_step, clip.lengthTicks - tick), pitch: pitch);
     song.audition(pitch);
     setState(() {
@@ -589,35 +723,58 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     });
   }
 
+  /// 長押し：ノートの上なら持ち上げて移動、何もないところなら範囲選択
   void _onLongPressStart(ClipData clip, RollGeometry g, Offset at) {
     final hit = noteAt(clip, g, at.dx, at.dy);
     if (hit != null) {
       HapticFeedback.mediumImpact();
-      final ids = _selection.contains(hit.id) ? _selection.toList() : [hit.id];
-      song.deleteNotes(clip.id, ids);
-      setState(() => _selection.removeAll(ids));
+      if (!_selection.contains(hit.id)) {
+        _selection
+          ..clear()
+          ..add(hit.id);
+      }
+      setState(() => _drag = _Drag(
+            kind: _DragKind.move,
+            start: at,
+            ids: _selection.toList(),
+            anchorPitch: hit.pitch,
+            anchorCol: g.columnOf(hit.pitch) ?? 0,
+          ));
       return;
     }
     HapticFeedback.selectionClick();
     setState(() => _drag = _Drag(kind: _DragKind.marquee, start: at));
   }
 
-  void _onLongPressMove(Offset at) {
+  void _onLongPressMove(RollGeometry g, Offset at) {
     final d = _drag;
-    if (d == null || d.kind != _DragKind.marquee) return;
-    setState(() => d.current = at);
+    if (d == null) return;
+    d.current = at;
+    if (d.kind == _DragKind.move) _auditionMove(d, g);
+    setState(() {});
   }
 
   void _onLongPressEnd(ClipData clip, RollGeometry g) {
     final d = _drag;
-    if (d == null || d.kind != _DragKind.marquee) return;
-    final ids = notesInRect(clip, g, d.start.dx, d.start.dy, d.current.dx, d.current.dy);
-    setState(() {
-      _drag = null;
-      _selection
+    if (d == null) return;
+    setState(() => _drag = null);
+    if (d.kind == _DragKind.marquee) {
+      final ids = notesInRect(clip, g, d.start.dx, d.start.dy, d.current.dx, d.current.dy);
+      setState(() => _selection
         ..clear()
-        ..addAll(ids);
-    });
+        ..addAll(ids));
+    } else {
+      _commit(d, clip, g);
+    }
+  }
+
+  /// 動かしている間、行き先の音を鳴らす
+  void _auditionMove(_Drag d, RollGeometry g) {
+    final pitch = d.anchorPitch + _deltaPitch(d, g);
+    if (pitch != d.lastAuditioned && pitch != d.anchorPitch) {
+      d.lastAuditioned = pitch;
+      song.audition(pitch);
+    }
   }
 
   void _onPanStart(ClipData clip, RollGeometry g, Offset at) {
@@ -665,13 +822,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       return;
     }
     d.current = _toContent(viewportPos);
-    if (d.kind == _DragKind.move) {
-      final pitch = d.anchorPitch + _deltaPitch(d, g);
-      if (pitch != d.lastAuditioned && pitch != d.anchorPitch) {
-        d.lastAuditioned = pitch;
-        song.audition(pitch);
-      }
-    }
+    if (d.kind == _DragKind.move) _auditionMove(d, g);
     setState(() {});
   }
 
@@ -679,9 +830,18 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     final d = _drag;
     setState(() => _drag = null);
     if (d == null) return;
+    if (d.kind == _DragKind.scroll) {
+      _fling(velocity);
+      return;
+    }
+    _commit(d, clip, g);
+  }
+
+  /// なぞり終わり：1つの編集コマンドにする
+  void _commit(_Drag d, ClipData clip, RollGeometry g) {
     switch (d.kind) {
       case _DragKind.scroll:
-        _fling(velocity);
+        break;
       case _DragKind.move:
         {
           final dt = _deltaTicks(d, g);
@@ -837,6 +997,33 @@ class _RollPainter extends CustomPainter {
           outline: selection.contains(n.id) && !moving.contains(n.id) ? DawColors.text : null);
     }
 
+    // 同じ時刻に3音以上あればコード名を出す（転回形なら A♭/C のように）
+    final byTick = <int, List<NoteData>>{};
+    for (final n in clip.notes) {
+      (byTick[n.tick] ??= []).add(n);
+    }
+    for (final entry in byTick.entries) {
+      if (entry.value.length < 3) continue;
+      final name = chordNameOf(entry.value.map((n) => n.pitch));
+      if (name == null) continue;
+      final cols = entry.value.map((n) => g.columnOf(n.pitch)).whereType<int>();
+      if (cols.isEmpty) continue;
+      final x = g.colX(cols.reduce(math.min)) + 3;
+      final y = g.tickY(entry.key) + 3;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: name,
+          style: const TextStyle(color: DawColors.text, fontSize: 11, fontWeight: FontWeight.w700),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(x, y, tp.width + 10, tp.height + 2), const Radius.circular(7)),
+        Paint()..color = DawColors.background.withValues(alpha: 0.85),
+      );
+      tp.paint(canvas, Offset(x + 5, y + 1));
+    }
+
     // なぞっている途中の見た目
     if (d != null) {
       switch (d.kind) {
@@ -973,16 +1160,17 @@ class _RoundIcon extends StatelessWidget {
 }
 
 class _ValueButton extends StatelessWidget {
-  const _ValueButton({required this.caption, required this.value, required this.onTap});
+  const _ValueButton({required this.caption, required this.value, required this.onTap, this.highlighted = false});
 
   final String caption;
   final String value;
   final VoidCallback onTap;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: DawColors.panel,
+      color: highlighted ? const Color(0xFF2E3A1A) : DawColors.panel,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: DawColors.line),
@@ -1001,6 +1189,71 @@ class _ValueButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ChordButton extends StatelessWidget {
+  const _ChordButton({
+    required this.name,
+    required this.mood,
+    required this.selected,
+    required this.rank,
+    required this.onTap,
+  });
+
+  final String name;
+  final String mood;
+  final bool selected;
+  final int rank; // 次のおすすめの順位（0 ならおすすめではない）
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final recommended = rank > 0;
+    final fg = selected ? DawColors.background : DawColors.text;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: selected ? DawColors.text : DawColors.panel,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+              color: recommended ? DawColors.accent : DawColors.line,
+              width: recommended ? 2 : 1,
+            ),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: SizedBox(
+              height: 48,
+              width: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(name, maxLines: 1, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: fg)),
+                  Text(mood,
+                      maxLines: 1,
+                      style: TextStyle(fontSize: 10, color: selected ? DawColors.background : DawColors.muted)),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (recommended)
+          Positioned(
+            top: -6,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(color: DawColors.accent, borderRadius: BorderRadius.circular(8)),
+              child: Text('$rank',
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: DawColors.background)),
+            ),
+          ),
+      ],
     );
   }
 }
