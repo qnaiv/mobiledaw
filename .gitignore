@@ -1,0 +1,10 @@
+# C++ core
+/build/
+/core/build/
+.cxx/
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.iml
