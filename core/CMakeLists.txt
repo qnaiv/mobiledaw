@@ -54,6 +54,12 @@ target_compile_definitions(mdaw_juce PUBLIC
     $<$<PLATFORM_ID:Android>:JUCE_ANDROID=1>)
 target_compile_options(mdaw_juce PRIVATE -w)
 
+if(ANDROID)
+    # JUCE が Android で使う NDK 付属の cpufeatures
+    target_sources(mdaw_juce PRIVATE ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
+    target_include_directories(mdaw_juce PUBLIC ${ANDROID_NDK}/sources/android/cpufeatures)
+endif()
+
 set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/synth.cpp)
