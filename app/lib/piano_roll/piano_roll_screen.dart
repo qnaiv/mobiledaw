@@ -47,7 +47,21 @@ class PianoRollScreen extends StatefulWidget {
 }
 
 class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProviderStateMixin {
-  static const double _colWidth = 46;
+  static const double _minColWidth = 22;
+  static const double _maxColWidth = 110;
+  static const double _minRowHeight = 10;
+  static const double _maxRowHeight = 160;
+
+  // ピンチで変わる縮尺（横：列の幅、縦：行の高さの倍率）
+  double _colWidth = 46;
+  double _rowZoom = 1;
+
+  // ピンチ中の状態
+  bool _zooming = false;
+  double _zoomBaseCol = 46;
+  double _zoomBaseRow = 1;
+  double _zoomFocalPitchX = 0; // 指の間にある位置（列の単位）
+  double _zoomFocalRow = 0; // 指の間にある位置（行の単位）
   static const double _labelWidth = 24;
   static const double _keyboardHeight = 64;
   static const double _bottomRoom = 160; // クリップの終わりのつまみを下へ引くための余白
@@ -211,7 +225,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           Expanded(
             child: Text(
               ids.isEmpty
-                  ? 'タップで置く · ノートをタップでつまみ · 長押しなぞりで範囲選択'
+                  ? 'タップで置く · ノートをタップでつまみ · 長押しなぞりで範囲選択 · 2本指で縮尺'
                   : '選んだノート ${ids.length} 個 · つまみで長さ、真ん中で移動',
               maxLines: 2,
               style: const TextStyle(fontSize: 11, color: DawColors.muted),
@@ -340,7 +354,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           final viewportW = box.maxWidth - _labelWidth;
           final viewportH = box.maxHeight - _keyboardHeight - 6;
           final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
-          final rowHeight = (viewportH / rows).clamp(24.0, 44.0).toDouble();
+          final rowHeight = _rowHeightFor(viewportH, rows);
           final g = RollGeometry(
             columns: rollColumns(scale, chromatic: _chromatic),
             colWidth: _colWidth,
@@ -377,10 +391,29 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   onLongPressStart: (d) => _onLongPressStart(clip, g, _toContent(d.localPosition)),
                   onLongPressMoveUpdate: (d) => _onLongPressMove(_toContent(d.localPosition)),
                   onLongPressEnd: (_) => _onLongPressEnd(clip, g),
-                  onPanStart: (d) => _onPanStart(clip, g, _toContent(d.localPosition)),
-                  onPanUpdate: (d) => _onPanUpdate(g, d.localPosition, d.delta),
-                  onPanEnd: (d) => _onPanEnd(clip, g, d.velocity),
-                  onPanCancel: () => setState(() => _drag = null),
+                  // 1本指はなぞり（スクロール・編集）、2本指はピンチで縮尺
+                  onScaleStart: (d) {
+                    if (d.pointerCount >= 2) {
+                      _startZoom(g, d.localFocalPoint);
+                    } else {
+                      _onPanStart(clip, g, _toContent(d.localFocalPoint));
+                    }
+                  },
+                  onScaleUpdate: (d) {
+                    if (d.pointerCount >= 2) {
+                      if (!_zooming) _startZoom(g, d.localFocalPoint);
+                      _updateZoom(d, viewportH, clip);
+                    } else if (!_zooming) {
+                      _onPanUpdate(g, d.localFocalPoint, d.focalPointDelta);
+                    }
+                  },
+                  onScaleEnd: (d) {
+                    if (_zooming) {
+                      _zooming = false;
+                      return;
+                    }
+                    _onPanEnd(clip, g, d.velocity);
+                  },
                   child: SingleChildScrollView(
                     controller: _h,
                     scrollDirection: Axis.horizontal,
@@ -456,6 +489,44 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     final target = g.scrollToCenter(pitch, viewportW);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_h.hasClients) _h.jumpTo(target.clamp(0, _h.position.maxScrollExtent).toDouble());
+    });
+  }
+
+  double _rowHeightFor(double viewportH, int rows) =>
+      ((viewportH / rows).clamp(24.0, 44.0) * _rowZoom).clamp(_minRowHeight, _maxRowHeight).toDouble();
+
+  /// ピンチの始まり：指の間にある位置を覚えておく（拡大・縮小してもそこが指の間に残るように）
+  void _startZoom(RollGeometry g, Offset focal) {
+    // なぞりの途中で2本目の指が来たら、なぞりは取り消す
+    if (_drag != null) setState(() => _drag = null);
+    _zooming = true;
+    _zoomBaseCol = _colWidth;
+    _zoomBaseRow = _rowZoom;
+    _zoomFocalPitchX = (focal.dx + (_h.hasClients ? _h.offset : 0)) / g.colWidth;
+    _zoomFocalRow = (focal.dy + (_v.hasClients ? _v.offset : 0)) / g.rowHeight;
+  }
+
+  void _updateZoom(ScaleUpdateDetails d, double viewportH, ClipData clip) {
+    final col = (_zoomBaseCol * d.horizontalScale).clamp(_minColWidth, _maxColWidth).toDouble();
+    final zoom = (_zoomBaseRow * d.verticalScale).clamp(0.25, 6.0).toDouble();
+    if (col == _colWidth && zoom == _rowZoom) return;
+    setState(() {
+      _colWidth = col;
+      _rowZoom = zoom;
+    });
+    // 描き直したあとで、指の間の位置が動かないようにスクロールを合わせる
+    final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
+    final rowH = _rowHeightFor(viewportH, rows);
+    final focal = d.localFocalPoint;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_h.hasClients) {
+        final x = _zoomFocalPitchX * col - focal.dx;
+        _h.jumpTo(x.clamp(0, _h.position.maxScrollExtent).toDouble());
+      }
+      if (_v.hasClients) {
+        final y = _zoomFocalRow * rowH - focal.dy;
+        _v.jumpTo(y.clamp(0, _v.position.maxScrollExtent).toDouble());
+      }
     });
   }
 
