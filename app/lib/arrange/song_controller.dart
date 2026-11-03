@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
+import '../music/voicing.dart';
 import 'demo_song.dart';
 import 'timeline_math.dart';
 
@@ -109,11 +111,13 @@ class SongController extends ChangeNotifier {
     saveNow(force: true); // 前の曲のファイルを上書きしておく
   }
 
-  /// 確かめ用のデモ曲（4トラック・2小節を2回）。Undo 1回で消せる
-  void loadDemo() {
+  bool renameTrack(int trackId, String name) => _edit(() => engine.renameTrack(trackId, name.trim()));
+
+  /// 確かめ用のデモ曲。Undo 1回で消せる
+  void loadDemo(DemoSong demo) {
     engine.stopPlayback();
     engine.newProject();
-    buildDemoSong(engine);
+    buildDemo(engine, demo);
     selectedPlacementId = null;
     _refresh(force: true);
     saveNow(force: true);
@@ -218,6 +222,52 @@ class SongController extends ChangeNotifier {
     return _edit(() => engine.editGroup(() => [
           for (final p in pitches) engine.addNote(clipId, tick: tick, length: length, pitch: p),
         ].where((id) => id != 0).toList()));
+  }
+
+  /// 選んだノートを消して、[notes] を置き直す（1つの Undo）。置いたノートの ID を返す
+  List<int> replaceNotes(int clipId, List<int> deleteIds, List<NoteSpec> notes) {
+    final clip = project.clip(clipId);
+    if (clip == null) return const [];
+    return _edit(() => engine.editGroup(() {
+          if (deleteIds.isNotEmpty) engine.deleteNotes(clipId, deleteIds);
+          return [
+            for (final n in notes)
+              if (n.tick >= 0 && n.tick < clip.lengthTicks && n.pitch >= 0 && n.pitch <= 127)
+                engine.addNote(clipId,
+                    tick: n.tick, length: n.length.clamp(1, clip.lengthTicks - n.tick), pitch: n.pitch, velocity: n.velocity),
+          ].where((id) => id != 0).toList();
+        }));
+  }
+
+  /// コード進行をクリップの頭から入れる（1つの Undo）。足りなければクリップを伸ばす。
+  /// [replace] なら入れる範囲にあるノートを先に消す
+  List<int> insertProgression(int clipId, List<NoteSpec> notes, {required int lengthTicks, required bool replace}) {
+    final clip = project.clip(clipId);
+    if (clip == null) return const [];
+    final tpb = project.ticksPerBar;
+    final neededBars = (lengthTicks + tpb - 1) ~/ tpb;
+    final currentBars = (clip.lengthTicks + tpb - 1) ~/ tpb;
+    return _edit(() => engine.editGroup(() {
+          if (neededBars > currentBars) engine.setClipLength(clipId, neededBars);
+          if (replace) {
+            final ids = [for (final n in clip.notes) if (n.tick < lengthTicks) n.id];
+            if (ids.isNotEmpty) engine.deleteNotes(clipId, ids);
+          }
+          final maxLen = math.max(clip.lengthTicks, neededBars * tpb);
+          return [
+            for (final n in notes)
+              if (n.tick < maxLen)
+                engine.addNote(clipId,
+                    tick: n.tick, length: n.length.clamp(1, maxLen - n.tick), pitch: n.pitch, velocity: n.velocity),
+          ].where((id) => id != 0).toList();
+        }));
+  }
+
+  /// 試聴：コードを順に鳴らす（[each] ごとに次のコード）
+  void auditionSequence(List<List<int>> chords, {Duration each = const Duration(milliseconds: 600)}) {
+    for (var i = 0; i < chords.length; i++) {
+      Timer(each * i, () => auditionChord(chords[i]));
+    }
   }
 
   /// コードを短く鳴らす

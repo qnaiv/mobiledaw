@@ -98,6 +98,12 @@ TEST(api_edit_undo_redo) {
     CHECK(mdaw_remove_placement(e, copy) == 1);
     CHECK(Json(e).count("placements") == 1);
 
+    CHECK(mdaw_rename_track(e, track, "Chords") == 1);
+    CHECK(mdaw_rename_track(e, track, "") == 0);
+    CHECK(mdaw_project_json(e) != nullptr && std::string(mdaw_project_json(e)).find("\"Chords\"") != std::string::npos);
+    CHECK(mdaw_undo(e) == 1);
+    CHECK(std::string(mdaw_project_json(e)).find("\"Bass\"") != std::string::npos);
+    CHECK(mdaw_redo(e) == 1);
     CHECK(mdaw_set_tempo(e, 90.0) == 1);
     CHECK(Json(e).tempo() == 90.0);
     CHECK(mdaw_set_track_param(e, track, MDAW_PARAM_CUTOFF_HZ, 1200.0f) == 1);

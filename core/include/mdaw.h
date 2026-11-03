@@ -80,6 +80,7 @@ MDAW_API int32_t mdaw_project_is_dirty(mdaw_engine* engine); /* 最後の保存�
 
 /* 編集。ID を返すものは 0 で失敗、それ以外は 1 = 適用した、0 = 適用できなかった（対象がない・はみ出す など）。 */
 MDAW_API mdaw_id mdaw_add_track(mdaw_engine* engine, const char* name, uint32_t color_argb);
+MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const char* name); /* 1〜64バイト */
 /* 新しいクリップを作って置く。out_placement_id は NULL でもよい */
 MDAW_API mdaw_id mdaw_create_clip(mdaw_engine* engine, mdaw_id track_id, int32_t start_bar, int32_t length_bars,
                                   mdaw_id* out_placement_id);

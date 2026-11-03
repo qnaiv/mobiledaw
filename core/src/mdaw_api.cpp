@@ -110,6 +110,10 @@ mdaw_id mdaw_add_track(mdaw_engine* e, const char* name, uint32_t color) {
                     [](const mdaw::AddTrack& c) { return c.trackId(); });
 }
 
+int32_t mdaw_rename_track(mdaw_engine* e, mdaw_id track, const char* name) {
+    return run(e, std::make_unique<mdaw::RenameTrack>(track, name ? name : ""));
+}
+
 mdaw_id mdaw_create_clip(mdaw_engine* e, mdaw_id track, int32_t startBar, int32_t bars, mdaw_id* outPlacement) {
     if (outPlacement != nullptr)
         *outPlacement = 0;

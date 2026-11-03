@@ -5,7 +5,14 @@
 import 'scale.dart';
 
 class Chord {
-  const Chord({required this.degree, required this.root, required this.intervals, required this.seventh, required this.mood});
+  const Chord({
+    required this.degree,
+    required this.root,
+    required this.intervals,
+    required this.seventh,
+    required this.mood,
+    this.extensions = const [],
+  });
 
   /// キーの中で何番目か（0〜6）
   final int degree;
@@ -22,7 +29,11 @@ class Chord {
   /// 雰囲気の目安（理論の代わり）
   final String mood;
 
-  String get name => '${noteName(root)}${_quality(intervals)}';
+  /// 3和音に足す音（7th・9th など、根音からの半音数）
+  final List<int> extensions;
+
+  String get name =>
+      extensions.isEmpty ? '${noteName(root)}${_quality(intervals)}' : (chordNameOf(pitchesNear(60)) ?? '${noteName(root)}${_quality(intervals)}');
 
   /// 7thを足したときの名前
   String get seventhName => '${noteName(root)}${_seventhQuality(intervals, seventh)}';
@@ -31,7 +42,11 @@ class Chord {
   List<int> pitchesNear(int nearPitch, {bool withSeventh = false}) {
     var base = nearPitch - ((nearPitch - root) % 12);
     if (base < 0) base += 12;
-    final notes = [for (final i in intervals) base + i, if (withSeventh) base + seventh];
+    final notes = [
+      for (final i in intervals) base + i,
+      for (final e in extensions) base + e,
+      if (withSeventh && !extensions.any((e) => e % 12 == seventh % 12)) base + seventh,
+    ]..sort();
     return notes.where((p) => p >= 0 && p <= 127).toList();
   }
 }
@@ -106,38 +121,81 @@ List<int> suggestNext(int degree, {required bool minor}) {
   return (minor ? minorTable : major)[degree.clamp(0, 6)];
 }
 
-/// 置いてあるノートの音からコード名を判定する（例：A♭、Cm7、A♭/C）。コードでなければ null
-String? chordNameOf(Iterable<int> pitches) {
+/// 置いてあるノートを調べた結果
+class ChordInfo {
+  const ChordInfo({required this.root, required this.suffix, required this.bass, required this.pcs});
+
+  final int root; // 根音（0〜11）
+  final String suffix; // m・7・sus4 など
+  final int bass; // 一番下の音（0〜11）
+  final Set<int> pcs; // 含まれる音（0〜11）
+
+  String get name {
+    final n = '${noteName(root)}$suffix';
+    return bass == root ? n : '$n/${noteName(bass)}';
+  }
+
+  /// 根音から見た半音数の集合
+  Set<int> get rel => {for (final p in pcs) (p - root + 12) % 12};
+
+  bool get hasSeventh => rel.contains(10) || rel.contains(11);
+  bool get hasSus4 => rel.contains(5) && !rel.contains(3) && !rel.contains(4);
+  bool get hasSus2 => rel.contains(2) && !rel.contains(3) && !rel.contains(4);
+  bool get hasNinth => rel.contains(2) && (rel.contains(3) || rel.contains(4));
+
+  /// 転回の状態（一番下の音が根音から何度か）
+  String get inversion {
+    if (bass == root) return '基本形';
+    return switch ((bass - root + 12) % 12) {
+      3 || 4 || 2 || 5 => '第1転回',
+      6 || 7 || 8 => '第2転回',
+      9 || 10 || 11 => '第3転回',
+      _ => '分数',
+    };
+  }
+}
+
+const _templates = <String, List<int>>{
+  '': [0, 4, 7],
+  'm': [0, 3, 7],
+  '°': [0, 3, 6],
+  '+': [0, 4, 8],
+  'sus4': [0, 5, 7],
+  'sus2': [0, 2, 7],
+  '7': [0, 4, 7, 10],
+  'M7': [0, 4, 7, 11],
+  'm7': [0, 3, 7, 10],
+  'mM7': [0, 3, 7, 11],
+  'm7♭5': [0, 3, 6, 10],
+  'dim7': [0, 3, 6, 9],
+  '7sus4': [0, 5, 7, 10],
+  'add9': [0, 2, 4, 7],
+  'm(add9)': [0, 2, 3, 7],
+  '9': [0, 2, 4, 7, 10],
+  'M9': [0, 2, 4, 7, 11],
+  'm9': [0, 2, 3, 7, 10],
+};
+
+/// 置いてあるノートの音からコードを判定する。コードでなければ null
+ChordInfo? analyzeChord(Iterable<int> pitches) {
   final list = pitches.toList()..sort();
   if (list.length < 3) return null;
   final pcs = {for (final p in list) p % 12};
   if (pcs.length < 3) return null;
-  const templates = <String, List<int>>{
-    '': [0, 4, 7],
-    'm': [0, 3, 7],
-    '°': [0, 3, 6],
-    '+': [0, 4, 8],
-    'sus4': [0, 5, 7],
-    'sus2': [0, 2, 7],
-    '7': [0, 4, 7, 10],
-    'M7': [0, 4, 7, 11],
-    'm7': [0, 3, 7, 10],
-    'm7♭5': [0, 3, 6, 10],
-    'dim7': [0, 3, 6, 9],
-    'add9': [0, 2, 4, 7],
-  };
   final bass = list.first % 12;
   // 一番下の音を根音とみなせるものを優先し、だめなら他の音を根音として試す（転回形）
-  final roots = [bass, ...pcs.where((p) => p != bass)];
+  final roots = [bass, ...list.map((p) => p % 12).where((p) => p != bass)];
   for (final root in roots) {
     final rel = {for (final p in pcs) (p - root + 12) % 12};
-    for (final entry in templates.entries) {
+    for (final entry in _templates.entries) {
       final t = entry.value.toSet();
       if (t.length == rel.length && t.containsAll(rel)) {
-        final name = '${noteName(root)}${entry.key}';
-        return root == bass ? name : '$name/${noteName(bass)}';
+        return ChordInfo(root: root, suffix: entry.key, bass: bass, pcs: pcs);
       }
     }
   }
   return null;
 }
+
+/// 置いてあるノートの音からコード名を判定する（例：A♭、Cm7、A♭/C）。コードでなければ null
+String? chordNameOf(Iterable<int> pitches) => analyzeChord(pitches)?.name;

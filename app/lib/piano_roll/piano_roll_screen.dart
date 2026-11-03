@@ -8,9 +8,12 @@ import '../arrange/song_controller.dart';
 import '../arrange/timeline_math.dart';
 import '../model/project.dart';
 import '../music/chords.dart';
+import '../music/voicing.dart';
 import '../music/scale.dart';
 import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
+import 'chord_tools.dart';
+import 'progression_sheet.dart';
 import 'roll_math.dart';
 
 /// 指でなぞっている操作の種類
@@ -324,6 +327,116 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     });
   }
 
+  /// 選んでいるノートと、それがコードならその情報
+  ({List<NoteData> notes, List<int> pitches, ChordInfo? info}) _selectedChord(ClipData clip) {
+    final notes = clip.notes.where((n) => _selection.contains(n.id)).toList();
+    final pitches = {for (final n in notes) n.pitch}.toList()..sort();
+    return (notes: notes, pitches: pitches, info: pitches.length >= 3 ? analyzeChord(pitches) : null);
+  }
+
+  List<Widget> _chordToolsOverlay(ClipData clip, RollGeometry g, double viewportH) {
+    final sel = _selectedChord(clip);
+    final info = sel.info;
+    if (info == null) return const [];
+    final minTick = sel.notes.map((n) => n.tick).reduce(math.min);
+    final maxEnd = sel.notes.map((n) => n.endTick).reduce(math.max);
+    final bass = splitBass(sel.pitches).bass;
+    return [
+      AnimatedBuilder(
+        animation: _v,
+        builder: (context, child) {
+          final off = _v.hasClients ? _v.offset : 0.0;
+          var top = g.tickY(maxEnd) - off + 6;
+          if (top + ChordToolsBar.height > viewportH) top = g.tickY(minTick) - off - ChordToolsBar.height - 6;
+          top = top.clamp(4.0, math.max(4.0, viewportH - ChordToolsBar.height - 4)).toDouble();
+          return Positioned(left: _labelWidth + 6, right: 6, top: top, child: child!);
+        },
+        child: ChordToolsBar(
+          info: info,
+          closed: isClosed(sel.pitches),
+          bassLabel: bass == null ? 'なし' : noteName(bass),
+          onInvert: (up) => _applyEdit(clip, invert(sel.pitches, up: up)),
+          onSpread: () => _applyEdit(clip, spreadOrClose(sel.pitches)),
+          onBass: () => _applyEdit(clip, cycleBass(sel.pitches)),
+          onLead: () => _leadToPrevious(clip, sel.notes, sel.pitches, minTick),
+          onSeventh: () => _applyEdit(clip, toggleSeventh(sel.pitches, scaleOf(song.project))),
+          onSus: (to) => _applyEdit(clip, toggleSus(sel.pitches, scaleOf(song.project), to: to)),
+          onNinth: () => _applyEdit(clip, toggleNinth(sel.pitches)),
+          onRhythm: (r) => _rhythmize(clip, sel.notes, sel.pitches, r),
+        ),
+      ),
+    ];
+  }
+
+  List<NoteSpec> _specsOf(List<NoteData> notes) =>
+      [for (final n in notes) NoteSpec(n.tick, n.length, n.pitch, n.velocity)];
+
+  /// 選んだノートの音の高さを書き換える（1回の Undo）。新しいノートを選び直して鳴らす
+  void _applyEdit(ClipData clip, PitchEdit edit) {
+    if (edit.isEmpty) {
+      HapticFeedback.heavyImpact(); // それ以上は動かせない
+      return;
+    }
+    final notes = clip.notes.where((n) => _selection.contains(n.id)).toList();
+    final next = applyPitchEdit(_specsOf(notes), edit);
+    _replaceSelection(clip, notes, next);
+  }
+
+  void _replaceSelection(ClipData clip, List<NoteData> old, List<NoteSpec> next) {
+    final ids = song.replaceNotes(clip.id, [for (final n in old) n.id], next);
+    setState(() {
+      _selection
+        ..clear()
+        ..addAll(ids);
+    });
+    if (next.isNotEmpty) {
+      final first = next.map((n) => n.tick).reduce(math.min);
+      song.auditionChord({for (final n in next) if (n.tick == first) n.pitch}.toList());
+    }
+  }
+
+  /// 前のコード（選んだノートより前で、一番近い時刻に3音以上鳴っているもの）に寄せる
+  void _leadToPrevious(ClipData clip, List<NoteData> notes, List<int> pitches, int minTick) {
+    final before = <int, List<int>>{};
+    for (final n in clip.notes) {
+      if (_selection.contains(n.id) || n.tick >= minTick) continue;
+      (before[n.tick] ??= []).add(n.pitch);
+    }
+    final ticks = before.keys.where((t) => before[t]!.length >= 3).toList()..sort();
+    if (ticks.isEmpty) {
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('前にコードがないので寄せられません')));
+      return;
+    }
+    _applyEdit(clip, voiceLead(before[ticks.last]!, pitches));
+  }
+
+  void _rhythmize(ClipData clip, List<NoteData> notes, List<int> pitches, ChordRhythm rhythm) {
+    final start = notes.map((n) => n.tick).reduce(math.min);
+    final end = notes.map((n) => n.endTick).reduce(math.max);
+    final velocity = notes.map((n) => n.velocity).reduce(math.max);
+    _replaceSelection(clip, notes,
+        rhythmize(pitches, start: start, length: end - start, rhythm: rhythm, velocity: velocity));
+  }
+
+  Future<void> _openProgressions(ClipData clip, Scale scale) async {
+    final ids = await showProgressionSheet(
+      context,
+      song: song,
+      clip: clip,
+      scale: scale,
+      minor: song.project.scale != 'major',
+    );
+    if (ids == null || !mounted) return;
+    setState(() {
+      _selection
+        ..clear()
+        ..addAll(ids);
+    });
+  }
+
   /// 鍵盤の代わりに並ぶコードのボタン。置いた直後は次に合うコードが光る
   Widget _chordPanel(Scale scale, ClipData clip) {
     final chords = _chords(scale);
@@ -351,6 +464,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               TextButton(
                 onPressed: () => setState(() => _chordLenIndex = (_chordLenIndex + 1) % _chordLengths.length),
                 child: Text('長さ ${length.$2}', style: const TextStyle(fontSize: 12)),
+              ),
+              TextButton.icon(
+                onPressed: () => _openProgressions(clip, scale),
+                icon: const Icon(Icons.auto_awesome, size: 16),
+                label: const Text('進行', style: TextStyle(fontSize: 12)),
               ),
             ],
           ),
@@ -576,6 +694,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   ),
                 ),
               ),
+              // 選んだノートがコードなら、そのすぐ下（入らなければ上）に道具の帯を浮かべる（案A）
+              if (_drag == null) ..._chordToolsOverlay(clip, g, viewportH),
               // 試聴鍵盤（ロールと一緒に横へ動く）。コード入力中はコードのボタンに置き換わる
               if (!_chordMode)
               Positioned(

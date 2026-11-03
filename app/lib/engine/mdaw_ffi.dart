@@ -184,6 +184,8 @@ class MdawEngine {
 
   late final _addTrack = _lib.lookupFunction<Uint64 Function(_EnginePtr, Pointer<Utf8>, Uint32),
       int Function(_EnginePtr, Pointer<Utf8>, int)>('mdaw_add_track');
+  late final _renameTrack = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>),
+      int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_rename_track');
   late final _createClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32, Int32, Pointer<Uint64>),
       int Function(_EnginePtr, int, int, int, Pointer<Uint64>)>('mdaw_create_clip');
   late final _placeClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32),
@@ -251,6 +253,15 @@ class MdawEngine {
     final p = name.toNativeUtf8();
     try {
       return _addTrack(_handle, p, colorArgb);
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  bool renameTrack(int trackId, String name) {
+    final p = name.toNativeUtf8();
+    try {
+      return _renameTrack(_handle, trackId, p) != 0;
     } finally {
       malloc.free(p);
     }

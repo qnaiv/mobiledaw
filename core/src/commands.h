@@ -188,6 +188,19 @@ private:
     Track track_;
 };
 
+class RenameTrack final : public Command {
+public:
+    RenameTrack(Id trackId, std::string name) : trackId_(trackId), name_(std::move(name)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "RenameTrack"; }
+
+private:
+    Id trackId_;
+    std::string name_;
+    std::string old_;
+};
+
 class SetTempo final : public Command {
 public:
     explicit SetTempo(double bpm) : bpm_(bpm) {}

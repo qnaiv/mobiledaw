@@ -320,6 +320,21 @@ bool AddTrack::apply(Project& p) {
 void AddTrack::revert(Project& p) { eraseById(p.tracks, track_.id); }
 
 //==============================================================================
+bool RenameTrack::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr || t->name == name_ || name_.empty() || name_.size() > 64)
+        return false;
+    old_ = t->name;
+    t->name = name_;
+    return true;
+}
+
+void RenameTrack::revert(Project& p) {
+    if (auto* t = p.findTrack(trackId_))
+        t->name = old_;
+}
+
+//==============================================================================
 bool SetTempo::apply(Project& p) {
     if (!std::isfinite(bpm_))
         return false;

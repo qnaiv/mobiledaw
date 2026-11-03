@@ -1,0 +1,155 @@
+// 気分で選ぶコード進行と、サイコロで作るコード進行（画面に依存しない部分）。
+// 進行は「キーの中の何番目か」をローマ数字で持ち、曲のキーに合わせて実際のコードにする。
+import 'dart:math' as math;
+
+import 'chords.dart';
+import 'scale.dart';
+
+class ProgressionPreset {
+  const ProgressionPreset(this.name, this.mood, this.romans);
+  final String name;
+  final String mood;
+  final List<String> romans; // 例：♭VI ♭VII v i（短調は主音から見た位置を ♭ で書く）
+}
+
+const minorPresets = [
+  ProgressionPreset('切ない王道', '泣きのサビ', ['♭VI', '♭VII', 'v', 'i']),
+  ProgressionPreset('疾走感', '前へ進む', ['i', '♭VI', '♭III', '♭VII']),
+  ProgressionPreset('落ち着く', 'しっとり', ['i', 'iv', 'i', 'V']),
+  ProgressionPreset('ちょい不思議', '夜っぽい', ['i', '♭II', '♭VII', 'i']),
+  ProgressionPreset('盛り上げきる', '最後のサビ', ['iv', '♭VII', '♭III', '♭VI']),
+  ProgressionPreset('フューチャーベース', 'きらきら切ない', ['♭VIM7', '♭VII', 'v7', 'i9']),
+];
+
+const majorPresets = [
+  ProgressionPreset('王道', 'キラキラ切ない', ['IV', 'V', 'iii', 'vi']),
+  ProgressionPreset('小室', '90年代の疾走', ['vi', 'IV', 'V', 'I']),
+  ProgressionPreset('前向き', '明るく元気', ['I', 'V', 'vi', 'IV']),
+  ProgressionPreset('落ち着く', 'やさしい', ['I', 'IV', 'I', 'V']),
+  ProgressionPreset('カノン', 'ゆったり8つ', ['I', 'V', 'vi', 'iii', 'IV', 'I', 'IV', 'V']),
+  ProgressionPreset('フューチャーベース', 'きらきら切ない', ['IVM7', 'V', 'iii7', 'vi9']),
+];
+
+const _numerals = {'I': 0, 'II': 1, 'III': 2, 'IV': 3, 'V': 4, 'VI': 5, 'VII': 6};
+const _majorSteps = [0, 2, 4, 5, 7, 9, 11];
+
+/// ローマ数字（♭VI、v7、IVM7、i9、ii° など）を、そのキーのコードにする。読めなければ null
+Chord? chordFromRoman(String roman, Scale scale) {
+  final m = RegExp(r'^([♭b#♯]?)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)(°|M7|M9|7|9)?$').firstMatch(roman);
+  if (m == null) return null;
+  final acc = m.group(1)!;
+  final numeral = m.group(2)!;
+  final suffix = m.group(3) ?? '';
+  final degree = _numerals[numeral.toUpperCase()]!;
+  var semis = _majorSteps[degree];
+  if (acc == '♭' || acc == 'b') semis -= 1;
+  if (acc == '#' || acc == '♯') semis += 1;
+  final minorQuality = numeral == numeral.toLowerCase();
+  final dim = suffix == '°';
+  final intervals = dim ? [0, 3, 6] : (minorQuality ? [0, 3, 7] : [0, 4, 7]);
+  final ext = switch (suffix) {
+    'M7' => [11],
+    'M9' => [11, 14],
+    '7' => [10],
+    '9' => [10, 14],
+    _ => <int>[],
+  };
+  return Chord(
+    degree: -1,
+    root: (scale.root + semis) % 12,
+    intervals: intervals,
+    seventh: 10,
+    mood: '',
+    extensions: ext,
+  );
+}
+
+/// 進行のコードを、なめらかにつながる高さで並べる（1つ目は [center] のあたり、2つ目からは前のコードに寄せる）
+List<List<int>> voiceProgression(List<Chord> chords, {int center = 60}) {
+  final out = <List<int>>[];
+  for (final c in chords) {
+    if (out.isEmpty) {
+      out.add(c.pitchesNear(center));
+      continue;
+    }
+    // 根音の位置を変えた候補から、前のコードとの距離が一番小さいものを選ぶ
+    final prev = out.last;
+    final prevCenter = prev.reduce((a, b) => a + b) / prev.length;
+    List<int>? best;
+    var bestCost = double.infinity;
+    for (var near = center - 12; near <= center + 12; near++) {
+      final cand = c.pitchesNear(near);
+      for (var inv = 0; inv < cand.length; inv++) {
+        final v = [...cand];
+        for (var k = 0; k < inv; k++) {
+          v.sort();
+          v[0] += 12;
+        }
+        v.sort();
+        final cost = (v.reduce((a, b) => a + b) / v.length - prevCenter).abs() + (v.first - prev.first).abs() * 0.3;
+        if (cost < bestCost && v.first >= 36 && v.last <= 96) {
+          bestCost = cost;
+          best = v;
+        }
+      }
+    }
+    out.add(best ?? c.pitchesNear(center));
+  }
+  return out;
+}
+
+/// サイコロで4つのコードを作る（キーの中の番号）。[locked] の null でない所はそのまま残す。
+/// [brightness] 0〜1：明るい（長三和音）を選びやすく。[surprise] 0〜1：おすすめの2位・3位やそれ以外も選びやすく
+List<int> rollProgression({
+  required bool minor,
+  required double brightness,
+  required double surprise,
+  required List<int?> locked,
+  required math.Random rng,
+  required List<Chord> chords,
+}) {
+  final out = <int>[];
+  bool isMajor(int d) => chords[d].intervals[1] == 4;
+  bool isDim(int d) => chords[d].intervals[2] == 6;
+  double tone(int d) => isMajor(d) ? 0.5 + brightness : 1.5 - brightness;
+
+  int pick(Map<int, double> weights) {
+    final total = weights.values.fold(0.0, (a, b) => a + b);
+    var r = rng.nextDouble() * total;
+    for (final e in weights.entries) {
+      r -= e.value;
+      if (r <= 0) return e.key;
+    }
+    return weights.keys.last;
+  }
+
+  for (var i = 0; i < locked.length; i++) {
+    final fixed = locked[i];
+    if (fixed != null) {
+      out.add(fixed);
+      continue;
+    }
+    final weights = <int, double>{};
+    if (i == 0) {
+      // 始まりは落ち着くコードか、広がるコード
+      weights[0] = 1.0 * tone(0);
+      weights[minor ? 5 : 3] = 0.8 * tone(minor ? 5 : 3);
+      if (surprise > 0.5) weights[minor ? 3 : 5] = surprise * tone(minor ? 3 : 5);
+    } else {
+      final next = suggestNext(out[i - 1], minor: minor);
+      final base = [0.6 - 0.35 * surprise, 0.25 + 0.1 * surprise, 0.15 + 0.1 * surprise];
+      for (var k = 0; k < next.length; k++) {
+        weights[next[k]] = (weights[next[k]] ?? 0) + base[k] * tone(next[k]);
+      }
+      // 意外さが高いほど、おすすめ以外も少し混ぜる
+      for (var d = 0; d < 7; d++) {
+        if (weights.containsKey(d) || d == out[i - 1]) continue;
+        if (isDim(d) && surprise < 0.7) continue;
+        weights[d] = 0.15 * surprise * tone(d);
+      }
+    }
+    weights.removeWhere((_, w) => w <= 0);
+    out.add(weights.isEmpty ? 0 : pick(weights));
+  }
+  return out;
+}
