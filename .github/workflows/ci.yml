@@ -6,12 +6,25 @@ on:
   pull_request:
   workflow_dispatch:
 
+# 同じブランチに新しい push が来たら古い実行は止める
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPILERCHECK: content
+  CCACHE_MAXSIZE: 1G
+
 jobs:
   core-tests:
     name: Core tests (Linux)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: core-linux
       - name: Configure
         run: cmake -S core -B build -G "Unix Makefiles" -DMDAW_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
       - name: Build
@@ -28,6 +41,11 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+          cache: gradle
+          cache-dependency-path: app/android/app/build.gradle.kts
+      - uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: android-arm64
       - uses: subosito/flutter-action@v2
         with:
           channel: stable

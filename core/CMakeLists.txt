@@ -7,6 +7,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 option(MDAW_BUILD_TESTS "Build the desktop test runner" OFF)
 
+# ccache があれば使う（JUCE のコンパイルを2回目以降ほぼゼロにする）
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${CCACHE_PROGRAM})
+endif()
+
 include(FetchContent)
 
 # JUCE: DSP・オーディオ基礎・ファイル形式のモジュールだけを使う（AGPLv3）。
