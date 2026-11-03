@@ -43,7 +43,8 @@ target_compile_definitions(mdaw_juce PUBLIC
     JUCE_MODULE_AVAILABLE_juce_core=1
     JUCE_MODULE_AVAILABLE_juce_audio_basics=1
     JUCE_MODULE_AVAILABLE_juce_audio_formats=1
-    JUCE_MODULE_AVAILABLE_juce_dsp=1)
+    JUCE_MODULE_AVAILABLE_juce_dsp=1
+    $<$<PLATFORM_ID:Android>:JUCE_ANDROID=1>)
 target_compile_options(mdaw_juce PRIVATE -w)
 
 set(MDAW_CORE_SOURCES
