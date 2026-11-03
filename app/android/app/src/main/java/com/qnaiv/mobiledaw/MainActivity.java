@@ -18,6 +18,8 @@ import io.flutter.plugin.common.MethodChannel;
 public class MainActivity extends FlutterActivity {
     // lib/update/updater.dart と揃える
     private static final String UPDATER_CHANNEL = "mobiledaw/updater";
+    // lib/platform_paths.dart と揃える
+    private static final String PATHS_CHANNEL = "mobiledaw/paths";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +32,15 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), PATHS_CHANNEL)
+                .setMethodCallHandler((call, result) -> {
+                    if (call.method.equals("filesDir")) {
+                        // アプリ専用の保存場所（アンインストールで消える。バックアップは書き出しで行う）
+                        result.success(getFilesDir().getAbsolutePath());
+                    } else {
+                        result.notImplemented();
+                    }
+                });
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), UPDATER_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {

@@ -4,11 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'arrange/arrange_screen.dart';
+import 'arrange/song_controller.dart';
 import 'engine/mdaw_ffi.dart';
 import 'music/scale.dart';
+import 'platform_paths.dart';
 import 'ui/scale_keyboard.dart';
 import 'ui/theme.dart';
-import 'update/update_banner.dart';
 import 'update/updater.dart';
 
 void main() {
@@ -26,14 +28,95 @@ class MobileDawApp extends StatelessWidget {
       title: 'mobiledaw',
       debugShowCheckedModeBanner: false,
       theme: buildDawTheme(),
-      home: const SoundCheckScreen(),
+      home: const AppRoot(),
+    );
+  }
+}
+
+/// エンジンと曲を用意し、アレンジ画面を出す。アプリが裏に回ったら音を止めて保存する。
+class AppRoot extends StatefulWidget {
+  const AppRoot({super.key});
+
+  @override
+  State<AppRoot> createState() => _AppRootState();
+}
+
+class _AppRootState extends State<AppRoot> {
+  MdawEngine? _engine;
+  SongController? _song;
+  String? _error;
+  late final AppLifecycleListener _lifecycle;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onPause: () {
+        _engine?.stopPlayback();
+        _engine?.allNotesOff();
+        _engine?.stop();
+        _song?.saveNow();
+      },
+      onResume: () => _engine?.start(),
+    );
+    unawaited(_open());
+  }
+
+  Future<void> _open() async {
+    try {
+      final engine = MdawEngine.open();
+      final filesDir = await appFilesDir();
+      final song = SongController(engine, projectPath: projectFilePath(filesDir))..open();
+      final started = engine.start();
+      if (!mounted) return;
+      setState(() {
+        _engine = engine;
+        _song = song;
+        if (started != MdawResult.ok) _error = '音声出力を開始できませんでした（$started）';
+      });
+    } on Object catch (e) {
+      if (mounted) setState(() => _error = 'エンジンを読み込めませんでした: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    _song?.dispose();
+    _engine?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final song = _song;
+    final engine = _engine;
+    if (song == null || engine == null) {
+      return Scaffold(
+        body: Center(
+          child: _error == null
+              ? const CircularProgressIndicator()
+              : Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(_error!, style: const TextStyle(color: DawColors.danger)),
+                ),
+        ),
+      );
+    }
+    return ArrangeScreen(
+      song: song,
+      onOpenSoundCheck: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => SoundCheckScreen(engine: engine)),
+      ),
     );
   }
 }
 
 /// M1：音が鳴ることと、触ってから鳴るまでの遅れを確かめる画面
 class SoundCheckScreen extends StatefulWidget {
-  const SoundCheckScreen({super.key});
+  const SoundCheckScreen({super.key, required this.engine});
+
+  final MdawEngine engine;
 
   @override
   State<SoundCheckScreen> createState() => _SoundCheckScreenState();
@@ -42,56 +125,29 @@ class SoundCheckScreen extends StatefulWidget {
 class _SoundCheckScreenState extends State<SoundCheckScreen> {
   static const _scale = Scale(0, Scale.minorIntervals); // C minor
 
-  MdawEngine? _engine;
-  String? _error;
   EngineStatus? _status;
   Timer? _poll;
-  late final AppLifecycleListener _lifecycle;
 
   int _octave = 4;
   double _brightness = 0.7;
   double _tail = 0.35;
   double _width = 0.3;
 
+  MdawEngine get _engine => widget.engine;
+
   @override
   void initState() {
     super.initState();
-    try {
-      _engine = MdawEngine.open();
-      _applyMacros();
-      _error = _startAudio();
-    } catch (e) {
-      _error = 'エンジンを読み込めませんでした: $e';
-    }
-    _lifecycle = AppLifecycleListener(
-      onPause: () {
-        _engine?.allNotesOff();
-        _engine?.stop();
-      },
-      onResume: () => setState(() => _error = _startAudio()),
-    );
+    _applyMacros();
+    _status = _engine.status();
     _poll = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      final engine = _engine;
-      if (engine != null && mounted) setState(() => _status = engine.status());
+      if (mounted) setState(() => _status = _engine.status());
     });
-  }
-
-  /// 音声出力を開始し、失敗したら表示用のメッセージを返す
-  String? _startAudio() {
-    final engine = _engine;
-    if (engine == null) return _error;
-    return switch (engine.start()) {
-      MdawResult.ok => null,
-      MdawResult.openFailed => '音声出力を開けませんでした',
-      MdawResult.startFailed => '音声出力を開始できませんでした',
-      final other => '音声出力が使えません（$other）',
-    };
   }
 
   /// マクロ（0〜1）→ シンセのパラメータ
   void _applyMacros() {
     final e = _engine;
-    if (e == null) return;
     e.setParam(MdawParam.cutoffHz, 150 * math.pow(12000 / 150, _brightness).toDouble());
     e.setParam(MdawParam.resonance, 0.7 + _brightness * 0.8);
     e.setParam(MdawParam.releaseS, 0.02 * math.pow(2.5 / 0.02, _tail).toDouble());
@@ -102,8 +158,7 @@ class _SoundCheckScreenState extends State<SoundCheckScreen> {
   @override
   void dispose() {
     _poll?.cancel();
-    _lifecycle.dispose();
-    _engine?.dispose();
+    _engine.allNotesOff();
     super.dispose();
   }
 
@@ -117,13 +172,18 @@ class _SoundCheckScreenState extends State<SoundCheckScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('音出しテスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const Row(
+                children: [
+                  BackButton(),
+                  SizedBox(width: 4),
+                  Text('音出しテスト', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                ],
+              ),
               const SizedBox(height: 4),
               Text('C minor · 鍵盤は下ほど強く鳴る · 指を滑らせると音が移る',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: DawColors.muted)),
               const SizedBox(height: 16),
-              const UpdateBanner(),
-              _StatusPanel(status: _status, error: _error),
+              _StatusPanel(status: _status, error: null),
               const SizedBox(height: 20),
               _MacroSlider(
                 label: '明るさ',
@@ -175,8 +235,8 @@ class _SoundCheckScreenState extends State<SoundCheckScreen> {
                 child: ScaleKeyboard(
                   notes: notes,
                   rootPitchClass: _scale.root,
-                  onNoteOn: (note, velocity) => _engine?.noteOn(note, velocity),
-                  onNoteOff: (note) => _engine?.noteOff(note),
+                  onNoteOn: (note, velocity) => _engine.noteOn(note, velocity),
+                  onNoteOff: (note) => _engine.noteOff(note),
                 ),
               ),
             ],
