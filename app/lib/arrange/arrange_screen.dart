@@ -245,6 +245,9 @@ class _Grid {
   }
 
   int barAt(double y) => (y / rowHeight).floor();
+
+  /// 選んだクリップの伸縮つまみの真ん中（下端の中央）
+  Offset gripCenter(int col, PlacementData pl) => Offset(colX(col) + colWidth / 2, barY(pl.endBar) - 2);
 }
 
 class _Timeline extends StatefulWidget {
@@ -257,14 +260,44 @@ class _Timeline extends StatefulWidget {
   State<_Timeline> createState() => _TimelineState();
 }
 
+enum _ArrDragKind { scroll, resize, move, duplicate }
+
+/// アレンジ画面でなぞっている間の状態（y は中身の座標）
+class _ArrDrag {
+  _ArrDrag(this.kind, this.placement, this.startY) : currentY = startY;
+
+  final _ArrDragKind kind;
+  final PlacementData? placement;
+  final double startY;
+  double currentY;
+
+  int get deltaBars => ((currentY - startY) / _Grid.rowHeight).round();
+
+  /// 指を離したときの結果（伸縮なら新しい長さ、移動・複製なら新しい開始小節）
+  int get resultBars => switch (kind) {
+        _ArrDragKind.resize => math.max(1, placement!.lengthBars + deltaBars),
+        _ArrDragKind.move || _ArrDragKind.duplicate => math.max(0, placement!.startBar + deltaBars),
+        _ArrDragKind.scroll => 0,
+      };
+}
+
+/// 指の操作：
+/// ・何もないところ・選んでいないクリップをなぞる → スクロール
+/// ・タップ → 選ぶ。選んでいるクリップをもう一度タップ → 中身（ピアノロール）を開く。空きマスのタップ → クリップを置く
+/// ・選んだクリップの下のつまみを上下に → 伸ばす・縮める
+/// ・選んだクリップの真ん中を上下に → 移動
+/// ・クリップを長押ししてなぞる → 複製を置く
 class _TimelineState extends State<_Timeline> {
   final _scroll = ScrollController();
+  _ArrDrag? _drag;
 
   @override
   void dispose() {
     _scroll.dispose();
     super.dispose();
   }
+
+  double get _offset => _scroll.hasClients ? _scroll.offset : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -281,11 +314,19 @@ class _TimelineState extends State<_Timeline> {
               _TrackHeader(song: song, grid: grid),
               const SizedBox(height: 8),
               Expanded(
-                child: SingleChildScrollView(
-                  controller: _scroll,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapUp: (d) => _onTap(grid, d.localPosition),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _onTap(grid, _content(d.localPosition)),
+                  onPanStart: (d) => _onPanStart(grid, _content(d.localPosition)),
+                  onPanUpdate: (d) => _onDragMove(d.delta.dy),
+                  onPanEnd: (d) => _onDragEnd(d.velocity),
+                  onPanCancel: () => setState(() => _drag = null),
+                  onLongPressStart: (d) => _onLongPressStart(grid, _content(d.localPosition)),
+                  onLongPressMoveUpdate: (d) => _onLongPressMove(_content(d.localPosition)),
+                  onLongPressEnd: (_) => _onDragEnd(Velocity.zero),
+                  child: SingleChildScrollView(
+                    controller: _scroll,
+                    physics: const NeverScrollableScrollPhysics(), // スクロールは自前（編集のなぞりと分けるため）
                     child: SizedBox(
                       height: rows * _Grid.rowHeight,
                       width: box.maxWidth,
@@ -298,8 +339,15 @@ class _TimelineState extends State<_Timeline> {
                                 grid: grid,
                                 rows: rows,
                                 labels: clipLabels(p),
-                                selectedId: song.selectedPlacementId,
+                                selectedId: _drag?.kind == _ArrDragKind.scroll || _drag == null
+                                    ? song.selectedPlacementId
+                                    : null,
                               ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _DragPainter(project: p, grid: grid, drag: _drag),
                             ),
                           ),
                           Positioned.fill(
@@ -326,6 +374,15 @@ class _TimelineState extends State<_Timeline> {
     );
   }
 
+  Offset _content(Offset viewport) => Offset(viewport.dx, viewport.dy + _offset);
+
+  PlacementData? _hitPlacement(_Grid grid, Offset at) {
+    final col = grid.colAt(at.dx);
+    if (col == null) return null;
+    final p = widget.song.project;
+    return p.placementAt(p.tracks[col].id, grid.barAt(at.dy));
+  }
+
   void _onTap(_Grid grid, Offset at) {
     final song = widget.song;
     final p = song.project;
@@ -350,6 +407,133 @@ class _TimelineState extends State<_Timeline> {
       song.createClipAt(track.id, bar);
     }
   }
+
+  void _onPanStart(_Grid grid, Offset at) {
+    final sel = widget.song.selected;
+    if (sel != null) {
+      final col = widget.song.project.tracks.indexWhere((t) => t.id == sel.trackId);
+      if (col >= 0) {
+        final grip = grid.gripCenter(col, sel);
+        if ((at - grip).distance <= 28) {
+          setState(() => _drag = _ArrDrag(_ArrDragKind.resize, sel, at.dy));
+          return;
+        }
+      }
+      if (_hitPlacement(grid, at)?.id == sel.id) {
+        setState(() => _drag = _ArrDrag(_ArrDragKind.move, sel, at.dy));
+        return;
+      }
+    }
+    _drag = _ArrDrag(_ArrDragKind.scroll, null, at.dy);
+  }
+
+  void _onLongPressStart(_Grid grid, Offset at) {
+    final hit = _hitPlacement(grid, at);
+    if (hit == null) return;
+    HapticFeedback.mediumImpact();
+    widget.song.select(hit.id);
+    setState(() => _drag = _ArrDrag(_ArrDragKind.duplicate, hit, at.dy));
+  }
+
+  void _onLongPressMove(Offset at) {
+    final d = _drag;
+    if (d == null || d.kind != _ArrDragKind.duplicate) return;
+    final bars = d.resultBars;
+    setState(() => d.currentY = at.dy);
+    if (d.resultBars != bars) HapticFeedback.selectionClick();
+  }
+
+  void _onDragMove(double dy) {
+    final d = _drag;
+    if (d == null) return;
+    if (d.kind == _ArrDragKind.scroll) {
+      if (_scroll.hasClients) {
+        _scroll.jumpTo((_scroll.offset - dy).clamp(0, _scroll.position.maxScrollExtent).toDouble());
+      }
+      return;
+    }
+    final bars = d.resultBars;
+    setState(() => d.currentY += dy);
+    if (d.resultBars != bars) HapticFeedback.selectionClick(); // 1小節動くごとにコツッと
+  }
+
+  void _onDragEnd(Velocity velocity) {
+    final d = _drag;
+    setState(() => _drag = null);
+    if (d == null) return;
+    final song = widget.song;
+    final pl = d.placement;
+    var ok = true;
+    switch (d.kind) {
+      case _ArrDragKind.scroll:
+        final v = velocity.pixelsPerSecond.dy;
+        if (_scroll.hasClients && v.abs() > 200) {
+          final to = (_scroll.offset - v * 0.3).clamp(0, _scroll.position.maxScrollExtent).toDouble();
+          _scroll.animateTo(to, duration: const Duration(milliseconds: 450), curve: Curves.decelerate);
+        }
+      case _ArrDragKind.resize:
+        if (d.resultBars != pl!.lengthBars) ok = song.resizeClip(pl.clipId, d.resultBars);
+      case _ArrDragKind.move:
+        if (d.resultBars != pl!.startBar) ok = song.movePlacementTo(pl.id, d.resultBars);
+      case _ArrDragKind.duplicate:
+        if (d.resultBars != pl!.startBar) ok = song.duplicateTo(pl.clipId, d.resultBars);
+    }
+    if (!ok) HapticFeedback.heavyImpact(); // ほかのクリップとぶつかる
+  }
+}
+
+/// なぞっている途中の見た目（伸縮・移動・複製の行き先と吹き出し）
+class _DragPainter extends CustomPainter {
+  _DragPainter({required this.project, required this.grid, required this.drag});
+
+  final ProjectData project;
+  final _Grid grid;
+  final _ArrDrag? drag;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final d = drag;
+    final pl = d?.placement;
+    if (d == null || pl == null || d.kind == _ArrDragKind.scroll) return;
+    final col = project.tracks.indexWhere((t) => t.id == pl.trackId);
+    if (col < 0) return;
+    final color = Color(project.tracks[col].color);
+    final (start, bars, text) = switch (d.kind) {
+      _ArrDragKind.resize => (pl.startBar, d.resultBars, '${d.resultBars}小節'),
+      _ArrDragKind.move => (d.resultBars, pl.lengthBars, '${d.resultBars + 1}小節目へ'),
+      _ArrDragKind.duplicate => (d.resultBars, pl.lengthBars, '複製 → ${d.resultBars + 1}小節目'),
+      _ArrDragKind.scroll => (0, 0, ''),
+    };
+    final rect = Rect.fromLTRB(grid.colX(col) - 2, grid.barY(start) + 1, grid.colX(col) + grid.colWidth + 2,
+        grid.barY(start + bars) - 1);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(8));
+    canvas.drawRRect(rrect, Paint()..color = color.withValues(alpha: 0.35));
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = DawColors.text,
+    );
+    // 吹き出し
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(color: DawColors.background, fontSize: 12, fontWeight: FontWeight.w700),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final bubbleW = tp.width + 16;
+    var bx = rect.center.dx - bubbleW / 2;
+    bx = bx.clamp(0, math.max(0.0, size.width - bubbleW)).toDouble();
+    final by = d.kind == _ArrDragKind.resize ? rect.bottom + 6 : rect.top - 30;
+    final bubble = RRect.fromRectAndRadius(Rect.fromLTWH(bx, math.max(0.0, by), bubbleW, 24), const Radius.circular(12));
+    canvas.drawRRect(bubble, Paint()..color = DawColors.text);
+    tp.paint(canvas, Offset(bx + 8, math.max(0.0, by) + (24 - tp.height) / 2));
+  }
+
+  @override
+  bool shouldRepaint(_DragPainter old) => true;
 }
 
 class _TrackHeader extends StatelessWidget {
@@ -475,6 +659,14 @@ class _GridPainter extends CustomPainter {
             ..strokeWidth = 2
             ..color = DawColors.text,
         );
+        // 伸縮のつまみ（下端の中央）
+        final grip = grid.gripCenter(i, pl);
+        final pill = RRect.fromRectAndRadius(Rect.fromCenter(center: grip, width: 34, height: 16), const Radius.circular(8));
+        canvas.drawRRect(pill, Paint()..color = DawColors.text);
+        for (final dy in [-2.5, 2.5]) {
+          canvas.drawRect(Rect.fromCenter(center: grip + Offset(0, dy), width: 14, height: 1.5),
+              Paint()..color = DawColors.background);
+        }
       }
     }
   }
@@ -566,37 +758,17 @@ class _SelectionBar extends StatelessWidget {
       child: sel == null
           ? const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Text('空いているマスをタップでクリップを置く · タップで選び、もう一度タップで中身を開く',
+              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身',
                   style: TextStyle(fontSize: 12, color: DawColors.muted)),
             )
           : Row(
               children: [
                 _BarAction(icon: Icons.copy_all_outlined, label: '下に複製', onPressed: song.duplicateSelected),
-                _BarAction(
-                  icon: Icons.arrow_upward,
-                  label: '上へ',
-                  onPressed: sel.startBar > 0 ? () => _move(song, -1) : null,
-                ),
-                _BarAction(icon: Icons.arrow_downward, label: '下へ', onPressed: () => _move(song, 1)),
-                _BarAction(
-                  icon: Icons.unfold_less,
-                  label: '縮める',
-                  onPressed: sel.lengthBars > 1 ? () => _resize(song, -1) : null,
-                ),
-                _BarAction(icon: Icons.unfold_more, label: '伸ばす', onPressed: () => _resize(song, 1)),
                 _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
                 _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
               ],
             ),
     );
-  }
-
-  void _resize(SongController song, int delta) {
-    if (!song.resizeSelected(delta)) HapticFeedback.heavyImpact(); // 下のクリップとぶつかる
-  }
-
-  void _move(SongController song, int delta) {
-    if (!song.moveSelected(delta)) HapticFeedback.heavyImpact(); // ほかのクリップとぶつかる
   }
 }
 

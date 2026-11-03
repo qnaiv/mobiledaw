@@ -89,7 +89,7 @@ class _ScaleKeyboardState extends State<ScaleKeyboard> {
             for (final note in widget.notes)
               Expanded(
                 child: _Key(
-                  label: noteName(note),
+                  label: noteName(note, withOctave: note % 12 == widget.rootPitchClass),
                   isRoot: note % 12 == widget.rootPitchClass,
                   isDown: _held.containsValue(note),
                 ),

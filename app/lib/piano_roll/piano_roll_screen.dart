@@ -12,11 +12,10 @@ import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
 import 'roll_math.dart';
 
-enum _Tool { pen, select }
+/// 指でなぞっている操作の種類
+enum _DragKind { scroll, move, resizeEnd, resizeStart, clipLength, marquee }
 
-enum _DragKind { create, move, resize, marquee }
-
-/// 指でなぞっている間の状態（指を離したら1つの編集コマンドにする）
+/// なぞっている間の状態（指を離したら1つの編集コマンドにする）。位置はロールの中身の座標
 class _Drag {
   _Drag({required this.kind, required this.start, this.ids = const [], this.anchorPitch = 0, this.anchorCol = 0})
       : current = start;
@@ -30,7 +29,13 @@ class _Drag {
   int lastAuditioned = -1;
 }
 
-/// ② ノート入力（縦ピアノロール）。時間は下へ、音の高さは右へ。下に試聴鍵盤。
+/// ② ノート入力（縦ピアノロール）。時間は下へ、音の高さは右へ。全音域を横スクロールで見る。
+///
+/// 指の操作：
+/// ・何もないところをなぞる → 縦横にスクロール。タップ → ノートを置く
+/// ・ノートをタップ → 選んで上下につまみを出す。つまみで長さ、真ん中を掴んで移動、長押しで削除
+/// ・何もないところを長押ししてなぞる → 範囲選択
+/// ・クリップの終わりの線のつまみ → 小節を増やす・減らす
 class PianoRollScreen extends StatefulWidget {
   const PianoRollScreen({super.key, required this.song, required this.placementId});
 
@@ -42,16 +47,22 @@ class PianoRollScreen extends StatefulWidget {
 }
 
 class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProviderStateMixin {
-  final _scroll = ScrollController();
+  static const double _colWidth = 46;
+  static const double _labelWidth = 24;
+  static const double _keyboardHeight = 64;
+  static const double _bottomRoom = 160; // クリップの終わりのつまみを下へ引くための余白
+
+  final _h = ScrollController(); // ロールの横
+  final _hKeys = ScrollController(); // 鍵盤の横（ロールに合わせる）
+  final _v = ScrollController(); // ロールの縦
   final _playhead = ValueNotifier<int?>(null); // クリップ先頭からの tick。再生していないときは null
   late final Ticker _ticker;
 
-  _Tool _tool = _Tool.pen;
   int _step = ticksPerBeat ~/ 2; // 1/8
-  int _octave = 4;
   bool _chromatic = false;
   final Set<int> _selection = {};
   _Drag? _drag;
+  bool _centered = false; // 開いたときに一度だけノートのある音域へスクロールする
 
   SongController get song => widget.song;
 
@@ -66,11 +77,10 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   void initState() {
     super.initState();
     final pl = _placement;
-    final clip = pl == null ? null : song.clip(pl.clipId);
-    if (pl != null && clip != null) {
-      _octave = bestOctave(clip, scaleOf(song.project));
-      song.previewTrack(pl.trackId);
-    }
+    if (pl != null) song.previewTrack(pl.trackId);
+    _h.addListener(() {
+      if (_hKeys.hasClients && _hKeys.offset != _h.offset) _hKeys.jumpTo(_h.offset);
+    });
     _ticker = createTicker((_) => _playhead.value = _localPlayhead())..start();
   }
 
@@ -89,7 +99,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   void dispose() {
     _ticker.dispose();
     _playhead.dispose();
-    _scroll.dispose();
+    _h.dispose();
+    _hKeys.dispose();
+    _v.dispose();
     song.engine.allNotesOff();
     super.dispose();
   }
@@ -110,10 +122,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
         _selection.removeWhere((id) => clip.notes.every((n) => n.id != id));
         final project = song.project;
         final scale = scaleOf(project);
-        final columns = rollColumns(scale, _octave, chromatic: _chromatic);
         final track = project.track(pl.trackId);
         final label = clipLabels(project)[clip.id] ?? '';
-        final (below, above) = hiddenNotes(clip, columns);
 
         return Scaffold(
           body: SafeArea(
@@ -122,32 +132,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               children: [
                 _header(track, label, pl, scale, clip),
                 _toolbar(clip),
-                if (_selection.isNotEmpty) _selectionRow(clip),
-                Expanded(child: _roll(clip, columns, scale, track)),
-                if (below + above > 0)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                    child: Text(
-                      [
-                        if (above > 0) '↑ 上のオクターブに $above 個',
-                        if (below > 0) '↓ 下のオクターブに $below 個',
-                      ].join(' · '),
-                      style: const TextStyle(fontSize: 11, color: DawColors.muted),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24 + RollGeometry.labelWidth, 8, 24, 0),
-                  child: SizedBox(
-                    height: 64,
-                    child: ScaleKeyboard(
-                      notes: columns,
-                      rootPitchClass: scale.root,
-                      onNoteOn: (note, velocity) => song.engine.noteOn(note, velocity),
-                      onNoteOff: (note) => song.engine.noteOff(note),
-                    ),
-                  ),
-                ),
-                _bottomControls(columns),
+                Expanded(child: _roll(clip, scale, track)),
+                _bottomControls(),
               ],
             ),
           ),
@@ -159,8 +145,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   // ---- ヘッダーと道具 -----------------------------------------------------------
 
   Widget _header(TrackData? track, String label, PlacementData pl, Scale scale, ClipData clip) {
-    final bars = (clip.lengthTicks / song.project.ticksPerBar).ceil();
     final key = '${noteName(scale.root)} ${song.project.scale}';
+    final bars = (clip.lengthTicks / song.project.ticksPerBar).ceil();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Row(
@@ -187,7 +173,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 Text(
-                  '小節 ${pl.startBar + 1}–${pl.endBar} · ${_chromatic ? '全音表示' : '$key のみ表示'}',
+                  '$bars小節（小節 ${pl.startBar + 1}–${pl.endBar}）· ${_chromatic ? '全音表示' : '$key のみ表示'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: DawColors.muted),
@@ -195,93 +181,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ],
             ),
           ),
-          // クリップの長さ（小節）。複製も一緒に変わる
-          _RoundIcon(
-            icon: Icons.remove,
-            label: 'クリップを1小節縮める',
-            onPressed: bars > 1 ? () => _resizeClip(clip, bars - 1) : null,
-          ),
-          SizedBox(
-            width: 44,
-            child: Column(
-              children: [
-                Text('$bars', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                const Text('小節', style: TextStyle(fontSize: 10, color: DawColors.muted)),
-              ],
-            ),
-          ),
-          _RoundIcon(icon: Icons.add, label: 'クリップを1小節伸ばす', onPressed: () => _resizeClip(clip, bars + 1)),
-        ],
-      ),
-    );
-  }
-
-  void _resizeClip(ClipData clip, int bars) {
-    if (!song.resizeClip(clip.id, bars)) {
-      HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('下のクリップとぶつかるので伸ばせません')));
-    }
-  }
-
-  /// 選んだノートの長さをグリッド1つ分ずつ変える・消す
-  Widget _selectionRow(ClipData clip) {
-    final ids = _selection.toList();
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
-      decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text('選んだノート ${ids.length} 個', style: const TextStyle(fontSize: 12, color: DawColors.muted)),
-          ),
-          TextButton.icon(
-            onPressed: () => song.resizeNotes(clip.id, ids, -_step),
-            icon: const Icon(Icons.unfold_less, size: 18),
-            label: const Text('短く'),
-          ),
-          TextButton.icon(
-            onPressed: () => song.resizeNotes(clip.id, ids, _step),
-            icon: const Icon(Icons.unfold_more, size: 18),
-            label: const Text('長く'),
-          ),
-          IconButton(
-            tooltip: '選んだノートを削除',
-            onPressed: () {
-              song.deleteNotes(clip.id, ids);
-              setState(_selection.clear);
-            },
-            icon: const Icon(Icons.delete_outline, size: 20),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toolbar(ClipData clip) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      child: Row(
-        children: [
-          _ToolChip(
-            icon: Icons.edit_outlined,
-            label: 'ペン',
-            active: _tool == _Tool.pen,
-            onTap: () => setState(() {
-              _tool = _Tool.pen;
-              _selection.clear();
-            }),
-          ),
-          const SizedBox(width: 6),
-          _ToolChip(
-            icon: Icons.highlight_alt,
-            label: '選択',
-            active: _tool == _Tool.select,
-            onTap: () => setState(() => _tool = _Tool.select),
-          ),
-          const Spacer(),
           _RoundIcon(icon: Icons.undo, label: '元に戻す', onPressed: song.canUndo ? song.undo : null),
           const SizedBox(width: 6),
           _RoundIcon(icon: Icons.redo, label: 'やり直す', onPressed: song.canRedo ? song.redo : null),
@@ -290,7 +189,46 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     );
   }
 
-  Widget _bottomControls(List<int> columns) {
+  /// 選んでいるノートがあれば数と削除、なければ操作のヒント
+  Widget _toolbar(ClipData clip) {
+    final ids = _selection.toList();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
+      constraints: const BoxConstraints(minHeight: 44),
+      decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              ids.isEmpty
+                  ? 'タップで置く · ノートをタップでつまみ · 長押しなぞりで範囲選択'
+                  : '選んだノート ${ids.length} 個 · つまみで長さ、真ん中で移動',
+              maxLines: 2,
+              style: const TextStyle(fontSize: 11, color: DawColors.muted),
+            ),
+          ),
+          if (ids.isNotEmpty) ...[
+            IconButton(
+              tooltip: '選択をやめる',
+              onPressed: () => setState(_selection.clear),
+              icon: const Icon(Icons.close, size: 20),
+            ),
+            IconButton(
+              tooltip: '選んだノートを削除',
+              onPressed: () {
+                song.deleteNotes(clip.id, ids);
+                setState(_selection.clear);
+              },
+              icon: const Icon(Icons.delete_outline, size: 20),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _bottomControls() {
     final step = gridSteps.indexOf(_step);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
@@ -305,36 +243,17 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Row(
-              children: [
-                _RoundIcon(
-                  icon: Icons.remove,
-                  label: 'オクターブを下げる',
-                  onPressed: _octave > 0 ? () => setState(() => _octave--) : null,
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      const Text('オクターブ', style: TextStyle(fontSize: 10, color: DawColors.muted)),
-                      Text(noteName(columns.first, withOctave: true),
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ),
-                _RoundIcon(
-                  icon: Icons.add,
-                  label: 'オクターブを上げる',
-                  onPressed: _octave < 8 ? () => setState(() => _octave++) : null,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
             child: _ValueButton(
               caption: '全音表示',
               value: _chromatic ? 'ON' : 'OFF',
-              onTap: () => setState(() => _chromatic = !_chromatic),
+              onTap: () {
+                // 表示を切り替えても、いま見ている音のあたりを保つ
+                final center = _centerPitch();
+                setState(() {
+                  _chromatic = !_chromatic;
+                  _pendingCenterPitch = center;
+                });
+              },
             ),
           ),
         ],
@@ -344,67 +263,121 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   // ---- ロール本体 ---------------------------------------------------------------
 
-  Widget _roll(ClipData clip, List<int> columns, Scale scale, TrackData? track) {
+  RollGeometry? _g;
+  double _viewportWidth = 0;
+  int? _pendingCenterPitch;
+
+  int? _centerPitch() {
+    final g = _g;
+    if (g == null || !_h.hasClients) return null;
+    final col = g.colAt(_h.offset + _viewportWidth / 2);
+    return col == null ? null : g.columns[col];
+  }
+
+  Widget _roll(ClipData clip, Scale scale, TrackData? track) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: const Color(0xFF16181B), borderRadius: BorderRadius.circular(14)),
+      clipBehavior: Clip.antiAlias,
       child: LayoutBuilder(
         builder: (context, box) {
+          final viewportW = box.maxWidth - _labelWidth;
+          final viewportH = box.maxHeight - _keyboardHeight - 6;
           final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
-          final rowHeight = (box.maxHeight / rows).clamp(22.0, 44.0).toDouble();
+          final rowHeight = (viewportH / rows).clamp(24.0, 44.0).toDouble();
           final g = RollGeometry(
-            width: box.maxWidth,
-            columns: columns,
+            columns: rollColumns(scale, chromatic: _chromatic),
+            colWidth: _colWidth,
             step: _step,
             rowHeight: rowHeight,
             lengthTicks: clip.lengthTicks,
           );
+          _g = g;
+          _viewportWidth = viewportW;
+          _scheduleCentering(clip, scale, g, viewportW);
           final color = track != null ? Color(track.color) : DawColors.lead;
+
           return Stack(
             children: [
-              SingleChildScrollView(
-                controller: _scroll,
-                physics: const NeverScrollableScrollPhysics(), // ロールの上のドラッグは編集に使う
+              // 小節・拍の目盛り（縦スクロールに合わせて動く）
+              Positioned(
+                left: 0,
+                top: 0,
+                width: _labelWidth,
+                height: viewportH,
+                child: CustomPaint(
+                  painter: _LabelPainter(g: g, v: _v, ticksPerBar: song.project.ticksPerBar),
+                ),
+              ),
+              // ロール
+              Positioned(
+                left: _labelWidth,
+                top: 0,
+                right: 0,
+                height: viewportH,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTapUp: (d) => _onTap(clip, g, d.localPosition),
-                  onLongPressStart: (d) => _onLongPress(clip, g, d.localPosition),
-                  onPanStart: (d) => _onPanStart(clip, g, d.localPosition),
-                  onPanUpdate: (d) => _onPanUpdate(clip, g, d.localPosition),
-                  onPanEnd: (_) => _onPanEnd(clip, g),
+                  onTapUp: (d) => _onTap(clip, g, _toContent(d.localPosition)),
+                  onLongPressStart: (d) => _onLongPressStart(clip, g, _toContent(d.localPosition)),
+                  onLongPressMoveUpdate: (d) => _onLongPressMove(_toContent(d.localPosition)),
+                  onLongPressEnd: (_) => _onLongPressEnd(clip, g),
+                  onPanStart: (d) => _onPanStart(clip, g, _toContent(d.localPosition)),
+                  onPanUpdate: (d) => _onPanUpdate(g, d.localPosition, d.delta),
+                  onPanEnd: (d) => _onPanEnd(clip, g, d.velocity),
                   onPanCancel: () => setState(() => _drag = null),
-                  child: SizedBox(
-                    width: box.maxWidth,
-                    height: g.height,
-                    child: CustomPaint(
-                      painter: _RollPainter(
-                        clip: clip,
-                        g: g,
-                        scale: scale,
-                        ticksPerBar: song.project.ticksPerBar,
-                        noteColor: color,
-                        selection: Set.of(_selection),
-                        drag: _drag,
-                        playhead: _playhead,
+                  child: SingleChildScrollView(
+                    controller: _h,
+                    scrollDirection: Axis.horizontal,
+                    physics: const NeverScrollableScrollPhysics(), // スクロールは自前（編集のなぞりと分けるため）
+                    child: SizedBox(
+                      width: g.width,
+                      height: viewportH,
+                      child: SingleChildScrollView(
+                        controller: _v,
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: SizedBox(
+                          width: g.width,
+                          height: g.height + _bottomRoom,
+                          child: CustomPaint(
+                            painter: _RollPainter(
+                              clip: clip,
+                              g: g,
+                              scale: scale,
+                              ticksPerBar: song.project.ticksPerBar,
+                              noteColor: color,
+                              selection: Set.of(_selection),
+                              drag: _drag,
+                              playhead: _playhead,
+                              h: _h,
+                              viewportWidth: viewportW,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-              // 左の目盛りの帯をなぞるとスクロール
+              // 試聴鍵盤（ロールと一緒に横へ動く）
               Positioned(
-                left: 0,
-                top: 0,
+                left: _labelWidth,
+                right: 0,
                 bottom: 0,
-                width: RollGeometry.labelWidth,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onVerticalDragUpdate: (d) {
-                    if (!_scroll.hasClients) return;
-                    final max = _scroll.position.maxScrollExtent;
-                    _scroll.jumpTo((_scroll.offset - d.delta.dy).clamp(0.0, max).toDouble());
-                  },
+                height: _keyboardHeight,
+                child: SingleChildScrollView(
+                  controller: _hKeys,
+                  scrollDirection: Axis.horizontal,
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SizedBox(
+                    width: g.width,
+                    height: _keyboardHeight,
+                    child: ScaleKeyboard(
+                      notes: g.columns,
+                      rootPitchClass: scale.root,
+                      onNoteOn: (note, velocity) => song.engine.noteOn(note, velocity),
+                      onNoteOff: (note) => song.engine.noteOff(note),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -414,116 +387,204 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     );
   }
 
+  /// 開いたとき（と全音表示を切り替えたとき）に、見せたい音のあたりへ横スクロールする
+  void _scheduleCentering(ClipData clip, Scale scale, RollGeometry g, double viewportW) {
+    int? pitch = _pendingCenterPitch;
+    if (!_centered) {
+      final oct = bestOctave(clip, scale);
+      pitch = (oct + 1) * 12 + scale.root + 6; // そのオクターブの真ん中あたり
+    }
+    if (pitch == null) return;
+    _centered = true;
+    _pendingCenterPitch = null;
+    final target = g.scrollToCenter(pitch, viewportW);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_h.hasClients) _h.jumpTo(target.clamp(0, _h.position.maxScrollExtent).toDouble());
+    });
+  }
+
+  Offset _toContent(Offset viewport) =>
+      Offset(viewport.dx + (_h.hasClients ? _h.offset : 0), viewport.dy + (_v.hasClients ? _v.offset : 0));
+
+  void _scrollBy(double dx, double dy) {
+    if (_h.hasClients) _h.jumpTo((_h.offset - dx).clamp(0, _h.position.maxScrollExtent).toDouble());
+    if (_v.hasClients) _v.jumpTo((_v.offset - dy).clamp(0, _v.position.maxScrollExtent).toDouble());
+  }
+
+  /// 指を離したあとも少し流れる（慣性）
+  void _fling(Velocity velocity) {
+    final v = velocity.pixelsPerSecond;
+    const curve = Curves.decelerate;
+    const duration = Duration(milliseconds: 450);
+    if (_h.hasClients && v.dx.abs() > 200) {
+      final to = (_h.offset - v.dx * 0.3).clamp(0, _h.position.maxScrollExtent).toDouble();
+      _h.animateTo(to, duration: duration, curve: curve);
+    }
+    if (_v.hasClients && v.dy.abs() > 200) {
+      final to = (_v.offset - v.dy * 0.3).clamp(0, _v.position.maxScrollExtent).toDouble();
+      _v.animateTo(to, duration: duration, curve: curve);
+    }
+  }
+
   // ---- 操作 ---------------------------------------------------------------------
+
+  Iterable<NoteData> _selectedNotes(ClipData clip) => clip.notes.where((n) => _selection.contains(n.id));
+
+  bool _onClipEndHandle(RollGeometry g, Offset at) {
+    final hx = (_h.hasClients ? _h.offset : 0) + _viewportWidth / 2;
+    return (at.dy - g.height).abs() <= 26 && (at.dx - hx).abs() <= 40;
+  }
 
   void _onTap(ClipData clip, RollGeometry g, Offset at) {
     final hit = noteAt(clip, g, at.dx, at.dy);
-    if (_tool == _Tool.select) {
-      setState(() {
-        if (hit == null) {
-          _selection.clear();
-        } else if (!_selection.remove(hit.id)) {
-          _selection.add(hit.id);
-        }
-      });
-      if (hit != null) song.audition(hit.pitch, velocity: hit.velocity);
-      return;
-    }
     if (hit != null) {
+      setState(() {
+        _selection
+          ..clear()
+          ..add(hit.id);
+      });
       song.audition(hit.pitch, velocity: hit.velocity);
       return;
     }
     final col = g.colAt(at.dx);
-    if (col == null) return;
+    if (col == null || at.dy >= g.height) {
+      setState(_selection.clear);
+      return;
+    }
+    // 何もないところ：ノートを置いて選ぶ（すぐつまみで伸ばせる）
     final tick = g.tickAt(at.dy);
     final pitch = g.columns[col];
-    song.addNote(clip.id, tick: tick, length: math.min(_step, clip.lengthTicks - tick), pitch: pitch);
+    final id = song.addNote(clip.id, tick: tick, length: math.min(_step, clip.lengthTicks - tick), pitch: pitch);
     song.audition(pitch);
+    setState(() {
+      _selection.clear();
+      if (id != 0) _selection.add(id);
+    });
   }
 
-  void _onLongPress(ClipData clip, RollGeometry g, Offset at) {
+  void _onLongPressStart(ClipData clip, RollGeometry g, Offset at) {
     final hit = noteAt(clip, g, at.dx, at.dy);
-    if (hit == null) return;
-    HapticFeedback.mediumImpact();
-    final ids = _selection.contains(hit.id) ? _selection.toList() : [hit.id];
-    song.deleteNotes(clip.id, ids);
-    setState(() => _selection.removeAll(ids));
+    if (hit != null) {
+      HapticFeedback.mediumImpact();
+      final ids = _selection.contains(hit.id) ? _selection.toList() : [hit.id];
+      song.deleteNotes(clip.id, ids);
+      setState(() => _selection.removeAll(ids));
+      return;
+    }
+    HapticFeedback.selectionClick();
+    setState(() => _drag = _Drag(kind: _DragKind.marquee, start: at));
+  }
+
+  void _onLongPressMove(Offset at) {
+    final d = _drag;
+    if (d == null || d.kind != _DragKind.marquee) return;
+    setState(() => d.current = at);
+  }
+
+  void _onLongPressEnd(ClipData clip, RollGeometry g) {
+    final d = _drag;
+    if (d == null || d.kind != _DragKind.marquee) return;
+    final ids = notesInRect(clip, g, d.start.dx, d.start.dy, d.current.dx, d.current.dy);
+    setState(() {
+      _drag = null;
+      _selection
+        ..clear()
+        ..addAll(ids);
+    });
   }
 
   void _onPanStart(ClipData clip, RollGeometry g, Offset at) {
+    // 1. 選んでいるノートのつまみ
+    final handle = handleAt(_selectedNotes(clip), g, at.dx, at.dy);
+    if (handle != null) {
+      setState(() => _drag = _Drag(
+            kind: handle.handle == NoteHandle.end ? _DragKind.resizeEnd : _DragKind.resizeStart,
+            start: at,
+            ids: _selection.toList(),
+          ));
+      return;
+    }
+    // 2. クリップの終わりのつまみ
+    if (_onClipEndHandle(g, at)) {
+      setState(() => _drag = _Drag(kind: _DragKind.clipLength, start: at));
+      return;
+    }
+    // 3. ノートの真ん中 → 移動（選んでいるノートなら全部一緒に）
     final hit = noteAt(clip, g, at.dx, at.dy);
     if (hit != null) {
-      // 選択ツールで選んでいるノートを掴んだら、選んでいるもの全部を動かす
-      final ids = _tool == _Tool.select && _selection.contains(hit.id) ? _selection.toList() : [hit.id];
-      if (_tool == _Tool.select && !_selection.contains(hit.id)) {
+      if (!_selection.contains(hit.id)) {
         _selection
           ..clear()
           ..add(hit.id);
       }
-      final kind = isNearBottom(hit, g, at.dy) ? _DragKind.resize : _DragKind.move;
       setState(() => _drag = _Drag(
-            kind: kind,
+            kind: _DragKind.move,
             start: at,
-            ids: ids,
+            ids: _selection.toList(),
             anchorPitch: hit.pitch,
             anchorCol: g.columnOf(hit.pitch) ?? 0,
           ));
       return;
     }
-    if (_tool == _Tool.select) {
-      setState(() => _drag = _Drag(kind: _DragKind.marquee, start: at));
-      return;
-    }
-    final col = g.colAt(at.dx);
-    if (col == null) return;
-    song.audition(g.columns[col]);
-    setState(() => _drag = _Drag(kind: _DragKind.create, start: at));
+    // 4. 何もないところ → スクロール
+    _drag = _Drag(kind: _DragKind.scroll, start: at);
   }
 
-  void _onPanUpdate(ClipData clip, RollGeometry g, Offset at) {
-    final drag = _drag;
-    if (drag == null) return;
-    drag.current = at;
-    if (drag.kind == _DragKind.move) {
-      final pitch = drag.anchorPitch + _deltaPitch(drag, g);
-      if (pitch != drag.lastAuditioned && pitch != drag.anchorPitch) {
-        drag.lastAuditioned = pitch;
+  void _onPanUpdate(RollGeometry g, Offset viewportPos, Offset delta) {
+    final d = _drag;
+    if (d == null) return;
+    if (d.kind == _DragKind.scroll) {
+      _scrollBy(delta.dx, delta.dy);
+      return;
+    }
+    d.current = _toContent(viewportPos);
+    if (d.kind == _DragKind.move) {
+      final pitch = d.anchorPitch + _deltaPitch(d, g);
+      if (pitch != d.lastAuditioned && pitch != d.anchorPitch) {
+        d.lastAuditioned = pitch;
         song.audition(pitch);
       }
     }
     setState(() {});
   }
 
-  void _onPanEnd(ClipData clip, RollGeometry g) {
-    final drag = _drag;
+  void _onPanEnd(ClipData clip, RollGeometry g, Velocity velocity) {
+    final d = _drag;
     setState(() => _drag = null);
-    if (drag == null) return;
-    switch (drag.kind) {
-      case _DragKind.create:
-        {
-          final col = g.colAt(drag.start.dx);
-          if (col == null) return;
-          final (tick, length) = _createSpan(drag, g);
-          song.addNote(clip.id, tick: tick, length: length, pitch: g.columns[col]);
-        }
+    if (d == null) return;
+    switch (d.kind) {
+      case _DragKind.scroll:
+        _fling(velocity);
       case _DragKind.move:
         {
-          final dt = _deltaTicks(drag, g);
-          final dp = _deltaPitch(drag, g);
-          if (dt != 0 || dp != 0) song.moveNotes(clip.id, drag.ids, deltaTicks: dt, deltaPitch: dp);
+          final dt = _deltaTicks(d, g);
+          final dp = _deltaPitch(d, g);
+          if (dt != 0 || dp != 0) song.moveNotes(clip.id, d.ids, deltaTicks: dt, deltaPitch: dp);
         }
-      case _DragKind.resize:
+      case _DragKind.resizeEnd:
         {
-          final dt = _deltaTicks(drag, g);
-          if (dt != 0) song.resizeNotes(clip.id, drag.ids, dt);
+          final dt = _deltaTicks(d, g);
+          if (dt != 0) song.resizeNotes(clip.id, d.ids, dt);
+        }
+      case _DragKind.resizeStart:
+        {
+          final notes = clip.notes.where((n) => d.ids.contains(n.id));
+          final dt = clampStartDelta(notes, _deltaTicks(d, g), g.step);
+          if (dt != 0) song.trimNotesStart(clip.id, d.ids, dt);
+        }
+      case _DragKind.clipLength:
+        {
+          final bars = _draggedBars(d, g, clip);
+          final current = (clip.lengthTicks / song.project.ticksPerBar).ceil();
+          if (bars != current && !song.resizeClip(clip.id, bars)) {
+            HapticFeedback.heavyImpact();
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(const SnackBar(content: Text('下のクリップとぶつかるので伸ばせません')));
+          }
         }
       case _DragKind.marquee:
-        {
-          final ids = notesInRect(clip, g, drag.start.dx, drag.start.dy, drag.current.dx, drag.current.dy);
-          setState(() => _selection
-            ..clear()
-            ..addAll(ids));
-        }
+        break; // 長押しの方で扱う
     }
   }
 
@@ -535,20 +596,54 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   /// 横の移動量を音程差に（掴んだノートが入る列の音に合わせる）
   int _deltaPitch(_Drag d, RollGeometry g) {
-    final col = g.colAt(d.current.dx.clamp(RollGeometry.labelWidth, g.width - 1).toDouble());
+    final col = g.colAt(d.current.dx.clamp(0, g.width - 1).toDouble());
     if (col == null || col == d.anchorCol) return 0;
     return g.columns[col] - d.anchorPitch;
   }
 
-  /// 置きながら伸ばしたノートの位置と長さ
-  (int, int) _createSpan(_Drag d, RollGeometry g) {
-    final tick = g.tickAt(d.start.dy);
-    final endTick = g.tickAt(math.max(d.start.dy, d.current.dy)) + g.step;
-    return (tick, math.max(g.step, endTick - tick).clamp(1, g.lengthTicks - tick));
+  /// クリップの終わりのつまみを引いた先の小節数（1〜64）
+  int _draggedBars(_Drag d, RollGeometry g, ClipData clip) {
+    final tpb = song.project.ticksPerBar;
+    final endTick = clip.lengthTicks + (d.current.dy - d.start.dy) / g.rowHeight * g.step;
+    return (endTick / tpb).round().clamp(1, 64);
   }
 }
 
 // ---- 描画 -----------------------------------------------------------------------
+
+class _LabelPainter extends CustomPainter {
+  _LabelPainter({required this.g, required this.v, required this.ticksPerBar}) : super(repaint: v);
+
+  final RollGeometry g;
+  final ScrollController v;
+  final int ticksPerBar;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final offset = v.hasClients ? v.offset : 0.0;
+    canvas.clipRect(Offset.zero & size);
+    for (var tick = 0; tick < g.lengthTicks; tick += ticksPerBeat) {
+      final y = g.tickY(tick) - offset;
+      if (y < -20 || y > size.height) continue;
+      final isBar = tick % ticksPerBar == 0;
+      final tp = TextPainter(
+        text: TextSpan(
+          text: isBar ? '${tick ~/ ticksPerBar + 1}' : '·',
+          style: TextStyle(
+            color: isBar ? DawColors.text : DawColors.muted,
+            fontSize: isBar ? 11 : 10,
+            fontWeight: isBar ? FontWeight.w700 : FontWeight.w400,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset((size.width - tp.width) / 2, y + 3));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LabelPainter old) => old.g != g;
+}
 
 class _RollPainter extends CustomPainter {
   _RollPainter({
@@ -560,7 +655,9 @@ class _RollPainter extends CustomPainter {
     required this.selection,
     required this.drag,
     required this.playhead,
-  }) : super(repaint: playhead);
+    required this.h,
+    required this.viewportWidth,
+  }) : super(repaint: Listenable.merge([playhead, h]));
 
   final ClipData clip;
   final RollGeometry g;
@@ -570,76 +667,72 @@ class _RollPainter extends CustomPainter {
   final Set<int> selection;
   final _Drag? drag;
   final ValueNotifier<int?> playhead;
+  final ScrollController h;
+  final double viewportWidth;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ルート音とスケール外（全音表示のとき）の列に色をつける
+    // ルート音（C など）とスケール外（全音表示のとき）の列に色をつける。オクターブの境目に線
     for (var c = 0; c < g.columns.length; c++) {
       final p = g.columns[c];
       final isRoot = p % 12 == scale.root;
-      final inScale = scale.contains(p);
-      if (!isRoot && inScale) continue;
-      canvas.drawRect(
-        Rect.fromLTWH(g.colX(c), 0, g.colWidth, g.height),
-        Paint()..color = isRoot ? const Color(0xFF1C1F23) : const Color(0xFF131416),
-      );
-    }
-
-    // 横線：小節（明）、拍（中）、グリッド（暗）。左に小節番号
-    for (var r = 0; r <= g.rows; r++) {
-      final tick = r * g.step;
-      final y = g.tickY(tick);
-      final isBar = tick % ticksPerBar == 0;
-      final isBeat = tick % ticksPerBeat == 0;
-      canvas.drawRect(
-        Rect.fromLTWH(RollGeometry.labelWidth, y, g.width - RollGeometry.labelWidth, 1),
-        Paint()..color = isBar ? const Color(0xFF3A3E46) : (isBeat ? const Color(0xFF2A2D33) : const Color(0xFF1F2125)),
-      );
-      if (r < g.rows && (isBar || isBeat)) {
-        _label(canvas, isBar ? '${tick ~/ ticksPerBar + 1}' : '·', Offset(2, y + 3));
+      if (isRoot) {
+        canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, g.colWidth, g.height), Paint()..color = const Color(0xFF1C1F23));
+        canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, 1, g.height), Paint()..color = const Color(0xFF3A3E46));
+      } else if (!scale.contains(p)) {
+        canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, g.colWidth, g.height), Paint()..color = const Color(0xFF121315));
       }
     }
 
+    // 横線：小節（明）、拍（中）、グリッド（暗）
+    for (var r = 0; r <= g.rows; r++) {
+      final tick = r * g.step;
+      final isBar = tick % ticksPerBar == 0;
+      final isBeat = tick % ticksPerBeat == 0;
+      canvas.drawRect(
+        Rect.fromLTWH(0, g.tickY(tick), g.width, isBar ? 1.5 : 1),
+        Paint()..color = isBar ? const Color(0xFF4A4F58) : (isBeat ? const Color(0xFF2A2D33) : const Color(0xFF1F2125)),
+      );
+    }
+
     final d = drag;
-    final moving = d != null && (d.kind == _DragKind.move || d.kind == _DragKind.resize) ? d.ids.toSet() : <int>{};
+    final moving = d != null && (d.kind == _DragKind.move || d.kind == _DragKind.resizeEnd || d.kind == _DragKind.resizeStart)
+        ? d.ids.toSet()
+        : <int>{};
+    final dyTicks = d == null ? 0 : ((d.current.dy - d.start.dy) / g.rowHeight).round() * g.step;
 
     // ノート
     for (final n in clip.notes) {
       final col = g.columnOf(n.pitch);
       if (col == null) continue;
-      final selected = selection.contains(n.id);
-      final faded = moving.contains(n.id);
       _note(canvas, col, n.tick, n.length,
-          fill: noteColor.withValues(alpha: faded ? 0.3 : 1), outline: selected ? DawColors.text : null);
+          fill: noteColor.withValues(alpha: moving.contains(n.id) ? 0.3 : 1),
+          outline: selection.contains(n.id) && !moving.contains(n.id) ? DawColors.text : null);
     }
 
     // なぞっている途中の見た目
     if (d != null) {
-      final dyTicks = ((d.current.dy - d.start.dy) / g.rowHeight).round() * g.step;
       switch (d.kind) {
-        case _DragKind.create:
-          final startCol = g.colAt(d.start.dx);
-          if (startCol != null) {
-            final tick = g.tickAt(d.start.dy);
-            final end = g.tickAt(math.max(d.start.dy, d.current.dy)) + g.step;
-            _note(canvas, startCol, tick, math.max(g.step, end - tick), fill: noteColor.withValues(alpha: 0.7));
-          }
         case _DragKind.move:
-          final col = g.colAt(d.current.dx.clamp(RollGeometry.labelWidth, g.width - 1).toDouble());
+          final col = g.colAt(d.current.dx.clamp(0, g.width - 1).toDouble());
           final dp = col == null || col == d.anchorCol ? 0 : g.columns[col] - d.anchorPitch;
           for (final n in clip.notes.where((n) => d.ids.contains(n.id))) {
             final c = g.columnOf(n.pitch + dp);
-            if (c != null) {
-              _note(canvas, c, n.tick + dyTicks, n.length, fill: noteColor, outline: DawColors.text);
-            }
+            if (c != null) _note(canvas, c, n.tick + dyTicks, n.length, fill: noteColor, outline: DawColors.text);
           }
-        case _DragKind.resize:
+        case _DragKind.resizeEnd:
           for (final n in clip.notes.where((n) => d.ids.contains(n.id))) {
             final c = g.columnOf(n.pitch);
             if (c != null) {
-              _note(canvas, c, n.tick, math.max(ticksPerBeat ~/ 16, n.length + dyTicks),
-                  fill: noteColor, outline: DawColors.text);
+              _note(canvas, c, n.tick, math.max(60, n.length + dyTicks), fill: noteColor, outline: DawColors.text);
             }
+          }
+        case _DragKind.resizeStart:
+          final notes = clip.notes.where((n) => d.ids.contains(n.id)).toList();
+          final dt = clampStartDelta(notes, dyTicks, g.step);
+          for (final n in notes) {
+            final c = g.columnOf(n.pitch);
+            if (c != null) _note(canvas, c, n.tick + dt, n.length - dt, fill: noteColor, outline: DawColors.text);
           }
         case _DragKind.marquee:
           final rect = Rect.fromPoints(d.start, d.current);
@@ -650,16 +743,41 @@ class _RollPainter extends CustomPainter {
               ..style = PaintingStyle.stroke
               ..color = DawColors.text.withValues(alpha: 0.6),
           );
+        case _DragKind.scroll:
+        case _DragKind.clipLength:
+          break;
       }
     }
+
+    // 選んでいるノートのつまみ（動かしている最中は出さない）
+    if (moving.isEmpty) {
+      for (final n in clip.notes.where((n) => selection.contains(n.id))) {
+        if (g.columnOf(n.pitch) == null) continue;
+        for (final hnd in NoteHandle.values) {
+          final p = handlePoint(n, g, hnd);
+          _grip(canvas, Offset(p.x, p.y));
+        }
+      }
+    }
+
+    // クリップの終わり：線と、引っぱるつまみ（いま見ている範囲の真ん中）
+    final endY = d?.kind == _DragKind.clipLength ? g.height + (d!.current.dy - d.start.dy) : g.height;
+    canvas.drawRect(Rect.fromLTWH(0, g.height, g.width, size.height - g.height),
+        Paint()..color = DawColors.background.withValues(alpha: 0.55));
+    canvas.drawRect(Rect.fromLTWH(0, endY - 1, g.width, 2), Paint()..color = DawColors.accent.withValues(alpha: 0.8));
+    final hx = (h.hasClients ? h.offset : 0) + viewportWidth / 2;
+    final pill = RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(hx, endY), width: 64, height: 22),
+        const Radius.circular(11));
+    canvas.drawRRect(pill, Paint()..color = DawColors.accent);
+    final barsText = d?.kind == _DragKind.clipLength
+        ? '${((g.lengthTicks + (d!.current.dy - d.start.dy) / g.rowHeight * g.step) / ticksPerBar).round().clamp(1, 64)}小節'
+        : '↕ 小節';
+    _text(canvas, barsText, Offset(hx, endY), color: DawColors.background, size: 11, bold: true, center: true);
 
     // 再生位置
     final ph = playhead.value;
     if (ph != null) {
-      canvas.drawRect(
-        Rect.fromLTWH(RollGeometry.labelWidth, g.tickY(ph) - 1, g.width - RollGeometry.labelWidth, 2),
-        Paint()..color = DawColors.text,
-      );
+      canvas.drawRect(Rect.fromLTWH(0, g.tickY(ph) - 1, g.width, 2), Paint()..color = DawColors.text);
     }
   }
 
@@ -672,17 +790,6 @@ class _RollPainter extends CustomPainter {
     );
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
     canvas.drawRRect(rrect, Paint()..color = fill);
-    // 下端のつまみ（ここを上下になぞると長さが変わる）
-    if (rect.height >= 14) {
-      final w = math.min(18.0, rect.width - 8);
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromCenter(center: Offset(rect.center.dx, rect.bottom - 4), width: w, height: 3),
-          const Radius.circular(2),
-        ),
-        Paint()..color = DawColors.background.withValues(alpha: 0.45),
-      );
-    }
     if (outline != null) {
       canvas.drawRRect(
         rrect,
@@ -694,12 +801,21 @@ class _RollPainter extends CustomPainter {
     }
   }
 
-  void _label(Canvas canvas, String s, Offset at) {
+  void _grip(Canvas canvas, Offset c) {
+    canvas.drawCircle(c, 9, Paint()..color = DawColors.text);
+    canvas.drawCircle(c, 5, Paint()..color = DawColors.background);
+  }
+
+  void _text(Canvas canvas, String s, Offset at,
+      {required Color color, required double size, bool bold = false, bool center = false}) {
     final tp = TextPainter(
-      text: TextSpan(text: s, style: const TextStyle(color: DawColors.muted, fontSize: 10)),
+      text: TextSpan(
+        text: s,
+        style: TextStyle(color: color, fontSize: size, fontWeight: bold ? FontWeight.w700 : FontWeight.w400),
+      ),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(canvas, at);
+    tp.paint(canvas, center ? at - Offset(tp.width / 2, tp.height / 2) : at);
   }
 
   @override
@@ -707,43 +823,6 @@ class _RollPainter extends CustomPainter {
 }
 
 // ---- 小さな部品 -------------------------------------------------------------------
-
-class _ToolChip extends StatelessWidget {
-  const _ToolChip({required this.icon, required this.label, required this.active, required this.onTap});
-
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: active ? DawColors.accent : Colors.transparent,
-      shape: StadiumBorder(side: BorderSide(color: active ? DawColors.accent : DawColors.line)),
-      child: InkWell(
-        customBorder: const StadiumBorder(),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 16, color: active ? DawColors.background : DawColors.text),
-              const SizedBox(width: 5),
-              Text(label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: active ? FontWeight.w700 : FontWeight.w400,
-                    color: active ? DawColors.background : DawColors.text,
-                  )),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _RoundIcon extends StatelessWidget {
   const _RoundIcon({required this.icon, required this.label, required this.onPressed});

@@ -162,6 +162,21 @@ class SongController extends ChangeNotifier {
     return _edit(() => engine.movePlacement(pl.id, pl.startBar + deltaBars));
   }
 
+  /// 配置を指定の小節へ動かす。ぶつかるなら false
+  bool movePlacementTo(int placementId, int startBar) {
+    if (startBar < 0) return false;
+    return _edit(() => engine.movePlacement(placementId, startBar));
+  }
+
+  /// クリップの複製を指定の小節に置いて選ぶ。ぶつかるなら false
+  bool duplicateTo(int clipId, int startBar) {
+    if (startBar < 0) return false;
+    final id = _edit(() => engine.placeClip(clipId, startBar));
+    if (id == 0) return false;
+    select(id);
+    return true;
+  }
+
   /// 選んでいるクリップを1小節伸ばす・縮める（複製も一緒に）。ぶつかる・1小節より短くなるなら false
   bool resizeSelected(int deltaBars) {
     final pl = selected;
@@ -197,6 +212,13 @@ class SongController extends ChangeNotifier {
       _edit(() => engine.resizeNotes(clipId, ids, deltaTicks));
 
   bool deleteNotes(int clipId, List<int> ids) => _edit(() => engine.deleteNotes(clipId, ids));
+
+  /// ノートの頭を動かす（終わりはそのまま）。移動と長さ変更を1つの Undo にまとめる
+  bool trimNotesStart(int clipId, List<int> ids, int deltaTicks) {
+    if (deltaTicks == 0) return false;
+    return _edit(() => engine.editGroup(() =>
+        engine.moveNotes(clipId, ids, deltaTicks: deltaTicks) && engine.resizeNotes(clipId, ids, -deltaTicks)));
+  }
 
   /// 試聴鍵盤とノートを置いたときの音を、そのトラックの音色にする
   void previewTrack(int trackId) => engine.previewTrack(trackId);

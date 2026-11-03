@@ -11,63 +11,75 @@ NoteData _n(int id, int tick, int length, int pitch) =>
     NoteData(id: id, tick: tick, length: length, pitch: pitch, velocity: 0.8);
 
 RollGeometry _geometry({bool chromatic = false}) => RollGeometry(
-      width: 22 + 8 * 40.0, // 8列なら1列 40px
-      columns: rollColumns(_cMinor, 4, chromatic: chromatic),
+      columns: rollColumns(_cMinor, chromatic: chromatic),
+      colWidth: 40,
       step: 480, // 1/8
       rowHeight: 30,
       lengthTicks: 3840,
     );
 
 void main() {
-  test('folded columns are the scale, chromatic shows all 13', () {
-    expect(rollColumns(_cMinor, 4, chromatic: false), [60, 62, 63, 65, 67, 68, 70, 72]);
-    final all = rollColumns(_cMinor, 4, chromatic: true);
-    expect(all.length, 13);
-    expect(all.first, 60);
-    expect(all.last, 72);
+  test('columns cover the whole range: scale notes only, or all 128', () {
+    final folded = rollColumns(_cMinor, chromatic: false);
+    expect(folded.first, 0);
+    expect(folded.last, 127); // G9 は C minor のスケール音
+    expect(folded.where((p) => p >= 60 && p <= 72), [60, 62, 63, 65, 67, 68, 70, 72]);
+    expect(rollColumns(_cMinor, chromatic: true).length, 128);
   });
 
-  test('geometry maps taps to pitch and snapped tick', () {
+  test('geometry maps positions to pitch and snapped tick', () {
     final g = _geometry();
     expect(g.rows, 8);
-    expect(g.colAt(10), isNull); // 目盛りの帯
-    expect(g.colAt(22 + 40 * 2 + 5), 2);
-    expect(g.columns[2], 63);
+    final c60 = g.columnOf(60)!;
+    expect(g.colAt(g.colX(c60) + 5), c60);
+    expect(g.colAt(-1), isNull);
     expect(g.tickAt(0), 0);
     expect(g.tickAt(29), 0);
     expect(g.tickAt(31), 480);
-    expect(g.tickAt(10000), 3839 ~/ 480 * 480); // クリップの中に収める
+    expect(g.tickAt(10000), 3360); // クリップの中に収めてグリッドに切り捨て
+    expect(g.nearestColumn(61), c60); // スケール外は下のスケール音の列
   });
 
-  test('finds the note under the finger and its bottom edge', () {
+  test('scroll target centers the pitch', () {
     final g = _geometry();
-    final clip = _clip([_n(1, 960, 960, 63)]); // 3〜4行目、E♭
-    final x = g.colX(2) + 10;
+    final x = g.scrollToCenter(60, 200);
+    expect(x + 100, closeTo(g.colX(g.columnOf(60)!) + 20, 0.001));
+    expect(g.scrollToCenter(0, 200), 0); // 端より外へは行かない
+  });
+
+  test('finds the note under the finger and its grips', () {
+    final g = _geometry();
+    final clip = _clip([_n(1, 960, 960, 63)]); // 3〜4行目、E♭4
+    final col = g.columnOf(63)!;
+    final x = g.colX(col) + 20;
     expect(noteAt(clip, g, x, g.tickY(960) + 5)?.id, 1);
     expect(noteAt(clip, g, x, g.tickY(1920) + 5), isNull);
-    expect(noteAt(clip, g, g.colX(3) + 10, g.tickY(960) + 5), isNull);
-    final note = clip.notes.single;
-    expect(isNearBottom(note, g, g.tickY(1920) - 4), isTrue);
-    expect(isNearBottom(note, g, g.tickY(960) + 4), isFalse);
+    final top = handleAt(clip.notes, g, x + 6, g.tickY(960) - 8);
+    expect(top?.handle, NoteHandle.start);
+    final bottom = handleAt(clip.notes, g, x - 4, g.tickY(1920) + 10);
+    expect(bottom?.handle, NoteHandle.end);
+    expect(handleAt(clip.notes, g, x, g.tickY(1440)), isNull); // 真ん中はつまみではない
   });
 
   test('marquee selects notes it touches', () {
     final g = _geometry();
     final clip = _clip([_n(1, 0, 480, 60), _n(2, 960, 480, 63), _n(3, 2880, 480, 72)]);
-    final ids = notesInRect(clip, g, g.colX(0), 0, g.colX(3), g.tickY(1440));
-    expect(ids, [1, 2]);
+    final x0 = g.colX(g.columnOf(60)!), x1 = g.colX(g.columnOf(65)!);
+    expect(notesInRect(clip, g, x0, 0, x1, g.tickY(1440)), [1, 2]);
   });
 
-  test('octave hint counts hidden notes and picks the busiest octave', () {
+  test('moving the start keeps notes inside the clip and above the minimum length', () {
+    final notes = [_n(1, 480, 960, 60), _n(2, 960, 480, 62)];
+    expect(clampStartDelta(notes, -960, 240), -480); // 1つ目は 0 より前に出られない
+    expect(clampStartDelta(notes, 960, 240), 240); // 2つ目は 480−60 まで → グリッドで 240
+    expect(clampStartDelta(notes, 0, 240), 0);
+  });
+
+  test('busiest octave and grid labels', () {
     final clip = _clip([_n(1, 0, 480, 48), _n(2, 0, 480, 50), _n(3, 0, 480, 75)]);
-    expect(hiddenNotes(clip, rollColumns(_cMinor, 4, chromatic: false)), (2, 1));
     expect(bestOctave(clip, _cMinor), 3);
     expect(bestOctave(_clip([]), _cMinor), 4);
-  });
-
-  test('grid labels and snapping', () {
     expect(gridSteps.map(gridLabel), ['1/4', '1/8', '1/16']);
     expect(snapDown(719, 240), 480);
-    expect(snapDown(-3, 240), 0);
   });
 }
