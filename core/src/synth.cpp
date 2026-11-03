@@ -46,6 +46,36 @@ float PolyBlepSaw::next() noexcept {
     return v;
 }
 
+bool getSynthParam(const SynthParams& s, int id, float& out) noexcept {
+    switch (id) {
+        case MDAW_PARAM_CUTOFF_HZ:    out = s.cutoffHz; return true;
+        case MDAW_PARAM_RESONANCE:    out = s.resonance; return true;
+        case MDAW_PARAM_ATTACK_S:     out = s.attackS; return true;
+        case MDAW_PARAM_DECAY_S:      out = s.decayS; return true;
+        case MDAW_PARAM_SUSTAIN:      out = s.sustain; return true;
+        case MDAW_PARAM_RELEASE_S:    out = s.releaseS; return true;
+        case MDAW_PARAM_DETUNE_CENTS: out = s.detuneCents; return true;
+        case MDAW_PARAM_MASTER_GAIN:  out = s.masterGain; return true;
+        default: return false;
+    }
+}
+
+bool setSynthParam(SynthParams& s, int id, float value) noexcept {
+    if (!std::isfinite(value))
+        return false;
+    switch (id) {
+        case MDAW_PARAM_CUTOFF_HZ:    s.cutoffHz = std::clamp(value, 20.0f, 20000.0f); return true;
+        case MDAW_PARAM_RESONANCE:    s.resonance = std::clamp(value, 0.5f, 10.0f); return true;
+        case MDAW_PARAM_ATTACK_S:     s.attackS = std::clamp(value, 0.0005f, 10.0f); return true;
+        case MDAW_PARAM_DECAY_S:      s.decayS = std::clamp(value, 0.0005f, 10.0f); return true;
+        case MDAW_PARAM_SUSTAIN:      s.sustain = std::clamp(value, 0.0f, 1.0f); return true;
+        case MDAW_PARAM_RELEASE_S:    s.releaseS = std::clamp(value, 0.002f, 10.0f); return true;
+        case MDAW_PARAM_DETUNE_CENTS: s.detuneCents = std::clamp(value, -100.0f, 100.0f); return true;
+        case MDAW_PARAM_MASTER_GAIN:  s.masterGain = std::clamp(value, 0.0f, 1.0f); return true;
+        default: return false;
+    }
+}
+
 //==============================================================================
 void Voice::prepare(double sampleRate, int maxBlock) {
     sampleRate_ = sampleRate;
@@ -170,19 +200,16 @@ void Synth::allNotesOff() noexcept {
 }
 
 void Synth::setParam(int id, float value) noexcept {
-    if (!std::isfinite(value))
+    if (!setSynthParam(params_, id, value))
         return;
-    switch (id) {
-        case MDAW_PARAM_CUTOFF_HZ:    params_.cutoffHz = std::clamp(value, 20.0f, 20000.0f); return;
-        case MDAW_PARAM_MASTER_GAIN:  params_.masterGain = std::clamp(value, 0.0f, 1.0f); return;
-        case MDAW_PARAM_RESONANCE:    params_.resonance = value; break;
-        case MDAW_PARAM_ATTACK_S:     params_.attackS = value; break;
-        case MDAW_PARAM_DECAY_S:      params_.decayS = value; break;
-        case MDAW_PARAM_SUSTAIN:      params_.sustain = value; break;
-        case MDAW_PARAM_RELEASE_S:    params_.releaseS = value; break;
-        case MDAW_PARAM_DETUNE_CENTS: params_.detuneCents = std::clamp(value, -100.0f, 100.0f); break;
-        default: return;
-    }
+    if (id == MDAW_PARAM_CUTOFF_HZ || id == MDAW_PARAM_MASTER_GAIN)
+        return; // この2つは render() 内でなめらかに追従させる
+    for (auto& v : voices_)
+        v.applyParams(params_);
+}
+
+void Synth::setParams(const SynthParams& params) noexcept {
+    params_ = params;
     for (auto& v : voices_)
         v.applyParams(params_);
 }

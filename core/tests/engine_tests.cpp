@@ -7,18 +7,9 @@
 
 #include "engine.h"
 #include "mdaw.h"
+#include "test_util.h"
 
 namespace {
-
-int failures = 0;
-
-#define CHECK(cond)                                                                 \
-    do {                                                                            \
-        if (!(cond)) {                                                              \
-            std::printf("  FAILED: %s (%s:%d)\n", #cond, __FILE__, __LINE__);       \
-            ++failures;                                                             \
-        }                                                                           \
-    } while (0)
 
 constexpr double kRate = 48000.0;
 
@@ -49,14 +40,14 @@ bool allFinite(const std::vector<float>& x) {
     return true;
 }
 
-void test_silence_without_notes() {
+TEST(test_silence_without_notes) {
     mdaw::Engine e;
     e.prepare(kRate);
     auto out = renderMono(e, 4800);
     CHECK(peak(out) == 0.0f);
 }
 
-void test_note_on_makes_sound() {
+TEST(test_note_on_makes_sound) {
     mdaw::Engine e;
     e.prepare(kRate);
     e.noteOn(60, 1.0f);
@@ -67,7 +58,7 @@ void test_note_on_makes_sound() {
     CHECK(e.activeVoices() == 1);
 }
 
-void test_note_off_releases_to_silence() {
+TEST(test_note_off_releases_to_silence) {
     mdaw::Engine e;
     e.prepare(kRate);
     e.setParam(MDAW_PARAM_RELEASE_S, 0.05f);
@@ -80,7 +71,7 @@ void test_note_off_releases_to_silence() {
 }
 
 // 音程が合っているか：自己相関で周期を求める
-void test_pitch_is_correct() {
+TEST(test_pitch_is_correct) {
     mdaw::Engine e;
     e.prepare(kRate);
     e.setParam(MDAW_PARAM_DETUNE_CENTS, 0.0f);
@@ -103,7 +94,7 @@ void test_pitch_is_correct() {
     CHECK(std::abs(hz - 440.0) < 440.0 * 0.01);
 }
 
-void test_voice_stealing_keeps_working() {
+TEST(test_voice_stealing_keeps_working) {
     mdaw::Engine e;
     e.prepare(kRate);
     for (int n = 0; n < 20; ++n)
@@ -118,7 +109,7 @@ void test_voice_stealing_keeps_working() {
     CHECK(e.activeVoices() == 0);
 }
 
-void test_large_blocks_are_chunked() {
+TEST(test_large_blocks_are_chunked) {
     mdaw::Engine e;
     e.prepare(kRate);
     e.noteOn(64, 1.0f);
@@ -128,7 +119,7 @@ void test_large_blocks_are_chunked() {
     CHECK(e.framesRendered() == 10000);
 }
 
-void test_lower_cutoff_is_darker() {
+TEST(test_lower_cutoff_is_darker) {
     // カットオフを下げると高い成分（隣のサンプルとの差の2乗和）が減る
     auto roughness = [](float cutoff) {
         mdaw::Engine e;
@@ -147,7 +138,7 @@ void test_lower_cutoff_is_darker() {
     CHECK(roughness(400.0f) < roughness(8000.0f) * 0.5);
 }
 
-void test_c_api_without_audio_device() {
+TEST(test_c_api_without_audio_device) {
     mdaw_engine* e = mdaw_create();
     CHECK(e != nullptr);
     CHECK(mdaw_start(e) == MDAW_ERR_NO_AUDIO_DEVICE);
@@ -158,7 +149,7 @@ void test_c_api_without_audio_device() {
     mdaw_destroy(e);
 }
 
-void test_bad_input_is_ignored() {
+TEST(test_bad_input_is_ignored) {
     mdaw::Engine e;
     e.prepare(kRate);
     e.noteOn(-5, 1.0f);
@@ -174,25 +165,3 @@ void test_bad_input_is_ignored() {
 }
 
 } // namespace
-
-int main() {
-    const std::vector<std::pair<std::string, std::function<void()>>> tests = {
-        {"silence_without_notes", test_silence_without_notes},
-        {"note_on_makes_sound", test_note_on_makes_sound},
-        {"note_off_releases_to_silence", test_note_off_releases_to_silence},
-        {"pitch_is_correct", test_pitch_is_correct},
-        {"voice_stealing_keeps_working", test_voice_stealing_keeps_working},
-        {"large_blocks_are_chunked", test_large_blocks_are_chunked},
-        {"lower_cutoff_is_darker", test_lower_cutoff_is_darker},
-        {"c_api_without_audio_device", test_c_api_without_audio_device},
-        {"bad_input_is_ignored", test_bad_input_is_ignored},
-    };
-    for (const auto& [name, fn] : tests) {
-        const int before = failures;
-        std::printf("%s\n", name.c_str());
-        fn();
-        std::printf("  %s\n", failures == before ? "ok" : "NG");
-    }
-    std::printf("\n%d failure(s)\n", failures);
-    return failures == 0 ? 0 : 1;
-}

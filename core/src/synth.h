@@ -19,6 +19,10 @@ struct SynthParams {
     float masterGain = 0.6f;
 };
 
+// SynthParams を mdaw.h の MDAW_PARAM_* で読み書きする（範囲外の値は丸める）
+bool getSynthParam(const SynthParams& s, int paramId, float& out) noexcept;
+bool setSynthParam(SynthParams& s, int paramId, float value) noexcept;
+
 // 帯域制限付きのノコギリ波（PolyBLEP）。
 class PolyBlepSaw {
 public:
@@ -71,6 +75,7 @@ public:
     void noteOff(int note) noexcept;
     void allNotesOff() noexcept;
     void setParam(int id, float value) noexcept;
+    void setParams(const SynthParams& params) noexcept;
     void render(float* mono, int numSamples) noexcept;
 
     int activeVoices() const noexcept;
