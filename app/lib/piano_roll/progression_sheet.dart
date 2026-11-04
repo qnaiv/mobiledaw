@@ -22,13 +22,15 @@ Future<List<int>?> showProgressionSheet(
   required Scale scale,
   required bool minor,
   int markerTick = 0,
+  PlacementData? placement,
 }) {
   return showModalBottomSheet<List<int>>(
     context: context,
     isScrollControlled: true,
     backgroundColor: DawColors.background,
     showDragHandle: true,
-    builder: (context) => _ProgressionSheet(song: song, clip: clip, scale: scale, minor: minor, markerTick: markerTick),
+    builder: (context) =>
+        _ProgressionSheet(song: song, clip: clip, scale: scale, minor: minor, markerTick: markerTick, placement: placement),
   );
 }
 
@@ -59,13 +61,19 @@ enum _Place { head, afterLast, marker }
 
 class _ProgressionSheet extends StatefulWidget {
   const _ProgressionSheet(
-      {required this.song, required this.clip, required this.scale, required this.minor, required this.markerTick});
+      {required this.song,
+      required this.clip,
+      required this.scale,
+      required this.minor,
+      required this.markerTick,
+      this.placement});
 
   final SongController song;
   final ClipData clip;
   final Scale scale;
   final bool minor;
   final int markerTick;
+  final PlacementData? placement; // このクリップの置き場所（前後のパターンを探すため）
 
   @override
   State<_ProgressionSheet> createState() => _ProgressionSheetState();
@@ -122,33 +130,61 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
 
   int get _lengthTicks => _bars * _tpb;
 
-  GenContext get _context {
+  /// 同じトラックで、このパターンのすぐ前・すぐ後に置いてあるパターン（アレンジ画面で上・下）
+  late final ClipData? _prevClip = _neighbor(before: true);
+  late final ClipData? _nextClip = _neighbor(before: false);
+
+  ClipData? _neighbor({required bool before}) {
+    final pl = widget.placement;
+    if (pl == null) return null;
+    PlacementData? best;
+    for (final o in song.project.placementsOn(pl.trackId)) {
+      if (o.id == pl.id) continue;
+      if (before && o.endBar <= pl.startBar && (best == null || o.endBar > best.endBar)) best = o;
+      if (!before && o.startBar >= pl.endBar && (best == null || o.startBar < best.startBar)) best = o;
+    }
+    // 何小節も離れている（間が空いている）ものは、つながっていないとみなす
+    if (best == null) return null;
+    final gap = before ? pl.startBar - best.endBar : best.startBar - pl.endBar;
+    return gap <= 1 ? song.project.clip(best.clipId) : null;
+  }
+
+  /// 入れる場所の前後のコード（表示名, 長調の中の位置, どこから）
+  ({(String, String, String)? before, (String, String, String)? after}) _neighbors() {
     final start = _startTick, end = start + _lengthTicks;
     PlacedChord? before, after;
     for (final c in _placed) {
       if (c.tick < start) before = c;
       if (c.tick >= end && after == null) after = c;
     }
-    // うしろに何もなければ、クリップの頭（ループして戻る先）へつなぐ
-    final head = _placed.isNotEmpty && _placed.first.tick < start ? _placed.first : null;
-    String? b(PlacedChord? c) => c == null ? null : baseOf(c.info, _majorRoot);
-    return GenContext(before: b(before), after: b(after), loopHead: b(head));
+    (String, String, String) of(PlacedChord c, String where) => (c.info.name, baseOf(c.info, _majorRoot), where);
+    var b = before != null ? of(before, '直前') : null;
+    var a = after != null ? of(after, 'この後') : null;
+    // クリップの中に無ければ、前のパターンの最後のコード
+    if (b == null && _prevClip != null) {
+      final prev = placedChords(_prevClip!);
+      if (prev.isNotEmpty) b = of(prev.last, '前のパターン');
+    }
+    // 入れる範囲がクリップの終わりまで届くなら、次のパターンの最初のコード
+    if (a == null && end >= widget.clip.lengthTicks && _nextClip != null) {
+      final next = placedChords(_nextClip!);
+      if (next.isNotEmpty) a = of(next.first, '次のパターン');
+    }
+    // それも無ければ、クリップの頭（ループして戻る先）
+    if (a == null && _placed.isNotEmpty && _placed.first.tick < start) a = of(_placed.first, 'ループの頭');
+    return (before: b, after: a);
+  }
+
+  GenContext get _context {
+    final n = _neighbors();
+    return GenContext(before: n.before?.$2, after: n.after?.$3 == 'ループの頭' ? null : n.after?.$2,
+        loopHead: n.after?.$3 == 'ループの頭' ? n.after?.$2 : null);
   }
 
   String _contextLine() {
-    final start = _startTick, end = start + _lengthTicks;
-    PlacedChord? before, after;
-    for (final c in _placed) {
-      if (c.tick < start) before = c;
-      if (c.tick >= end && after == null) after = c;
-    }
-    final head = _placed.isNotEmpty && _placed.first.tick < start ? _placed.first : null;
-    final left = before != null ? '直前 ${before.info.name} → ' : '';
-    final right = after != null
-        ? ' → この後 ${after.info.name}'
-        : head != null
-            ? ' → ループの頭 ${head.info.name}'
-            : ' → 頭に戻ってループ';
+    final n = _neighbors();
+    final left = n.before != null ? '${n.before!.$3} ${n.before!.$1} → ' : '';
+    final right = n.after != null ? ' → ${n.after!.$3} ${n.after!.$1}' : ' → 頭に戻ってループ';
     return '$left［ここに入れる］$right';
   }
 
