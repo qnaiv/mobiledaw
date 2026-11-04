@@ -162,12 +162,12 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
     var a = after != null ? of(after, 'この後') : null;
     // クリップの中に無ければ、前のパターンの最後のコード
     if (b == null && _prevClip != null) {
-      final prev = placedChords(_prevClip!);
+      final prev = placedChords(_prevClip);
       if (prev.isNotEmpty) b = of(prev.last, '前のパターン');
     }
     // 入れる範囲がクリップの終わりまで届くなら、次のパターンの最初のコード
     if (a == null && end >= widget.clip.lengthTicks && _nextClip != null) {
-      final next = placedChords(_nextClip!);
+      final next = placedChords(_nextClip);
       if (next.isNotEmpty) a = of(next.first, '次のパターン');
     }
     // それも無ければ、クリップの頭（ループして戻る先）
