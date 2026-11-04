@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -76,7 +77,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   final _playhead = ValueNotifier<int?>(null); // クリップ先頭からの tick。再生していないときは null
   final _playing = ValueNotifier<bool>(false);
   (int, int)? _loop; // いま繰り返している範囲（曲頭からの tick）
-  int _startInClip = 0; // 再生を始める位置（クリップの頭からの tick）。左の目盛りをタップで変える
+  int _startInClip = 0;
+  final _rollKey = GlobalKey(); // コードをドラッグで置くとき、画面の位置をロールの位置に直すため
+  ({int tick, int length, List<int> pitches, String label})? _dropAt; // ドラッグ中の置き先（薄く出す） // 再生を始める位置（クリップの頭からの tick）。左の目盛りをタップで変える
   late final Ticker _ticker;
 
   int _step = ticksPerBeat ~/ 2; // 1/8
@@ -325,10 +328,21 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
   }
 
-  void _placeChord(ClipData clip, int tick, int tappedPitch) {
+  /// ボタンのコードを、[nearPitch] に一番近い根音から積んだ音。どこに置いてもボタン名どおりのコード
+  /// （Cm7 なら必ず C が一番下）。高さは置いた列の近くのオクターブ
+  List<int> _chordPitches(Chord chord, int nearPitch) {
+    var root = nearPitch - ((nearPitch - chord.root) % 12);
+    if (nearPitch - root > 6) root += 12; // 下より上の根音のほうが近い
+    root = math.min(math.max(root, chord.root % 12), 115);
+    return chord.pitchesNear(root, withSeventh: _seventh);
+  }
+
+  String _chordLabel(Chord c) => _seventh ? c.seventhName : c.name;
+
+  void _placeChord(ClipData clip, int tick, int nearPitch, {int? degree}) {
     final scale = scaleOf(song.project);
-    final chord = _chords(scale)[_chordDegree];
-    final pitches = chord.pitchesNear(tappedPitch, withSeventh: _seventh);
+    final chord = _chords(scale)[degree ?? _chordDegree];
+    final pitches = _chordPitches(chord, nearPitch);
     final length = math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - tick);
     final ids = song.addChord(clip.id, tick: tick, length: length, pitches: pitches);
     song.auditionChord(pitches);
@@ -338,9 +352,49 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
         ..clear()
         ..addAll(ids);
       _suggestFrom = chord.degree;
-      _suggest = next;
-      _chordDegree = next.first; // 一番のおすすめを選んだ状態に（続けてタップでつながる）
+      _suggest = next; // おすすめは印を出すだけ。選んでいるコードは変えない（置くコードが勝手に変わらないように）
+      _chordDegree = chord.degree;
+      _dropAt = null;
     });
+  }
+
+  /// 画面の位置（ドラッグの指の位置）→ ロールの中の (tick, 高さ)。ロールの外なら null
+  (int, int)? _dropTarget(RollGeometry g, Offset global) {
+    final box = _rollKey.currentContext?.findRenderObject();
+    if (box is! RenderBox) return null;
+    final local = box.globalToLocal(global);
+    if (local.dx < 0 || local.dy < 0 || local.dx > box.size.width || local.dy > box.size.height) return null;
+    final at = _toContent(local);
+    final col = g.colAt(at.dx);
+    if (col == null || at.dy >= g.height) return null;
+    return (g.tickAt(at.dy), g.columns[col]);
+  }
+
+  void _onChordDragMove(ClipData clip, RollGeometry g, int degree, Offset global) {
+    final t = _dropTarget(g, global);
+    if (t == null) {
+      if (_dropAt != null) setState(() => _dropAt = null);
+      return;
+    }
+    final chord = _chords(scaleOf(song.project))[degree];
+    final next = (
+      tick: t.$1,
+      length: math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - t.$1),
+      pitches: _chordPitches(chord, t.$2),
+      label: _chordLabel(chord),
+    );
+    final cur = _dropAt;
+    if (cur != null && cur.tick == next.tick && listEquals(cur.pitches, next.pitches)) return;
+    setState(() => _dropAt = next);
+  }
+
+  void _onChordDrop(ClipData clip, RollGeometry g, int degree, Offset global) {
+    final t = _dropTarget(g, global);
+    if (t == null) {
+      setState(() => _dropAt = null);
+      return;
+    }
+    _placeChord(clip, t.$1, t.$2, degree: degree);
   }
 
   /// 選んでいるノートと、それがコードならその情報
@@ -469,7 +523,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               Expanded(
                 child: Text(
                   from == null
-                      ? 'コードを選んで、ロールをタップした高さに置く'
+                      ? 'コードをロールへドラッグして置く（選んでからタップでも置ける）'
                       : '${label(chords[from])} のあとに：'
                           '${[for (var i = 0; i < _suggest.length; i++) '${i + 1} ${label(chords[_suggest[i]])}'].join('  ')}',
                   maxLines: 1,
@@ -497,12 +551,27 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: _ChordButton(
-                          name: label(c),
-                          mood: c.mood,
-                          selected: c.degree == _chordDegree,
-                          rank: _suggest.indexOf(c.degree) + 1,
-                          onTap: () => _selectChord(scale, c.degree),
+                        child: Draggable<int>(
+                          data: c.degree,
+                          // 指の位置＝置く位置。見た目のチップは指に隠れないよう少し上に
+                          dragAnchorStrategy: pointerDragAnchorStrategy,
+                          onDragStarted: () => _selectChord(scale, c.degree),
+                          onDragEnd: (_) => setState(() => _dropAt = null),
+                          feedback: Transform.translate(
+                            offset: const Offset(-36, -64),
+                            child: _ChordDragChip(name: label(c)),
+                          ),
+                          childWhenDragging: Opacity(
+                            opacity: 0.5,
+                            child: _ChordButton(name: label(c), mood: c.mood, selected: true, rank: 0, onTap: () {}),
+                          ),
+                          child: _ChordButton(
+                            name: label(c),
+                            mood: c.mood,
+                            selected: c.degree == _chordDegree,
+                            rank: _suggest.indexOf(c.degree) + 1,
+                            onTap: () => _selectChord(scale, c.degree),
+                          ),
                         ),
                       ),
                     ),
@@ -655,7 +724,15 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                 top: 0,
                 right: 0,
                 height: viewportH,
-                child: GestureDetector(
+                child: DragTarget<int>(
+                  // コードのボタンをドラッグしてきて、離した所（時間）に置く
+                  onMove: (d) => _onChordDragMove(clip, g, d.data, d.offset),
+                  onLeave: (_) => setState(() => _dropAt = null),
+                  onAcceptWithDetails: (d) => _onChordDrop(clip, g, d.data, d.offset),
+                  builder: (context, candidates, rejected) => Stack(
+                    children: [
+                      Positioned.fill(child: GestureDetector(
+                  key: _rollKey,
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (d) => _onTap(clip, g, _toContent(d.localPosition)),
                   onLongPressStart: (d) => _onLongPressStart(clip, g, _toContent(d.localPosition)),
@@ -714,6 +791,26 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                         ),
                       ),
                     ),
+                  ),
+                )),
+                      if (_dropAt case final drop?)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: _ChordDropPainter(
+                                g: g,
+                                tick: drop.tick,
+                                length: drop.length,
+                                pitches: drop.pitches,
+                                label: drop.label,
+                                color: color,
+                                hOffset: _h.hasClients ? _h.offset : 0,
+                                vOffset: _v.hasClients ? _v.offset : 0,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -1350,6 +1447,77 @@ class _ValueButton extends StatelessWidget {
       ),
     );
   }
+}
+
+/// ドラッグ中に指の上に出るコード名
+class _ChordDragChip extends StatelessWidget {
+  const _ChordDragChip({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: DawColors.accent,
+      elevation: 6,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Text(name,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: DawColors.background)),
+      ),
+    );
+  }
+}
+
+/// ドラッグ中、置かれるコードを薄く出す
+class _ChordDropPainter extends CustomPainter {
+  _ChordDropPainter({
+    required this.g,
+    required this.tick,
+    required this.length,
+    required this.pitches,
+    required this.label,
+    required this.color,
+    required this.hOffset,
+    required this.vOffset,
+  });
+
+  final RollGeometry g;
+  final int tick, length;
+  final List<int> pitches;
+  final String label;
+  final Color color;
+  final double hOffset, vOffset;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final y = g.tickY(tick) - vOffset;
+    final h = math.max(g.tickY(length), 6.0);
+    canvas.drawRect(Rect.fromLTWH(0, y - 1, size.width, 2), Paint()..color = DawColors.accent);
+    final fill = Paint()..color = color.withValues(alpha: 0.45);
+    final edge = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = color;
+    for (final p in pitches) {
+      final col = g.columnOf(p) ?? g.nearestColumn(p);
+      final r = RRect.fromRectAndRadius(
+          Rect.fromLTWH(g.colX(col) - hOffset + 1, y, g.colWidth - 2, h), const Radius.circular(4));
+      canvas.drawRRect(r, fill);
+      canvas.drawRRect(r, edge);
+    }
+    final tp = TextPainter(
+      text: TextSpan(
+          text: label, style: const TextStyle(color: DawColors.accent, fontSize: 13, fontWeight: FontWeight.w800)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(4, y - tp.height - 2));
+  }
+
+  @override
+  bool shouldRepaint(_ChordDropPainter old) =>
+      old.tick != tick || old.length != length || !listEquals(old.pitches, pitches) || old.hOffset != hOffset || old.vOffset != vOffset;
 }
 
 class _ChordButton extends StatelessWidget {
