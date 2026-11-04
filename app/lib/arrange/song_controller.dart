@@ -361,18 +361,20 @@ class SongController extends ChangeNotifier {
         }));
   }
 
-  /// コード進行をクリップの頭から入れる（1つの Undo）。足りなければクリップを伸ばす。
-  /// [replace] なら入れる範囲にあるノートを先に消す
-  List<int> insertProgression(int clipId, List<NoteSpec> notes, {required int lengthTicks, required bool replace}) {
+  /// コード進行を [startTick] から [lengthTicks] の間に入れる（1つの Undo）。足りなければクリップを伸ばす
+  /// （最大64小節）。[replace] なら入れる範囲にあるノートを先に消す。[notes] の tick はクリップの頭から
+  List<int> insertProgression(int clipId, List<NoteSpec> notes,
+      {required int lengthTicks, required bool replace, int startTick = 0}) {
     final clip = project.clip(clipId);
     if (clip == null) return const [];
     final tpb = project.ticksPerBar;
-    final neededBars = (lengthTicks + tpb - 1) ~/ tpb;
+    final end = startTick + lengthTicks;
+    final neededBars = math.min((end + tpb - 1) ~/ tpb, 64);
     final currentBars = (clip.lengthTicks + tpb - 1) ~/ tpb;
     return _edit(() => engine.editGroup(() {
           if (neededBars > currentBars) engine.setClipLength(clipId, neededBars);
           if (replace) {
-            final ids = [for (final n in clip.notes) if (n.tick < lengthTicks) n.id];
+            final ids = [for (final n in clip.notes) if (n.tick >= startTick && n.tick < end) n.id];
             if (ids.isNotEmpty) engine.deleteNotes(clipId, ids);
           }
           final maxLen = math.max(clip.lengthTicks, neededBars * tpb);

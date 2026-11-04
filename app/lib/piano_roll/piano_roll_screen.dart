@@ -498,6 +498,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       clip: clip,
       scale: scale,
       minor: song.project.scale != 'major',
+      markerTick: _startInClip,
     );
     if (ids == null || !mounted) return;
     setState(() {
