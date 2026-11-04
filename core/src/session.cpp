@@ -116,16 +116,14 @@ void Session::previewTrack(Id trackId) {
     if (t == nullptr)
         return;
     engine_.allNotesOff();
-    for (int id = 0; id < MDAW_PARAM_COUNT; ++id) {
-        float v = 0.0f;
-        if (getSynthParam(t->synth, id, v))
-            engine_.setParam(id, v);
-    }
+    for (int i = 0; i < kNumSynthParamSpecs; ++i)
+        engine_.setParam(kSynthParamSpecs[i].id, t->synth.*(kSynthParamSpecs[i].member));
+    engine_.setPreviewSlot(slotOf(trackId)); // そのトラックのエフェクトを通して聴く
 }
 
 bool Session::setTrackParamLive(Id trackId, int paramId, float value) {
     const int slot = slotOf(trackId);
-    if (slot < 0 || paramId < 0 || paramId >= MDAW_PARAM_COUNT)
+    if (slot < 0 || paramId < 0 || paramId >= MDAW_FX_END || (paramId >= MDAW_PARAM_COUNT && paramId < MDAW_FX_FIRST))
         return false;
     return engine_.setTrackParam(slot, paramId, value);
 }

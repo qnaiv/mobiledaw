@@ -104,6 +104,7 @@ class TrackData {
     required this.name,
     required this.color,
     required this.synth,
+    this.fx = const {},
     required this.mixer,
   });
 
@@ -111,6 +112,7 @@ class TrackData {
   final String name;
   final int color; // ARGB
   final Map<String, double> synth; // cutoffHz, resonance, attackS など
+  final Map<String, double> fx; // reverb, ott, sidechain など
   final MixerData mixer;
 
   factory TrackData.fromJson(Map<String, Object?> j) {
@@ -122,6 +124,10 @@ class TrackData {
       color: int.tryParse(j['color'] is String ? j['color']! as String : '', radix: 16) ?? 0xFFC8F25A,
       synth: {
         for (final e in params.entries)
+          if (e.value is num) e.key: (e.value! as num).toDouble(),
+      },
+      fx: {
+        for (final e in _map(j['fx']).entries)
           if (e.value is num) e.key: (e.value! as num).toDouble(),
       },
       mixer: MixerData.fromJson(_map(j['mixer'])),

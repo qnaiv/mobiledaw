@@ -1,5 +1,7 @@
 #include "engine.h"
 
+#include "mdaw.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -8,12 +10,6 @@ namespace mdaw {
 namespace {
 
 constexpr double kTickEpsilon = 1e-6;
-
-bool sameParams(const SynthParams& a, const SynthParams& b) noexcept {
-    return a.cutoffHz == b.cutoffHz && a.resonance == b.resonance && a.attackS == b.attackS && a.decayS == b.decayS &&
-           a.sustain == b.sustain && a.releaseS == b.releaseS && a.detuneCents == b.detuneCents &&
-           a.masterGain == b.masterGain;
-}
 
 } // namespace
 
@@ -27,13 +23,15 @@ Engine::~Engine() {
 
 void Engine::prepare(double sampleRate) {
     sampleRate_.store(sampleRate, std::memory_order_relaxed);
-    mono_.assign(kMaxBlock, 0.0f);
-    mixL_.assign(kMaxBlock, 0.0f);
-    mixR_.assign(kMaxBlock, 0.0f);
+    for (auto* b : {&bufL_, &bufR_, &prevL_, &prevR_, &mixL_, &mixR_})
+        b->assign(kMaxBlock, 0.0f);
     preview_.prepare(sampleRate, kMaxBlock);
+    master_.prepare(sampleRate);
     for (auto& s : slots_) {
         s.synth.prepare(sampleRate, kMaxBlock);
+        s.fx.prepare(sampleRate, kMaxBlock);
         s.held = {};
+        s.tailSamples = 0;
     }
 }
 
@@ -64,8 +62,19 @@ void Engine::handle(const Event& e) noexcept {
         case Event::Type::AllNotesOff: preview_.allNotesOff(); break;
         case Event::Type::Param:       preview_.setParam(e.index, e.value); break;
         case Event::Type::TrackParam:
-            if (e.slot < kMaxSlots)
-                slots_[e.slot].synth.setParam(e.index, e.value);
+            if (e.slot < kMaxSlots) {
+                auto& s = slots_[e.slot];
+                if (e.index >= MDAW_FX_FIRST) {
+                    FxParams f = s.fx.params();
+                    if (setFxParam(f, e.index, e.value))
+                        s.fx.setParams(f);
+                } else {
+                    s.synth.setParam(e.index, e.value);
+                }
+            }
+            break;
+        case Event::Type::PreviewSlot:
+            previewSlot_ = e.index;
             break;
         case Event::Type::Play:
             if (!playing_) {
@@ -156,14 +165,25 @@ void Engine::adoptPendingSnapshot() noexcept {
                     s.synth.noteOff(p);
             s.held = {};
             s.trackId = id;
+            s.fx.reset();
+            s.tailSamples = 0;
             if (t != nullptr) {
                 s.synth.setParams(t->synth);
                 s.snapParams = t->synth;
+                s.fx.setParams(t->fx);
+                s.snapFx = t->fx;
             }
-        } else if (t != nullptr && !sameParams(s.snapParams, t->synth)) {
-            s.synth.setParams(t->synth);
-            s.snapParams = t->synth;
+        } else if (t != nullptr) {
+            if (s.snapParams != t->synth) {
+                s.synth.setParams(t->synth);
+                s.snapParams = t->synth;
+            }
+            if (s.snapFx != t->fx) {
+                s.fx.setParams(t->fx);
+                s.snapFx = t->fx;
+            }
         }
+        s.fx.setTempo(current_->tempo);
     }
 
     // 曲が短くなって再生位置がはみ出したらループの頭へ
@@ -200,6 +220,8 @@ void Engine::fireDueEvents() noexcept {
         if (e.type == SeqEvent::Type::NoteOn) {
             s.synth.noteOn(e.pitch, e.velocity);
             s.held.set(e.pitch);
+            if (s.fx.params().sidechainSource >= 0.5f)
+                sidechainTrigger_ = true;
         } else if (s.held.has(e.pitch)) {
             s.synth.noteOff(e.pitch);
             s.held.clear(e.pitch);
@@ -209,17 +231,34 @@ void Engine::fireDueEvents() noexcept {
 }
 
 void Engine::renderSegment(float* out, int n, int channels) noexcept {
+    const auto un = static_cast<size_t>(n);
     std::fill(mixL_.begin(), mixL_.begin() + n, 0.0f);
     std::fill(mixR_.begin(), mixR_.begin() + n, 0.0f);
+    const double sr = sampleRate();
 
-    preview_.render(mono_.data(), n);
-    for (int i = 0; i < n; ++i) {
-        mixL_[static_cast<size_t>(i)] += mono_[static_cast<size_t>(i)];
-        mixR_[static_cast<size_t>(i)] += mono_[static_cast<size_t>(i)];
+    // 試聴の音。トラックを選んでいればそのトラックのエフェクトに通す
+    const bool previewing = preview_.activeVoices() > 0;
+    if (previewing)
+        preview_.render(prevL_.data(), prevR_.data(), n);
+    const bool previewToSlot = previewing && previewSlot_ >= 0;
+    if (previewing && !previewToSlot) {
+        for (size_t i = 0; i < un; ++i) {
+            mixL_[i] += prevL_[i];
+            mixR_[i] += prevR_[i];
+        }
     }
 
+    // サイドチェイン：キックが鳴った所から数える
+    if (sidechainTrigger_) {
+        sidechainTrigger_ = false;
+        sidechainAge_ = 0;
+        for (auto& s : slots_)
+            s.duckStart = s.duck;
+    }
+    const auto attack = static_cast<int64_t>(0.002 * sr);
+
     // トラックの音量・定位はブロック内で直線的に追従（約10ms）
-    const float k = 1.0f - std::exp(-static_cast<float>(n) / static_cast<float>(0.01 * sampleRate()));
+    const float k = 1.0f - std::exp(-static_cast<float>(n) / static_cast<float>(0.01 * sr));
     for (int si = 0; si < kMaxSlots; ++si) {
         auto& s = slots_[static_cast<size_t>(si)];
         float targetL = 0.0f, targetR = 0.0f;
@@ -230,32 +269,64 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
                 targetR = t.gain * std::min(1.0f, 1.0f + t.pan);
             }
         }
-        if (s.synth.activeVoices() == 0) {
+        const bool sounding = s.synth.activeVoices() > 0 || (previewToSlot && previewSlot_ == si);
+        if (sounding)
+            s.tailSamples = static_cast<int64_t>(s.fx.tailSeconds() * sr);
+        if (!sounding && s.tailSamples <= 0) {
             s.gainL = targetL;
             s.gainR = targetR;
+            s.duck = 0.0f;
             continue;
         }
-        s.synth.render(mono_.data(), n);
+        s.tailSamples -= n;
+
+        s.synth.render(bufL_.data(), bufR_.data(), n);
+        if (previewToSlot && previewSlot_ == si) {
+            for (size_t i = 0; i < un; ++i) {
+                bufL_[i] += prevL_[i];
+                bufR_[i] += prevR_[i];
+            }
+        }
+        s.fx.process(bufL_.data(), bufR_.data(), n);
+
         const float endL = s.gainL + (targetL - s.gainL) * k;
         const float endR = s.gainR + (targetR - s.gainR) * k;
         const float stepL = (endL - s.gainL) / static_cast<float>(n);
         const float stepR = (endR - s.gainR) / static_cast<float>(n);
         float gl = s.gainL, gr = s.gainR;
-        for (int i = 0; i < n; ++i) {
-            const float v = mono_[static_cast<size_t>(i)];
-            mixL_[static_cast<size_t>(i)] += v * gl;
-            mixR_[static_cast<size_t>(i)] += v * gr;
+        const auto& fx = s.fx.params();
+        const float depth = fx.sidechainSource >= 0.5f ? 0.0f : fx.sidechain;
+        const auto release = static_cast<int64_t>(std::max(0.03f, fx.sidechainReleaseS) * sr);
+        for (size_t i = 0; i < un; ++i) {
+            float g = 1.0f;
+            if (depth > 0.0f) {
+                // 2ms で引っ込み、(1-x)^2 の形で戻る（戻り始めが速く、最後はゆっくり）
+                const int64_t age = sidechainAge_ + static_cast<int64_t>(i);
+                float env = 0.0f;
+                if (age < attack)
+                    env = s.duckStart + (1.0f - s.duckStart) * static_cast<float>(age) / static_cast<float>(attack);
+                else if (age < attack + release) {
+                    const float x = 1.0f - static_cast<float>(age - attack) / static_cast<float>(release);
+                    env = x * x;
+                }
+                s.duck = env;
+                g = 1.0f - depth * env;
+            }
+            mixL_[i] += bufL_[i] * gl * g;
+            mixR_[i] += bufR_[i] * gr * g;
             gl += stepL;
             gr += stepR;
         }
         s.gainL = endL;
         s.gainR = endR;
     }
+    sidechainAge_ = std::min<int64_t>(sidechainAge_ + n, int64_t{1} << 40);
 
-    for (int i = 0; i < n; ++i) {
-        // 合計が大きくなりすぎたときだけ柔らかく頭を抑える
-        const float l = std::tanh(mixL_[static_cast<size_t>(i)]);
-        const float r = std::tanh(mixR_[static_cast<size_t>(i)]);
+    master_.process(mixL_.data(), mixR_.data(), n);
+
+    for (size_t i = 0; i < un; ++i) {
+        const float l = mixL_[i];
+        const float r = mixR_[i];
         float* frame = out + static_cast<std::ptrdiff_t>(i) * channels;
         if (channels == 1) {
             frame[0] = 0.5f * (l + r);

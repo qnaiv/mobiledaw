@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "model.h"
+#include "fx.h"
 #include "synth.h"
 
 namespace mdaw {
@@ -29,6 +30,7 @@ struct SeqEvent {
 struct SnapshotTrack {
     Id id = kNoId;
     SynthParams synth;
+    FxParams fx;
     float gain = 0.8f;
     float pan = 0.0f;
     bool audible = true; // ミュート・ソロを反映した結果

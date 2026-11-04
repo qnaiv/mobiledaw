@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "fx.h"
 #include "synth.h"
 
 namespace mdaw {
@@ -58,7 +59,8 @@ struct Track {
     Id id = kNoId;
     std::string name;
     uint32_t color = 0xFFC8F25A; // ARGB
-    SynthParams synth;           // M2 ではシンセのみ。音色エンジンの切り替えは M3 以降
+    SynthParams synth;           // 今はシンセのみ。音色エンジンの切り替え（サンプラーなど）は M3 以降
+    FxParams fx;                 // トラックのエフェクト（音色を替えても残る）
     Mixer mixer;
 };
 

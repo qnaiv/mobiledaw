@@ -1,5 +1,7 @@
 #include "commands.h"
 
+#include "mdaw.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -369,24 +371,34 @@ bool SetTempo::apply(Project& p) {
 void SetTempo::revert(Project& p) { p.tempo = old_; }
 
 //==============================================================================
+namespace {
+// シンセの音色とエフェクトを同じ ID の並びで読み書きする
+bool getTrackParam(const Track& t, int id, float& out) {
+    return id >= MDAW_FX_FIRST ? getFxParam(t.fx, id, out) : getSynthParam(t.synth, id, out);
+}
+bool setTrackParam(Track& t, int id, float value) {
+    return id >= MDAW_FX_FIRST ? setFxParam(t.fx, id, value) : setSynthParam(t.synth, id, value);
+}
+} // namespace
+
 bool SetTrackSynthParam::apply(Project& p) {
     auto* t = p.findTrack(trackId_);
-    if (t == nullptr || !getSynthParam(t->synth, paramId_, old_))
+    if (t == nullptr || !getTrackParam(*t, paramId_, old_))
         return false;
-    SynthParams next = t->synth;
-    if (!setSynthParam(next, paramId_, value_))
+    Track next = *t;
+    if (!setTrackParam(next, paramId_, value_))
         return false;
     float applied = 0.0f;
-    getSynthParam(next, paramId_, applied);
+    getTrackParam(next, paramId_, applied);
     if (applied == old_)
         return false;
-    t->synth = next;
+    setTrackParam(*t, paramId_, applied);
     return true;
 }
 
 void SetTrackSynthParam::revert(Project& p) {
     if (auto* t = p.findTrack(trackId_))
-        setSynthParam(t->synth, paramId_, old_);
+        setTrackParam(*t, paramId_, old_);
 }
 
 //==============================================================================

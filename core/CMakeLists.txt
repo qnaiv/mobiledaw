@@ -63,6 +63,7 @@ endif()
 set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/synth.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/fx.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/model.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/commands.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/history.cpp
@@ -113,6 +114,7 @@ if(MDAW_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/json_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/sequencer_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/api_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/sound_tests.cpp
         $<TARGET_OBJECTS:mdaw_juce>)
     target_include_directories(mdaw_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -125,4 +127,19 @@ if(MDAW_BUILD_TESTS)
         target_link_libraries(mdaw_tests PRIVATE pthread dl rt)
     endif()
     add_test(NAME mdaw_tests COMMAND mdaw_tests)
+
+    # 音作りの確認用：project.json を wav に書き出す
+    add_executable(mdaw_render
+        ${MDAW_CORE_SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../tools/render_project.cpp
+        $<TARGET_OBJECTS:mdaw_juce>)
+    target_include_directories(mdaw_render PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        $<TARGET_PROPERTY:mdaw_juce,INTERFACE_INCLUDE_DIRECTORIES>)
+    target_compile_definitions(mdaw_render PRIVATE
+        $<TARGET_PROPERTY:mdaw_juce,INTERFACE_COMPILE_DEFINITIONS>)
+    if(UNIX AND NOT APPLE)
+        target_link_libraries(mdaw_render PRIVATE pthread dl rt)
+    endif()
 endif()

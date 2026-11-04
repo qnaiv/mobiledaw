@@ -1,11 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <vector>
 
+#include "fx.h"
 #include "playback.h"
 #include "spsc_queue.h"
 #include "synth.h"
@@ -13,7 +15,7 @@
 namespace mdaw {
 
 struct Event {
-    enum class Type : uint8_t { NoteOn, NoteOff, AllNotesOff, Param, TrackParam, Play, Stop, Seek, SetLoop };
+    enum class Type : uint8_t { NoteOn, NoteOff, AllNotesOff, Param, TrackParam, PreviewSlot, Play, Stop, Seek, SetLoop };
     Type type = Type::NoteOn;
     uint8_t slot = 0;   // TrackParam のトラック
     int16_t index = 0;  // ノート番号 or パラメータID
@@ -45,6 +47,10 @@ public:
     bool noteOff(int note) noexcept { return push({Event::Type::NoteOff, 0, (int16_t) note, 0.0f, 0, 0}); }
     bool allNotesOff() noexcept { return push({Event::Type::AllNotesOff, 0, 0, 0.0f, 0, 0}); }
     bool setParam(int id, float value) noexcept { return push({Event::Type::Param, 0, (int16_t) id, value, 0, 0}); }
+    // 試聴の音をどのトラックのエフェクトに通すか（-1 = 通さない）
+    bool setPreviewSlot(int slot) noexcept {
+        return push({Event::Type::PreviewSlot, 0, (int16_t) std::clamp(slot, -1, kMaxSlots - 1), 0.0f, 0, 0});
+    }
     // 再生中のトラックの音色をその場で変える（マクロを動かしている間）。確定値はスナップショットで届く
     bool setTrackParam(int slot, int id, float value) noexcept {
         if (slot < 0 || slot >= kMaxSlots)
@@ -75,10 +81,15 @@ public:
 private:
     struct Slot {
         Synth synth;
+        TrackFx fx;
         Id trackId = kNoId;
         SynthParams snapParams;         // 直前のスナップショットの値（変わったときだけ反映する）
+        FxParams snapFx;
         PlaybackSnapshot::NoteSet held; // シーケンサーが鳴らしている音
         float gainL = 0.0f, gainR = 0.0f; // なめらかに追従させる現在値
+        int64_t tailSamples = 0;        // 音が止まってからもエフェクトを回す残り
+        float duck = 0.0f;              // サイドチェインで今引っ込んでいる量（0〜1）
+        float duckStart = 0.0f;
     };
 
     bool push(const Event& e) noexcept { return queue_.push(e); }
@@ -93,8 +104,12 @@ private:
 
     SpscQueue<Event, 1024> queue_;
     Synth preview_; // 試聴鍵盤用
+    int previewSlot_ = -1;
     std::array<Slot, kMaxSlots> slots_;
-    std::vector<float> mono_, mixL_, mixR_;
+    std::vector<float> bufL_, bufR_, prevL_, prevR_, mixL_, mixR_;
+    MasterBus master_;
+    int64_t sidechainAge_ = 1 << 30; // キックが鳴ってからのサンプル数
+    bool sidechainTrigger_ = false;
 
     // スナップショットの受け渡し
     std::atomic<PlaybackSnapshot*> pending_{nullptr};

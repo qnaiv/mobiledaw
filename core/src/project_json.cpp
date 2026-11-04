@@ -48,30 +48,29 @@ bool boolean(const var& obj, const char* key, bool fallback) {
     return v.isBool() ? static_cast<bool>(v) : fallback;
 }
 
-const int kSynthParamIds[] = {MDAW_PARAM_CUTOFF_HZ, MDAW_PARAM_RESONANCE, MDAW_PARAM_ATTACK_S, MDAW_PARAM_DECAY_S,
-                              MDAW_PARAM_SUSTAIN,   MDAW_PARAM_RELEASE_S, MDAW_PARAM_DETUNE_CENTS, MDAW_PARAM_MASTER_GAIN};
-const char* const kSynthParamNames[] = {"cutoffHz", "resonance", "attackS", "decayS",
-                                        "sustain",  "releaseS",  "detuneCents", "masterGain"};
-
-var synthToVar(const SynthParams& s) {
+template <typename Params, typename Spec>
+var paramsToVar(const Params& params, const Spec* specs, int count) {
     auto o = object();
-    for (size_t i = 0; i < std::size(kSynthParamIds); ++i) {
-        float v = 0.0f;
-        getSynthParam(s, kSynthParamIds[i], v);
-        put(o, kSynthParamNames[i], v);
-    }
+    for (int i = 0; i < count; ++i)
+        put(o, specs[i].key, params.*(specs[i].member));
     return o;
 }
 
-SynthParams synthFromVar(const var& o) {
-    SynthParams s;
-    for (size_t i = 0; i < std::size(kSynthParamIds); ++i) {
-        float current = 0.0f;
-        getSynthParam(s, kSynthParamIds[i], current);
-        setSynthParam(s, kSynthParamIds[i], static_cast<float>(num(o, kSynthParamNames[i], current)));
-    }
-    return s;
+// 欠けている項目（古いファイル）は既定値のまま。範囲外は丸める
+template <typename Params, typename Spec, typename Setter>
+Params paramsFromVar(const var& o, const Spec* specs, int count, Setter set) {
+    Params p;
+    for (int i = 0; i < count; ++i)
+        set(p, specs[i].id, static_cast<float>(num(o, specs[i].key, p.*(specs[i].member))));
+    return p;
 }
+
+var synthToVar(const SynthParams& s) { return paramsToVar(s, kSynthParamSpecs, kNumSynthParamSpecs); }
+SynthParams synthFromVar(const var& o) {
+    return paramsFromVar<SynthParams>(o, kSynthParamSpecs, kNumSynthParamSpecs, setSynthParam);
+}
+var fxToVar(const FxParams& f) { return paramsToVar(f, kFxParamSpecs, kNumFxParamSpecs); }
+FxParams fxFromVar(const var& o) { return paramsFromVar<FxParams>(o, kFxParamSpecs, kNumFxParamSpecs, setFxParam); }
 
 } // namespace
 
@@ -98,6 +97,7 @@ std::string projectToJson(const Project& p) {
         put(instrument, "type", "synth");
         put(instrument, "params", synthToVar(t.synth));
         put(o, "instrument", instrument);
+        put(o, "fx", fxToVar(t.fx));
         auto mixer = object();
         put(mixer, "gain", t.mixer.gain);
         put(mixer, "pan", t.mixer.pan);
@@ -186,6 +186,7 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
             t.name = get(o, "name").toString().toStdString();
             t.color = static_cast<uint32_t>(get(o, "color").toString().getHexValue64());
             t.synth = synthFromVar(get(get(o, "instrument"), "params"));
+            t.fx = fxFromVar(get(o, "fx"));
             const auto m = get(o, "mixer");
             t.mixer.gain = static_cast<float>(std::clamp(num(m, "gain", 0.8), 0.0, 2.0));
             t.mixer.pan = static_cast<float>(std::clamp(num(m, "pan", 0.0), -1.0, 1.0));

@@ -41,6 +41,7 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project) {
         SnapshotTrack st;
         st.id = t.id;
         st.synth = t.synth;
+        st.fx = t.fx;
         st.gain = std::clamp(t.mixer.gain, 0.0f, 2.0f);
         st.pan = std::clamp(t.mixer.pan, -1.0f, 1.0f);
         st.audible = !t.mixer.mute && (!anySolo || t.mixer.solo);

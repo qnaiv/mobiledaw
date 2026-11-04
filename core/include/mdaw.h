@@ -28,17 +28,45 @@ enum {
     MDAW_ERR_FILE = -4             /* 保存・読み込みに失敗（理由は mdaw_last_error） */
 };
 
-/* パラメータID（mdaw_set_param） */
+/* パラメータID（mdaw_set_param / mdaw_set_track_param）。保存ファイルには名前で残る */
 enum {
-    MDAW_PARAM_CUTOFF_HZ = 0,    /* 20〜20000 */
-    MDAW_PARAM_RESONANCE = 1,    /* 0.5〜10 */
-    MDAW_PARAM_ATTACK_S = 2,     /* 秒 */
-    MDAW_PARAM_DECAY_S = 3,      /* 秒 */
-    MDAW_PARAM_SUSTAIN = 4,      /* 0〜1 */
-    MDAW_PARAM_RELEASE_S = 5,    /* 秒 */
-    MDAW_PARAM_DETUNE_CENTS = 6, /* 2つ目のオシレーターのずらし量 */
-    MDAW_PARAM_MASTER_GAIN = 7,  /* 0〜1 */
-    MDAW_PARAM_COUNT = 8
+    /* シンセ */
+    MDAW_PARAM_CUTOFF_HZ = 0,      /* 20〜20000 */
+    MDAW_PARAM_RESONANCE = 1,      /* 0.5〜10（Q） */
+    MDAW_PARAM_ATTACK_S = 2,       /* 秒 */
+    MDAW_PARAM_DECAY_S = 3,        /* 秒 */
+    MDAW_PARAM_SUSTAIN = 4,        /* 0〜1 */
+    MDAW_PARAM_RELEASE_S = 5,      /* 秒 */
+    MDAW_PARAM_DETUNE_CENTS = 6,   /* ユニゾンの一番外側どうしの開き（0〜100 セント） */
+    MDAW_PARAM_MASTER_GAIN = 7,    /* 0〜1 */
+    MDAW_PARAM_UNISON = 8,         /* 重ねる本数 1〜16 */
+    MDAW_PARAM_WIDTH = 9,          /* ユニゾンの左右の広がり 0〜1 */
+    MDAW_PARAM_BLEND = 10,         /* 外側の音の大きさ（中央に対して）0〜1 */
+    MDAW_PARAM_SUB = 11,           /* 1オクターブ下のサイン波 0〜1 */
+    MDAW_PARAM_NOISE = 12,         /* ノイズ 0〜1 */
+    MDAW_PARAM_DRIVE = 13,         /* フィルター前の歪み 0〜1 */
+    MDAW_PARAM_FILTER_ENV = 14,    /* 鳴らした瞬間にカットオフを上げる量 0〜1（最大7オクターブ） */
+    MDAW_PARAM_FILTER_ENV_DECAY_S = 15,
+    MDAW_PARAM_PITCH_ENV = 16,     /* 鳴らした瞬間に音程を上げる量（半音 0〜48）。キックやザップ */
+    MDAW_PARAM_PITCH_ENV_DECAY_S = 17,
+    MDAW_PARAM_WAVE = 18,          /* 0 = のこぎり、1 = 矩形 */
+    MDAW_PARAM_OSC = 19,           /* のこぎり／矩形の音量 0〜1（0 にするとサブとノイズだけ：ハイハットなど） */
+    MDAW_PARAM_COUNT = 20,
+
+    /* トラックのエフェクト（mdaw_set_track_param のみ） */
+    MDAW_FX_FIRST = 32,
+    MDAW_FX_LOWCUT_HZ = 32,        /* 20（なし）〜12000 */
+    MDAW_FX_SATURATION = 33,       /* 0〜1 */
+    MDAW_FX_CHORUS = 34,           /* 0〜1 */
+    MDAW_FX_OTT = 35,              /* 3帯域の上下圧縮の深さ 0〜1 */
+    MDAW_FX_DELAY = 36,            /* 付点8分ディレイの量 0〜1 */
+    MDAW_FX_DELAY_FEEDBACK = 37,   /* 0〜0.9 */
+    MDAW_FX_REVERB = 38,           /* 0〜1 */
+    MDAW_FX_REVERB_SIZE = 39,      /* 0〜1 */
+    MDAW_FX_SIDECHAIN = 40,        /* キックで引っ込む深さ 0〜1 */
+    MDAW_FX_SIDECHAIN_RELEASE_S = 41, /* 戻るまでの時間 0.03〜1 */
+    MDAW_FX_SIDECHAIN_SOURCE = 42, /* 1 = このトラックの発音で他を引っ込める（キック） */
+    MDAW_FX_END = 43
 };
 
 MDAW_API mdaw_engine* mdaw_create(void);

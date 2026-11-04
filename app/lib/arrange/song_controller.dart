@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
@@ -113,22 +114,36 @@ class SongController extends ChangeNotifier {
 
   bool renameTrack(int trackId, String name) => _edit(() => engine.renameTrack(trackId, name.trim()));
 
-  // ---- ミキサー ---------------------------------------------------------------
+  // ---- ミキサー・音色 ----------------------------------------------------------
 
-  bool _mixerGesture = false;
+  bool _gesture = false;
 
   /// スライダーを触り始めた。離すまでの変更を1つの Undo にまとめる
-  void beginMixerGesture() {
-    if (_mixerGesture) return;
-    _mixerGesture = true;
+  void beginGesture() {
+    if (_gesture) return;
+    _gesture = true;
     engine.beginEditGroup();
   }
 
-  void endMixerGesture() {
-    if (!_mixerGesture) return;
-    _mixerGesture = false;
+  void endGesture() {
+    if (!_gesture) return;
+    _gesture = false;
     engine.endEditGroup();
     _refresh(force: true); // Undo ボタンの状態を更新
+  }
+
+  /// 音色・エフェクトの値を1つ変える（MdawParam の ID）
+  bool setSound(int trackId, int paramId, double value) =>
+      _edit(() => engine.setTrackParam(trackId, paramId, value));
+
+  /// 音色・エフェクトをまとめて変える（プリセット・大きいつまみ）。1つの Undo
+  void setSounds(int trackId, Map<int, double> values) {
+    if (values.isEmpty) return;
+    _edit(() => engine.editGroup(() {
+          for (final e in values.entries) {
+            engine.setTrackParam(trackId, e.key, e.value);
+          }
+        }));
   }
 
   /// 指定したものだけ変える（他は今の値のまま）
@@ -140,11 +155,26 @@ class SongController extends ChangeNotifier {
         gain: gain ?? m.gain, pan: pan ?? m.pan, mute: mute ?? m.mute, solo: solo ?? m.solo));
   }
 
-  /// 確かめ用のデモ曲。Undo 1回で消せる
-  void loadDemo(DemoSong demo) {
+  /// 確かめ用のデモ曲。コードで組み立てる曲は Undo 1回で消せる（同梱ファイルの曲は読み込みなので Undo なし）
+  Future<void> loadDemo(DemoSong demo) async {
     engine.stopPlayback();
-    engine.newProject();
-    buildDemo(engine, demo);
+    final asset = demoAsset(demo);
+    if (asset == null) {
+      engine.newProject();
+      buildDemoSong(engine);
+    } else {
+      final json = await rootBundle.loadString(asset);
+      final tmp = File('${File(projectPath).parent.path}/demo_loading.json');
+      try {
+        tmp.parent.createSync(recursive: true);
+        tmp.writeAsStringSync(json);
+        engine.loadProject(tmp.path);
+      } on Object catch (e) {
+        saveError = 'デモ曲を読めませんでした：$e';
+      } finally {
+        if (tmp.existsSync()) tmp.deleteSync();
+      }
+    }
     selectedPlacementId = null;
     _refresh(force: true);
     saveNow(force: true);

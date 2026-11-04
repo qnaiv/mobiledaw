@@ -20,6 +20,31 @@ abstract final class MdawParam {
   static const releaseS = 5;
   static const detuneCents = 6;
   static const masterGain = 7;
+  static const unison = 8;
+  static const width = 9;
+  static const blend = 10;
+  static const sub = 11;
+  static const noise = 12;
+  static const drive = 13;
+  static const filterEnv = 14;
+  static const filterEnvDecayS = 15;
+  static const pitchEnv = 16;
+  static const pitchEnvDecayS = 17;
+  static const wave = 18;
+  static const osc = 19;
+
+  // トラックのエフェクト（setTrackParam で同じように変えられる）
+  static const fxLowCutHz = 32;
+  static const fxSaturation = 33;
+  static const fxChorus = 34;
+  static const fxOtt = 35;
+  static const fxDelay = 36;
+  static const fxDelayFeedback = 37;
+  static const fxReverb = 38;
+  static const fxReverbSize = 39;
+  static const fxSidechain = 40;
+  static const fxSidechainReleaseS = 41;
+  static const fxSidechainSource = 42;
 }
 
 abstract final class MdawResult {

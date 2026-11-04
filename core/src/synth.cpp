@@ -2,103 +2,144 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 
 #include "mdaw.h"
 
 namespace mdaw {
 
+const SynthParamSpec kSynthParamSpecs[] = {
+    {{MDAW_PARAM_CUTOFF_HZ, "cutoffHz", 20.0f, 20000.0f, false}, &SynthParams::cutoffHz},
+    {{MDAW_PARAM_RESONANCE, "resonance", 0.5f, 10.0f, false}, &SynthParams::resonance},
+    {{MDAW_PARAM_ATTACK_S, "attackS", 0.0005f, 10.0f, false}, &SynthParams::attackS},
+    {{MDAW_PARAM_DECAY_S, "decayS", 0.0005f, 10.0f, false}, &SynthParams::decayS},
+    {{MDAW_PARAM_SUSTAIN, "sustain", 0.0f, 1.0f, false}, &SynthParams::sustain},
+    {{MDAW_PARAM_RELEASE_S, "releaseS", 0.002f, 10.0f, false}, &SynthParams::releaseS},
+    {{MDAW_PARAM_DETUNE_CENTS, "detuneCents", 0.0f, 100.0f, false}, &SynthParams::detuneCents},
+    {{MDAW_PARAM_MASTER_GAIN, "masterGain", 0.0f, 1.0f, false}, &SynthParams::masterGain},
+    {{MDAW_PARAM_UNISON, "unison", 1.0f, 16.0f, true}, &SynthParams::unison},
+    {{MDAW_PARAM_WIDTH, "width", 0.0f, 1.0f, false}, &SynthParams::width},
+    {{MDAW_PARAM_BLEND, "blend", 0.0f, 1.0f, false}, &SynthParams::blend},
+    {{MDAW_PARAM_SUB, "sub", 0.0f, 1.0f, false}, &SynthParams::sub},
+    {{MDAW_PARAM_NOISE, "noise", 0.0f, 1.0f, false}, &SynthParams::noise},
+    {{MDAW_PARAM_DRIVE, "drive", 0.0f, 1.0f, false}, &SynthParams::drive},
+    {{MDAW_PARAM_FILTER_ENV, "filterEnv", 0.0f, 1.0f, false}, &SynthParams::filterEnv},
+    {{MDAW_PARAM_FILTER_ENV_DECAY_S, "filterEnvDecayS", 0.005f, 5.0f, false}, &SynthParams::filterEnvDecayS},
+    {{MDAW_PARAM_PITCH_ENV, "pitchEnv", 0.0f, 48.0f, false}, &SynthParams::pitchEnv},
+    {{MDAW_PARAM_PITCH_ENV_DECAY_S, "pitchEnvDecayS", 0.002f, 2.0f, false}, &SynthParams::pitchEnvDecayS},
+    {{MDAW_PARAM_WAVE, "wave", 0.0f, 1.0f, true}, &SynthParams::wave},
+    {{MDAW_PARAM_OSC, "osc", 0.0f, 1.0f, false}, &SynthParams::osc},
+};
+const int kNumSynthParamSpecs = static_cast<int>(std::size(kSynthParamSpecs));
+
 namespace {
 
-float polyBlep(double t, double dt) noexcept {
+constexpr int kControlBlock = 32; // エンベロープでフィルター・音程を動かす間隔（サンプル）
+constexpr float kTwoPi = 6.28318530718f;
+
+const SynthParamSpec* findSpec(int id) noexcept {
+    for (const auto& s : kSynthParamSpecs)
+        if (s.id == id)
+            return &s;
+    return nullptr;
+}
+
+float polyBlep(float t, float dt) noexcept {
     if (t < dt) {
         t /= dt;
-        return static_cast<float>(t + t - t * t - 1.0);
+        return t + t - t * t - 1.0f;
     }
-    if (t > 1.0 - dt) {
-        t = (t - 1.0) / dt;
-        return static_cast<float>(t * t + t + t + 1.0);
+    if (t > 1.0f - dt) {
+        t = (t - 1.0f) / dt;
+        return t * t + t + t + 1.0f;
     }
     return 0.0f;
 }
 
-double noteToHz(int note) noexcept {
-    return 440.0 * std::pow(2.0, (note - 69) / 12.0);
-}
-
-float clampCutoff(float hz, double sampleRate) noexcept {
-    return std::clamp(hz, 20.0f, static_cast<float>(sampleRate * 0.45));
+// 速いサイン近似（位相 0〜1）
+float fastSin(float phase) noexcept {
+    const float x = phase < 0.5f ? phase : phase - 1.0f; // -0.5〜0.5
+    const float y = 8.0f * x - 16.0f * x * std::abs(x);
+    return 0.225f * (y * std::abs(y) - y) + y;
 }
 
 juce::ADSR::Parameters toAdsr(const SynthParams& p) noexcept {
-    return {std::max(p.attackS, 0.0005f), std::max(p.decayS, 0.0005f),
-            std::clamp(p.sustain, 0.0f, 1.0f), std::max(p.releaseS, 0.002f)};
+    return {std::max(p.attackS, 0.0005f), std::max(p.decayS, 0.0005f), std::clamp(p.sustain, 0.0f, 1.0f),
+            std::max(p.releaseS, 0.002f)};
+}
+
+uint32_t nextRandom(uint32_t& state) noexcept {
+    state = state * 1664525u + 1013904223u;
+    return state;
 }
 
 } // namespace
 
-float PolyBlepSaw::next() noexcept {
-    const auto t = phase_;
-    float v = static_cast<float>(2.0 * t - 1.0);
-    v -= polyBlep(t, inc_);
-    phase_ += inc_;
-    if (phase_ >= 1.0)
-        phase_ -= 1.0;
-    return v;
+bool operator==(const SynthParams& a, const SynthParams& b) noexcept {
+    for (const auto& s : kSynthParamSpecs)
+        if (a.*(s.member) != b.*(s.member))
+            return false;
+    return true;
 }
 
 bool getSynthParam(const SynthParams& s, int id, float& out) noexcept {
-    switch (id) {
-        case MDAW_PARAM_CUTOFF_HZ:    out = s.cutoffHz; return true;
-        case MDAW_PARAM_RESONANCE:    out = s.resonance; return true;
-        case MDAW_PARAM_ATTACK_S:     out = s.attackS; return true;
-        case MDAW_PARAM_DECAY_S:      out = s.decayS; return true;
-        case MDAW_PARAM_SUSTAIN:      out = s.sustain; return true;
-        case MDAW_PARAM_RELEASE_S:    out = s.releaseS; return true;
-        case MDAW_PARAM_DETUNE_CENTS: out = s.detuneCents; return true;
-        case MDAW_PARAM_MASTER_GAIN:  out = s.masterGain; return true;
-        default: return false;
-    }
+    const auto* spec = findSpec(id);
+    if (spec == nullptr)
+        return false;
+    out = s.*(spec->member);
+    return true;
 }
 
 bool setSynthParam(SynthParams& s, int id, float value) noexcept {
-    if (!std::isfinite(value))
+    const auto* spec = findSpec(id);
+    if (spec == nullptr || !std::isfinite(value))
         return false;
-    switch (id) {
-        case MDAW_PARAM_CUTOFF_HZ:    s.cutoffHz = std::clamp(value, 20.0f, 20000.0f); return true;
-        case MDAW_PARAM_RESONANCE:    s.resonance = std::clamp(value, 0.5f, 10.0f); return true;
-        case MDAW_PARAM_ATTACK_S:     s.attackS = std::clamp(value, 0.0005f, 10.0f); return true;
-        case MDAW_PARAM_DECAY_S:      s.decayS = std::clamp(value, 0.0005f, 10.0f); return true;
-        case MDAW_PARAM_SUSTAIN:      s.sustain = std::clamp(value, 0.0f, 1.0f); return true;
-        case MDAW_PARAM_RELEASE_S:    s.releaseS = std::clamp(value, 0.002f, 10.0f); return true;
-        case MDAW_PARAM_DETUNE_CENTS: s.detuneCents = std::clamp(value, -100.0f, 100.0f); return true;
-        case MDAW_PARAM_MASTER_GAIN:  s.masterGain = std::clamp(value, 0.0f, 1.0f); return true;
-        default: return false;
-    }
+    value = std::clamp(value, spec->min, spec->max);
+    if (spec->integer)
+        value = std::round(value);
+    s.*(spec->member) = value;
+    return true;
+}
+
+void Svf::set(float cutoffHz, float q, double sampleRate) noexcept {
+    const float fc = std::clamp(cutoffHz, 20.0f, static_cast<float>(sampleRate * 0.45));
+    g = std::tan(3.14159265f * fc / static_cast<float>(sampleRate));
+    k = 1.0f / std::max(q, 0.1f);
+    a1 = 1.0f / (1.0f + g * (g + k));
+    a2 = g * a1;
+    a3 = g * a2;
 }
 
 //==============================================================================
-void Voice::prepare(double sampleRate, int maxBlock) {
+void Voice::prepare(double sampleRate) {
     sampleRate_ = sampleRate;
     adsr_.setSampleRate(sampleRate);
-    filter_.setType(juce::dsp::StateVariableTPTFilterType::lowpass);
-    filter_.prepare({sampleRate, static_cast<juce::uint32>(std::max(maxBlock, 1)), 1});
     adsr_.reset();
+    filterL_.reset();
+    filterR_.reset();
     held_ = false;
     note_ = -1;
 }
 
-void Voice::start(int note, float velocity, const SynthParams& params, uint64_t age) {
+void Voice::start(int note, float velocity, const SynthParams& params, uint64_t age, uint32_t seed) {
     const bool wasActive = isActive();
     note_ = note;
     held_ = true;
     age_ = age;
     gain_ = std::pow(std::clamp(velocity, 0.0f, 1.0f), 1.5f) * 0.25f;
-    applyParams(params);
+    filterEnv_ = 1.0f;
+    pitchEnv_ = 1.0f;
     if (!wasActive) {
-        oscA_.reset(0.0);
-        oscB_.reset(0.37);
-        filter_.reset();
+        // ユニゾンの位相はばらばらに始める（揃うと薄く、頭が強く鳴る）
+        uint32_t r = seed | 1u;
+        for (auto& ph : phase_)
+            ph = static_cast<float>(nextRandom(r) >> 8) / 16777216.0f;
+        subPhase_ = 0.0f;
+        noise_ = r;
+        filterL_.reset();
+        filterR_.reset();
     }
+    applyParams(params);
     adsr_.noteOn();
 }
 
@@ -113,31 +154,128 @@ void Voice::kill() noexcept {
 }
 
 void Voice::applyParams(const SynthParams& params) noexcept {
+    p_ = params;
     adsr_.setParameters(toAdsr(params));
-    filter_.setResonance(std::clamp(params.resonance, 0.5f, 10.0f));
-    detuneCents_ = params.detuneCents;
-    updateFrequencies();
+    filterEnvCoef_ = std::exp(-static_cast<float>(kControlBlock) /
+                              (std::max(params.filterEnvDecayS, 0.001f) * static_cast<float>(sampleRate_)));
+    pitchEnvCoef_ = std::exp(-static_cast<float>(kControlBlock) /
+                             (std::max(params.pitchEnvDecayS, 0.001f) * static_cast<float>(sampleRate_)));
+    layoutUnison();
+    updateIncrements(p_.pitchEnv * pitchEnv_);
 }
 
-void Voice::setCutoff(float hz) noexcept {
-    filter_.setCutoffFrequency(clampCutoff(hz, sampleRate_));
+void Voice::layoutUnison() noexcept {
+    const int n = std::clamp(static_cast<int>(std::lround(p_.unison)), 1, kMaxUnison);
+    unison_ = n;
+    float power = 0.0f;
+    float gains[kMaxUnison];
+    float pans[kMaxUnison];
+    for (int i = 0; i < n; ++i) {
+        const float x = n == 1 ? 0.0f : -1.0f + 2.0f * static_cast<float>(i) / static_cast<float>(n - 1);
+        const float side = std::abs(x);
+        detune_[i] = x * p_.detuneCents * 0.5f / 100.0f;
+        gains[i] = n == 1 ? 1.0f : (1.0f - side) + p_.blend * side;
+        // 対になる2本（±同じずらし）は左右に分け、隣の対とは向きを入れ替える
+        const int pair = i < n / 2 ? i : n - 1 - i;
+        float sign = (pair % 2 == 0) ? 1.0f : -1.0f;
+        if (i >= n / 2)
+            sign = -sign;
+        pans[i] = std::clamp(p_.width * side * sign, -1.0f, 1.0f);
+        power += gains[i] * gains[i];
+    }
+    // 本数を増やしても大きさがあまり変わらないよう、パワーでならす（中央1本のとき左右とも 1）
+    const float norm = std::sqrt(2.0f) / std::sqrt(std::max(power, 1e-6f));
+    for (int i = 0; i < n; ++i) {
+        const float angle = (pans[i] + 1.0f) * 0.25f * 3.14159265f;
+        gainL_[i] = std::cos(angle) * gains[i] * norm;
+        gainR_[i] = std::sin(angle) * gains[i] * norm;
+    }
 }
 
-void Voice::updateFrequencies() noexcept {
+void Voice::updateIncrements(float pitchOffsetSemis) noexcept {
     if (note_ < 0)
         return;
-    const double base = noteToHz(note_);
-    oscA_.setFrequency(base, sampleRate_);
-    oscB_.setFrequency(base * std::pow(2.0, detuneCents_ / 1200.0), sampleRate_);
+    const float base = static_cast<float>(note_) + pitchOffsetSemis - 69.0f;
+    const float sr = static_cast<float>(sampleRate_);
+    for (int i = 0; i < unison_; ++i)
+        inc_[i] = std::min(440.0f * std::exp2((base + detune_[i]) / 12.0f) / sr, 0.45f);
+    subInc_ = std::min(440.0f * std::exp2((base - 12.0f) / 12.0f) / sr, 0.45f);
 }
 
-void Voice::render(float* out, int numSamples) noexcept {
+void Voice::render(float* left, float* right, int numSamples) noexcept {
     if (!isActive())
         return;
-    for (int i = 0; i < numSamples; ++i) {
-        const float osc = 0.5f * (oscA_.next() + oscB_.next());
-        const float filtered = filter_.processSample(0, osc);
-        out[i] += filtered * adsr_.getNextSample() * gain_;
+    const bool square = p_.wave >= 0.5f;
+    const float noiseLevel = p_.noise * 0.6f;
+    const float subLevel = p_.sub * 0.9f;
+    const float driveGain = 1.0f + p_.drive * 9.0f;
+    const float driveMakeup = 1.0f / (1.0f + p_.drive * 2.0f);
+    const bool drive = p_.drive > 0.001f;
+    const float oscLevel = p_.osc;
+    const int unison = oscLevel > 0.0f ? unison_ : 0;
+
+    for (int start = 0; start < numSamples; start += kControlBlock) {
+        const int end = std::min(numSamples, start + kControlBlock);
+
+        if (p_.pitchEnv > 0.0f && pitchEnv_ > 1e-4f) {
+            updateIncrements(p_.pitchEnv * pitchEnv_);
+            pitchEnv_ *= pitchEnvCoef_;
+        }
+        const float cutoff = cutoffHz_ * std::exp2(p_.filterEnv * 7.0f * filterEnv_);
+        filterL_.set(cutoff, p_.resonance, sampleRate_);
+        filterR_.set(cutoff, p_.resonance, sampleRate_);
+        filterEnv_ *= filterEnvCoef_;
+
+        for (int s = start; s < end; ++s) {
+            float l = 0.0f, r = 0.0f;
+            for (int u = 0; u < unison; ++u) {
+                const float ph = phase_[u];
+                const float dt = inc_[u];
+                float v;
+                if (square) {
+                    v = ph < 0.5f ? 1.0f : -1.0f;
+                    v += polyBlep(ph, dt);
+                    float ph2 = ph + 0.5f;
+                    if (ph2 >= 1.0f)
+                        ph2 -= 1.0f;
+                    v -= polyBlep(ph2, dt);
+                    v *= 0.7f;
+                } else {
+                    v = 2.0f * ph - 1.0f - polyBlep(ph, dt);
+                }
+                l += v * gainL_[u];
+                r += v * gainR_[u];
+                float next = ph + dt;
+                if (next >= 1.0f)
+                    next -= 1.0f;
+                phase_[u] = next;
+            }
+            l *= oscLevel;
+            r *= oscLevel;
+            if (noiseLevel > 0.0f) {
+                const float nl = static_cast<float>(static_cast<int32_t>(nextRandom(noise_))) * (1.0f / 2147483648.0f);
+                const float nr = static_cast<float>(static_cast<int32_t>(nextRandom(noise_))) * (1.0f / 2147483648.0f);
+                l += nl * noiseLevel;
+                r += nr * noiseLevel;
+            }
+            if (drive) {
+                l = std::tanh(l * driveGain) * driveMakeup;
+                r = std::tanh(r * driveGain) * driveMakeup;
+            }
+            l = filterL_.process(l);
+            r = filterR_.process(r);
+            if (subLevel > 0.0f) {
+                const float sv = fastSin(subPhase_) * subLevel;
+                subPhase_ += subInc_;
+                if (subPhase_ >= 1.0f)
+                    subPhase_ -= 1.0f;
+                l += sv;
+                r += sv;
+            }
+            const float a = adsr_.getNextSample() * gain_;
+            left[s] += l * a;
+            right[s] += r * a;
+        }
     }
     if (!isActive()) {
         held_ = false;
@@ -146,10 +284,10 @@ void Voice::render(float* out, int numSamples) noexcept {
 }
 
 //==============================================================================
-void Synth::prepare(double sampleRate, int maxBlock) {
+void Synth::prepare(double sampleRate, int /*maxBlock*/) {
     sampleRate_ = sampleRate;
     for (auto& v : voices_) {
-        v.prepare(sampleRate, maxBlock);
+        v.prepare(sampleRate);
         v.applyParams(params_);
         v.setCutoff(params_.cutoffHz);
     }
@@ -183,7 +321,7 @@ void Synth::noteOn(int note, float velocity) noexcept {
     if (note < 0 || note > 127)
         return;
     auto* v = findVoiceFor(note);
-    v->start(note, velocity, params_, ++ageCounter_);
+    v->start(note, velocity, params_, ++ageCounter_, nextRandom(seed_));
     v->setCutoff(smoothedCutoff_);
 }
 
@@ -214,8 +352,9 @@ void Synth::setParams(const SynthParams& params) noexcept {
         v.applyParams(params_);
 }
 
-void Synth::render(float* mono, int numSamples) noexcept {
-    std::fill(mono, mono + numSamples, 0.0f);
+void Synth::render(float* left, float* right, int numSamples) noexcept {
+    std::fill(left, left + numSamples, 0.0f);
+    std::fill(right, right + numSamples, 0.0f);
 
     // カットオフはブロック単位でなめらかに追従させる（約20ms）
     const float k = 1.0f - std::exp(-static_cast<float>(numSamples) / static_cast<float>(0.02 * sampleRate_));
@@ -225,7 +364,7 @@ void Synth::render(float* mono, int numSamples) noexcept {
         if (!v.isActive())
             continue;
         v.setCutoff(smoothedCutoff_);
-        v.render(mono, numSamples);
+        v.render(left, right, numSamples);
     }
 
     // 音量はサンプル単位で直線的に移す（ジッパーノイズ対策）
@@ -234,7 +373,8 @@ void Synth::render(float* mono, int numSamples) noexcept {
     const float step = (endGain - startGain) / static_cast<float>(std::max(numSamples, 1));
     float g = startGain;
     for (int i = 0; i < numSamples; ++i) {
-        mono[i] *= g;
+        left[i] *= g;
+        right[i] *= g;
         g += step;
     }
     smoothedGain_ = endGain;

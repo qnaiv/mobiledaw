@@ -10,6 +10,7 @@ import '../piano_roll/piano_roll_screen.dart';
 import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'demo_song.dart';
+import '../sound/sound_sheet.dart';
 import 'mixer_sheet.dart';
 import 'song_controller.dart';
 import 'timeline_math.dart';
@@ -131,7 +132,7 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
       case 'tempo':
         await _editTempo();
       case final String a when a.startsWith('demo:'):
-        song.loadDemo(DemoSong.values.byName(a.substring(5)));
+        await song.loadDemo(DemoSong.values.byName(a.substring(5)));
       case 'new':
         if (await _confirm('新しい曲にしますか？', '今の曲は消え、元に戻せません。')) song.newSong();
       case 'soundcheck':
@@ -578,7 +579,7 @@ class _TrackHeader extends StatelessWidget {
               top: 0,
               bottom: 0,
               child: GestureDetector(
-                onTap: () => showMixerSheet(context, song, focusTrackId: tracks[i].id),
+                onTap: () => showSoundSheet(context, song, tracks[i].id),
                 child: Container(
                 decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
