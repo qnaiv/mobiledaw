@@ -76,6 +76,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   final _playhead = ValueNotifier<int?>(null); // クリップ先頭からの tick。再生していないときは null
   final _playing = ValueNotifier<bool>(false);
   (int, int)? _loop; // いま繰り返している範囲（曲頭からの tick）
+  int _startInClip = 0; // 再生を始める位置（クリップの頭からの tick）。左の目盛りをタップで変える
   late final Ticker _ticker;
 
   int _step = ticksPerBeat ~/ 2; // 1/8
@@ -291,7 +292,21 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     }
     final range = _clipRange(pl, clip);
     _loop = range;
-    song.playLoop(range.$1, range.$2);
+    final from = _startInClip.clamp(0, clip.lengthTicks - 1);
+    song.playLoop(range.$1, range.$2, from: range.$1 + from);
+  }
+
+  /// 左の目盛りをタップ：その拍から再生する（再生中ならすぐ飛ぶ）。もう一度同じ所なら頭に戻す
+  void _setStartAt(RollGeometry g, double y) {
+    final pl = _placement;
+    final clip = pl == null ? null : song.clip(pl.clipId);
+    if (pl == null || clip == null) return;
+    final offset = _v.hasClients ? _v.offset : 0.0;
+    final tick = ((y + offset) / g.rowHeight * g.step).floor();
+    var beat = (tick ~/ ticksPerBeat * ticksPerBeat).clamp(0, clip.lengthTicks - 1);
+    if (beat == _startInClip) beat = 0;
+    setState(() => _startInClip = beat);
+    if (song.engine.isPlaying) song.engine.seek(_clipRange(pl, clip).$1 + beat);
   }
 
   // ---- コード入力 -------------------------------------------------------------
@@ -625,8 +640,13 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                 top: 0,
                 width: _labelWidth,
                 height: viewportH,
-                child: CustomPaint(
-                  painter: _LabelPainter(g: g, v: _v, ticksPerBar: song.project.ticksPerBar),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _setStartAt(g, d.localPosition.dy),
+                  child: CustomPaint(
+                    painter: _LabelPainter(
+                        g: g, v: _v, ticksPerBar: song.project.ticksPerBar, startTick: _startInClip),
+                  ),
                 ),
               ),
               // ロール
@@ -1031,11 +1051,13 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 // ---- 描画 -----------------------------------------------------------------------
 
 class _LabelPainter extends CustomPainter {
-  _LabelPainter({required this.g, required this.v, required this.ticksPerBar}) : super(repaint: v);
+  _LabelPainter({required this.g, required this.v, required this.ticksPerBar, required this.startTick})
+      : super(repaint: v);
 
   final RollGeometry g;
   final ScrollController v;
   final int ticksPerBar;
+  final int startTick; // 再生を始める拍（印をつける）
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1045,11 +1067,16 @@ class _LabelPainter extends CustomPainter {
       final y = g.tickY(tick) - offset;
       if (y < -20 || y > size.height) continue;
       final isBar = tick % ticksPerBar == 0;
+      final isStart = tick == startTick && startTick > 0;
+      if (isStart) {
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(1, y, size.width - 2, 18), const Radius.circular(5)),
+            Paint()..color = DawColors.accent);
+      }
       final tp = TextPainter(
         text: TextSpan(
-          text: isBar ? '${tick ~/ ticksPerBar + 1}' : '·',
+          text: isBar ? '${tick ~/ ticksPerBar + 1}' : (isStart ? '▶' : '·'),
           style: TextStyle(
-            color: isBar ? DawColors.text : DawColors.muted,
+            color: isStart ? DawColors.background : (isBar ? DawColors.text : DawColors.muted),
             fontSize: isBar ? 11 : 10,
             fontWeight: isBar ? FontWeight.w700 : FontWeight.w400,
           ),
@@ -1061,7 +1088,7 @@ class _LabelPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_LabelPainter old) => old.g != g;
+  bool shouldRepaint(_LabelPainter old) => old.g != g || old.startTick != startTick;
 }
 
 class _RollPainter extends CustomPainter {

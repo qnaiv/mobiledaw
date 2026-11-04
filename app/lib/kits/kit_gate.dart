@@ -35,10 +35,8 @@ List<String> kitsInProjectFile(String path) {
   }
 }
 
-Future<List<String>> kitsInDemo(DemoSong demo) async {
-  final asset = demoAsset(demo);
-  return asset == null ? const [] : kitsInProjectJson(await rootBundle.loadString(asset));
-}
+Future<List<String>> kitsInDemo(DemoSong demo) async =>
+    kitsInProjectJson(await rootBundle.loadString(demoAsset(demo)));
 
 /// まだ入っていないキット
 List<String> missingKits(KitStore store, Iterable<String> ids) => [for (final id in ids) if (store.installed(id) == null) id];

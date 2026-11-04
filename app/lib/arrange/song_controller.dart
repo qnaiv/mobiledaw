@@ -70,6 +70,7 @@ class SongController extends ChangeNotifier {
       engine.newProject();
     }
     library.lastOpened = projectId;
+    _startTick = 0;
     _refresh(force: true);
   }
 
@@ -226,16 +227,8 @@ class SongController extends ChangeNotifier {
     saveNow();
     engine.stopPlayback();
     engine.clearLoop();
-    final asset = demoAsset(demo);
     final path = library.pathFor(library.newId());
-    if (asset == null) {
-      _projectPath = path;
-      engine.newProject();
-      buildDemoSong(engine);
-      _startFresh(demoTitle(demo));
-      return;
-    }
-    final json = await rootBundle.loadString(asset);
+    final json = await rootBundle.loadString(demoAsset(demo));
     try {
       final file = File(path);
       file.parent.createSync(recursive: true);
@@ -429,27 +422,47 @@ class SongController extends ChangeNotifier {
 
   // ---- 再生 -----------------------------------------------------------------
 
-  /// アレンジ画面の再生：曲全体をループ
+  int _startTick = 0;
+
+  /// 再生を始める位置（tick）。アレンジ画面の小節番号をタップで変える
+  int get startTick => _startTick;
+
+  /// [bar] 小節目の頭から再生するようにする。再生中ならすぐそこへ飛ぶ
+  void setStartBar(int bar) {
+    final last = math.max(project.lengthBars, 1) - 1;
+    _startTick = bar.clamp(0, last) * project.ticksPerBar;
+    engine.seek(_startTick);
+    notifyListeners();
+  }
+
+  /// アレンジ画面の再生：曲全体をループ。始まりと止めたあとは [startTick]
   void togglePlay() {
     if (engine.isPlaying) {
       engine.stopPlayback();
+      engine.seek(_startTick); // 止めたら再生を始めた位置に戻る
     } else {
       engine.clearLoop();
+      engine.seek(_startTick);
       engine.play();
     }
   }
 
-  /// ピアノロールの再生：そのクリップの範囲だけを繰り返す（他のトラックも一緒に鳴る）
-  void playLoop(int startTick, int endTick) {
+  /// ピアノロールの再生：そのクリップの範囲だけを繰り返す（他のトラックも一緒に鳴る）。
+  /// [from] を渡すとそこから始める（2周目からは範囲の頭から）
+  void playLoop(int startTick, int endTick, {int? from}) {
     engine.setLoop(startTick, endTick);
+    if (from != null) engine.seek(from);
     engine.play();
   }
 
   /// 範囲ループをやめて曲全体に戻す（止まっていれば曲頭へ）
   void clearLoop() => engine.clearLoop();
 
+  /// 先頭へ：再生を始める位置も曲の頭に戻す
   void rewind() {
+    _startTick = 0;
     engine.seek(0);
+    notifyListeners();
   }
 
   @override

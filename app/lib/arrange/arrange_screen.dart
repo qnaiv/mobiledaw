@@ -94,8 +94,12 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
       context: context,
       backgroundColor: DawColors.panel,
       showDragHandle: true,
+      isScrollControlled: true, // 項目が多いので、画面に入りきらなければスクロール
       builder: (context) => SafeArea(
-        child: Column(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+          child: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
@@ -148,7 +152,7 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text('デモ曲：${demoLabel(demo)}'),
-                subtitle: const Text('新しい曲として一覧に入ります'),
+                subtitle: const Text('新しい曲として一覧に入ります（ドラムは Future Bass キット）'),
                 onTap: () => Navigator.pop(context, 'demo:${demo.name}'),
               ),
             ListTile(
@@ -157,6 +161,8 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               onTap: () => Navigator.pop(context, 'soundcheck'),
             ),
           ],
+            ),
+          ),
         ),
       ),
     );
@@ -414,6 +420,7 @@ class _TimelineState extends State<_Timeline> {
                                 grid: grid,
                                 rows: rows,
                                 labels: clipLabels(p),
+                                startBar: song.startTick ~/ p.ticksPerBar,
                                 selectedId: _drag?.kind == _ArrDragKind.scroll || _drag == null
                                     ? song.selectedPlacementId
                                     : null,
@@ -463,6 +470,11 @@ class _TimelineState extends State<_Timeline> {
     final p = song.project;
     final col = grid.colAt(at.dx);
     final bar = grid.barAt(at.dy);
+    if (at.dx < _Grid.labelWidth + _Grid.gap) {
+      // 左の小節番号：ここから再生する（再生中ならすぐ飛ぶ）
+      if (bar < math.max(p.lengthBars, 1)) song.setStartBar(bar);
+      return;
+    }
     if (col == null) {
       song.select(null);
       return;
@@ -691,6 +703,7 @@ class _GridPainter extends CustomPainter {
     required this.rows,
     required this.labels,
     required this.selectedId,
+    required this.startBar,
   });
 
   final ProjectData project;
@@ -698,6 +711,7 @@ class _GridPainter extends CustomPainter {
   final int rows;
   final Map<int, String> labels;
   final int? selectedId;
+  final int startBar; // 再生を始める小節（番号を明るく、左に印）
 
   static const _inset = 3.0; // 行と行のすき間の半分
 
@@ -711,9 +725,21 @@ class _GridPainter extends CustomPainter {
 
     for (var bar = 0; bar < rows; bar++) {
       final y = grid.barY(bar);
-      // 小節番号。曲の範囲（ループする範囲）は明るく
-      _text(canvas, (bar + 1).toString().padLeft(2, '0'), Offset(0, y + _Grid.rowHeight / 2 - 7),
-          color: bar < math.max(songEnd, 1) ? DawColors.muted : DawColors.line, size: 11);
+      // 小節番号。曲の範囲（ループする範囲）は明るく、再生を始める小節は印をつける
+      final isStart = bar == startBar && startBar > 0;
+      if (isStart) {
+        canvas.drawRRect(
+            RRect.fromRectAndRadius(Rect.fromLTWH(0, y + 6, _Grid.labelWidth - 4, _Grid.rowHeight - 12), const Radius.circular(6)),
+            Paint()..color = DawColors.accent);
+      }
+      _text(canvas, (bar + 1).toString().padLeft(2, '0'), Offset(4, y + _Grid.rowHeight / 2 - 7),
+          color: isStart
+              ? DawColors.background
+              : bar < math.max(songEnd, 1)
+                  ? DawColors.muted
+                  : DawColors.line,
+          size: 11,
+          bold: isStart);
 
       for (var i = 0; i < project.tracks.length; i++) {
         final track = project.tracks[i];
@@ -798,7 +824,11 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GridPainter old) =>
-      old.project != project || old.selectedId != selectedId || old.grid.colWidth != grid.colWidth || old.rows != rows;
+      old.project != project ||
+      old.selectedId != selectedId ||
+      old.grid.colWidth != grid.colWidth ||
+      old.rows != rows ||
+      old.startBar != startBar;
 }
 
 class _PlayheadPainter extends CustomPainter {
@@ -848,7 +878,7 @@ class _SelectionBar extends StatelessWidget {
       child: sel == null
           ? const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身',
+              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身 · 左の小節番号をタップでそこから再生',
                   style: TextStyle(fontSize: 12, color: DawColors.muted)),
             )
           : Row(
