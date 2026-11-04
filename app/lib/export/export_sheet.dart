@@ -141,7 +141,7 @@ class _ExportDialogState extends State<_ExportDialog> {
   void _startJob() {
     final job = widget.jobs[_index];
     if (!widget.engine.exportStart(job.path, trackId: job.trackId)) {
-      _finish(_Result(const [], '書き出しを始められませんでした'));
+      _finish(const _Result([], '書き出しを始められませんでした'));
       return;
     }
     _timer = Timer.periodic(const Duration(milliseconds: 100), (_) => _poll());
