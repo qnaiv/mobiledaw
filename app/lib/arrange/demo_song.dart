@@ -1,6 +1,6 @@
 // メニュー「デモ曲を入れる」で入る曲。
 // ・シンプル：C minor、2小節（Cm | A♭ B♭）を2回。再生と並びの確かめ用（ここで組み立てる）
-// ・フューチャーベース：150 BPM、溜め8小節 → ドロップ8小節、8トラック。
+// ・kawaii フューチャーベース：150 BPM・F major・77小節（約2分）、8トラック。サビは Jersey Club のキック。
 //   同梱のプロジェクトファイル（assets/demos/future_bass.json）を読む。
 //   ファイルは tools/demos/future_bass.py で作り、build/mdaw_render で wav にして音を確かめる
 import '../engine/mdaw_ffi.dart';
@@ -10,7 +10,7 @@ enum DemoSong { simple, futureBass }
 
 String demoLabel(DemoSong d) => switch (d) {
       DemoSong.simple => 'シンプル（4トラック・4小節）',
-      DemoSong.futureBass => 'フューチャーベース（8トラック・16小節）',
+      DemoSong.futureBass => 'kawaii フューチャーベース（約2分）',
     };
 
 /// 同梱のプロジェクトファイルで入る曲はそのパス。null ならコードで組み立てる（[buildDemoSong]）

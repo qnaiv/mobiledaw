@@ -133,7 +133,7 @@ class SoundPreset {
   Map<int, double> get allValues => {for (final p in allSoundParams) p.id: values[p.key] ?? p.def};
 }
 
-// tools/demos/future_bass.py の音色と同じもの＋よく使う形
+// tools/demos/future_bass.py の音色（Chords・Lead・Bell・Bass・Kick・Clap・Hats・Riser）＋よく使う形
 const soundPresets = <SoundPreset>[
   SoundPreset('Future Bass Chords', 'コード', {
     'cutoffHz': 12000, 'resonance': 0.8, 'attackS': 0.004, 'decayS': 0.6, 'sustain': 0.75, 'releaseS': 0.22,
@@ -160,6 +160,20 @@ const soundPresets = <SoundPreset>[
     'detuneCents': 16, 'masterGain': 0.6, 'unison': 4, 'width': 0.45, 'blend': 0.7, 'filterEnv': 0.2,
     'filterEnvDecayS': 0.15, 'wave': 1,
     'lowCutHz': 300, 'saturation': 0.2, 'ott': 0.35, 'delay': 0.3, 'reverb': 0.3, 'sidechain': 0.45,
+  }),
+  SoundPreset('Chip Lead', 'リード', {
+    'cutoffHz': 9000, 'resonance': 0.9, 'attackS': 0.002, 'decayS': 0.2, 'sustain': 0.7, 'releaseS': 0.1,
+    'detuneCents': 8, 'masterGain': 0.6, 'unison': 2, 'width': 0.3, 'blend': 0.9, 'filterEnv': 0.15,
+    'filterEnvDecayS': 0.12, 'wave': 1,
+    'lowCutHz': 300, 'saturation': 0.1, 'ott': 0.3, 'delay': 0.25, 'delayFeedback': 0.3, 'reverb': 0.25,
+    'sidechain': 0.3, 'sidechainReleaseS': 0.2,
+  }),
+  SoundPreset('Music Box Bell', 'リード', {
+    'cutoffHz': 2200, 'resonance': 1.1, 'attackS': 0.001, 'decayS': 0.45, 'sustain': 0, 'releaseS': 0.35,
+    'detuneCents': 6, 'masterGain': 0.7, 'unison': 2, 'width': 0.5, 'blend': 1.0, 'filterEnv': 0.7,
+    'filterEnvDecayS': 0.15, 'wave': 1,
+    'lowCutHz': 500, 'chorus': 0.25, 'ott': 0.3, 'delay': 0.3, 'reverb': 0.45, 'reverbSize': 0.7,
+    'sidechain': 0.35, 'sidechainReleaseS': 0.2,
   }),
   SoundPreset('Supersaw Lead', 'リード', {
     'cutoffHz': 9000, 'attackS': 0.003, 'decayS': 0.4, 'sustain': 0.8, 'releaseS': 0.2, 'detuneCents': 30,
