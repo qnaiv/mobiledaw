@@ -9,6 +9,7 @@ import '../arrange/song_controller.dart';
 import '../model/project.dart';
 import '../music/chords.dart';
 import '../music/progression_gen.dart';
+import '../music/progressions.dart' show voiceProgression;
 import '../music/scale.dart';
 import '../music/voicing.dart';
 import '../ui/theme.dart';
