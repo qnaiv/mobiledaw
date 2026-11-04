@@ -88,8 +88,8 @@ SOUNDS = {
         synth=dict(cutoffHz=2600, resonance=0.9, attackS=0.0005, decayS=0.15, sustain=0.0, releaseS=0.07,
                    detuneCents=0, masterGain=1.0, unison=1, noise=1.0, filterEnv=0.5, filterEnvDecayS=0.05,
                    pitchEnv=12, pitchEnvDecayS=0.02, wave=1, osc=0.25),
-        fx=dict(lowCutHz=200, saturation=0.1, reverb=0.3, reverbSize=0.45),
-        mixer=dict(gain=0.42, pan=0),
+        fx=dict(lowCutHz=200, saturation=0.1),  # ドラムはリバーブなし（乾いた音）
+        mixer=dict(gain=0.26, pan=0),
     ),
     # 閉じたハット・短い開いたハット・サビ頭のシンバル
     "Hats": dict(
@@ -97,7 +97,7 @@ SOUNDS = {
         kit="future-bass",
         synth=dict(cutoffHz=16000, resonance=0.7, attackS=0.0005, decayS=0.04, sustain=0.0, releaseS=0.03,
                    unison=1, noise=1.0, osc=0, masterGain=1.0),
-        fx=dict(lowCutHz=300, reverb=0.12, reverbSize=0.3, sidechain=0.3, sidechainReleaseS=0.12),
+        fx=dict(lowCutHz=300, sidechain=0.3, sidechainReleaseS=0.12),
         mixer=dict(gain=0.45, pan=0.2),
     ),
     # ビルドで盛り上がるノイズ（4小節かけて大きくなる）
@@ -329,14 +329,13 @@ def build(solo=None):
     b.clip(L, 8, melody(VERSE_MELODY, vel=0.8), [8, 16])
     b.clip(BA, 4, bass_line(VERSE, [0, 6, 10], S16 * 3), [8, 12, 16, 20])
     b.clip(K, 4, halftime_kicks(), [8, 12, 16, 20])
-    b.clip(CL, 4, claps(4, [8], extra_last=[14, 15]), [8, 12, 16, 20])
+    # クラップはサビだけ（Aメロ・ビルドは鳴らさない）
     b.clip(H, 4, hats(4, False), [8, 12, 16, 20])
 
     # ビルド（8小節）とビルド2（4小節）
     b.clip(C, 4, held(BUILD, 0.7), [24, 28])
     b.clip(BA, 4, bass_line(BUILD, [0], BAR - 60), [24])
     b.clip(K, 4, four_floor(), [24])
-    b.clip(CL, 4, claps(4, [4, 12]), [24])
     b.clip(H, 4, hats(4, True), [24])
     b.clip(CL, 4, snare_roll(4), [28, 56])
     b.clip(R, 4, [n(0, BAR * 4 - 200, 60, 0.9)], [28, 56])
