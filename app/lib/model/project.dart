@@ -104,6 +104,7 @@ class TrackData {
     required this.name,
     required this.color,
     required this.synth,
+    this.kitId = '',
     this.fx = const {},
     required this.mixer,
   });
@@ -112,7 +113,10 @@ class TrackData {
   final String name;
   final int color; // ARGB
   final Map<String, double> synth; // cutoffHz, resonance, attackS など
+  final String kitId; // 空ならシンセ。入っていればドラムキット（kits/<id>）
   final Map<String, double> fx; // reverb, ott, sidechain など
+
+  bool get isKit => kitId.isNotEmpty;
   final MixerData mixer;
 
   factory TrackData.fromJson(Map<String, Object?> j) {
@@ -126,6 +130,7 @@ class TrackData {
         for (final e in params.entries)
           if (e.value is num) e.key: (e.value! as num).toDouble(),
       },
+      kitId: instrument['type'] == 'kit' && instrument['kit'] is String ? instrument['kit']! as String : '',
       fx: {
         for (final e in _map(j['fx']).entries)
           if (e.value is num) e.key: (e.value! as num).toDouble(),

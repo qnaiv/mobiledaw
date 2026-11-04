@@ -111,6 +111,11 @@ MDAW_API int32_t mdaw_project_is_dirty(mdaw_engine* engine); /* 最後の保存�
 
 /* 編集。ID を返すものは 0 で失敗、それ以外は 1 = 適用した、0 = 適用できなかった（対象がない・はみ出す など）。 */
 MDAW_API int32_t mdaw_set_project_title(mdaw_engine* engine, const char* title); /* 曲の名前（1〜64バイト） */
+/* ドラムキット。kits_dir/<kit_id>/kit.json を読む。kit_id が空（"" か NULL）ならシンセに戻す（Undo できる） */
+MDAW_API void mdaw_set_kits_dir(mdaw_engine* engine, const char* kits_dir);
+MDAW_API void mdaw_reload_kits(mdaw_engine* engine); /* ダウンロード・削除したあとに呼ぶ */
+MDAW_API int32_t mdaw_set_track_kit(mdaw_engine* engine, mdaw_id track_id, const char* kit_id);
+MDAW_API const char* mdaw_kit_error(mdaw_engine* engine, const char* kit_id); /* 読めなければ理由、読めれば "" */
 MDAW_API mdaw_id mdaw_add_track(mdaw_engine* engine, const char* name, uint32_t color_argb);
 MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const char* name); /* 1〜64バイト */
 /* トラックの音量（0〜2、1 = そのまま）・パン（-1 左〜1 右）・ミュート・ソロ。変わらなければ 0 */

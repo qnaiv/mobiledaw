@@ -1,5 +1,7 @@
 #include "commands.h"
 
+#include "kit.h"
+
 #include "mdaw.h"
 
 #include <algorithm>
@@ -323,6 +325,20 @@ bool AddTrack::apply(Project& p) {
 void AddTrack::revert(Project& p) { eraseById(p.tracks, track_.id); }
 
 //==============================================================================
+bool SetTrackKit::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr || t->kitId == kitId_ || (!kitId_.empty() && !isValidKitId(kitId_)))
+        return false;
+    old_ = t->kitId;
+    t->kitId = kitId_;
+    return true;
+}
+
+void SetTrackKit::revert(Project& p) {
+    if (auto* t = p.findTrack(trackId_))
+        t->kitId = old_;
+}
+
 bool SetProjectTitle::apply(Project& p) {
     auto t = title_;
     const auto notSpace = [](unsigned char c) { return !std::isspace(c); };

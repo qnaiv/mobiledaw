@@ -8,12 +8,26 @@
 namespace mdaw {
 
 Session::Session(Engine& engine) : engine_(engine), project_(makeDefaultProject()), history_(project_) {
-    engine_.publish(buildSnapshot(project_));
+    engine_.publish(snapshot());
+}
+
+std::unique_ptr<PlaybackSnapshot> Session::snapshot() {
+    return buildSnapshot(project_, [this](const std::string& id) { return kits_.get(id); });
 }
 
 void Session::changed() {
     ++version_;
-    engine_.publish(buildSnapshot(project_));
+    engine_.publish(snapshot());
+}
+
+void Session::setKitsRoot(const std::string& dir) {
+    kits_.setRoot(dir);
+    engine_.publish(snapshot());
+}
+
+void Session::reloadKits() {
+    kits_.clear();
+    engine_.publish(snapshot()); // 中身は変わらないので版は上げない（保存し直さない）
 }
 
 void Session::newProject() {

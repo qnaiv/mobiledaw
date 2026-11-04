@@ -60,6 +60,7 @@ struct Track {
     std::string name;
     uint32_t color = 0xFFC8F25A; // ARGB
     SynthParams synth;           // 今はシンセのみ。音色エンジンの切り替え（サンプラーなど）は M3 以降
+    std::string kitId;           // 空ならシンセ、入っていればそのドラムキット（kits/<id>）を鳴らす
     FxParams fx;                 // トラックのエフェクト（音色を替えても残る）
     Mixer mixer;
 };

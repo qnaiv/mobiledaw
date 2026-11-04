@@ -10,6 +10,7 @@
 
 #include "commands.h"
 #include "history.h"
+#include "kit.h"
 #include "model.h"
 
 namespace mdaw {
@@ -45,6 +46,13 @@ public:
     void previewTrack(Id trackId);                                  // 試聴鍵盤をそのトラックの音色に
     bool setTrackParamLive(Id trackId, int paramId, float value);   // 再生中の音色をその場で変える
 
+    // ---- ドラムキット ----
+    void setKitsRoot(const std::string& dir);  // kits/<id>/kit.json を探す場所
+    void reloadKits();                         // ダウンロードし直したら呼ぶ（鳴らし直す）
+    std::string kitError(const std::string& id) { kits_.get(id); return kits_.error(id); }
+    // 今の曲の再生用データ（書き出し用。キットも解決済み）
+    std::unique_ptr<struct PlaybackSnapshot> snapshot();
+
     const Project& project() const noexcept { return project_; }
     int slotOf(Id trackId) const noexcept;
 
@@ -59,6 +67,7 @@ private:
     std::string json_;
     uint64_t jsonVersion_ = 0;
     std::string error_;
+    KitCache kits_;
     std::unique_ptr<CompoundCommand> group_;
     int groupDepth_ = 0;
 };

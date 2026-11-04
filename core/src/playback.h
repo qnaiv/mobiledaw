@@ -13,7 +13,11 @@
 #include <vector>
 
 #include "model.h"
+#include <functional>
+#include <string>
+
 #include "fx.h"
+#include "kit.h"
 #include "synth.h"
 
 namespace mdaw {
@@ -30,6 +34,7 @@ struct SeqEvent {
 struct SnapshotTrack {
     Id id = kNoId;
     SynthParams synth;
+    KitPtr kit;     // ドラムキットのトラックなら読み込んだキット（無ければ鳴らない）
     FxParams fx;
     float gain = 0.8f;
     float pan = 0.0f;
@@ -58,6 +63,9 @@ struct PlaybackSnapshot {
     size_t firstEventAfter(double tick) const noexcept;
 };
 
-std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project);
+// キットの ID → 読み込んだキット（コアスレッドで呼ぶ）。空なら全部「無い」扱い
+using KitResolver = std::function<KitPtr(const std::string&)>;
+
+std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const KitResolver& kits = {});
 
 } // namespace mdaw

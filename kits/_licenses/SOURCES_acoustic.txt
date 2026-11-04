@@ -1,0 +1,48 @@
+kick_real.wav <- Big Rusty Drums: Samples/kick_24/kick/kick/k_vl14_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/kick_24/kick/kick/k_vl14_rr1.flac
+snare_real.wav <- Big Rusty Drums: Samples/snare_14/center/top/sn_center_vl10_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/snare_14/center/top/sn_center_vl10_rr1.flac
+snare_rimshot.wav <- Big Rusty Drums: Samples/snare_14/rimshot/top/sn_rims_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/snare_14/rimshot/top/sn_rims_vl6_rr1.flac
+sidestick.wav <- Big Rusty Drums: Samples/snare_14/sidestick/top/sn_ss_vl4_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/snare_14/sidestick/top/sn_ss_vl4_rr1.flac
+hihat_closed_real.wav <- Big Rusty Drums: Samples/hihat_14/cl/cl/ht_cl_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/hihat_14/cl/cl/ht_cl_vl6_rr1.flac
+hihat_open_real.wav <- Big Rusty Drums: Samples/hihat_14/open/cl/ht_open_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/hihat_14/open/cl/ht_open_vl6_rr1.flac
+hihat_halfopen.wav <- Big Rusty Drums: Samples/hihat_14/ho/cl/ht_ho_vl4_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/hihat_14/ho/cl/ht_ho_vl4_rr1.flac
+hihat_pedal.wav <- Big Rusty Drums: Samples/hihat_14/chik/cl/ht_chik_vl5_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/hihat_14/chik/cl/ht_chik_vl5_rr1.flac
+crash_real.wav <- Big Rusty Drums: Samples/crash_17/cr/cl/cr_vl5_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/crash_17/cr/cl/cr_vl5_rr1.flac
+crash_sizzle_real.wav <- Big Rusty Drums: Samples/crash_sizzle_17/cr/cl/crs_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/crash_sizzle_17/cr/cl/crs_vl6_rr1.flac
+crash_choke.wav <- Big Rusty Drums: Samples/crash_17/choke/cl/cr_choke_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/crash_17/choke/cl/cr_choke_rr1.flac
+ride_bow.wav <- Big Rusty Drums: Samples/ride_22/rd/cl/rd_vl10_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/ride_22/rd/cl/rd_vl10_rr1.flac
+ride_bell.wav <- Big Rusty Drums: Samples/ride_22/bl/cl/rd_bl_vl4_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/ride_22/bl/cl/rd_bl_vl4_rr1.flac
+china_real.wav <- Big Rusty Drums: Samples/china_18/cn/cl/cn_vl5_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/china_18/cn/cl/cn_vl5_rr1.flac
+tom_high_real.wav <- Big Rusty Drums: Samples/tom_14/center/cl/t14_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/tom_14/center/cl/t14_vl6_rr1.flac
+tom_mid_real.wav <- Big Rusty Drums: Samples/tom_18/center/cl/t18_vl6_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/tom_18/center/cl/t18_vl6_rr1.flac
+tom_low_real.wav <- Big Rusty Drums: Samples/tom_22/center/cl/t22_vl7_rr1.flac
+    https://raw.githubusercontent.com/sfzinstruments/karoryfer.big-rusty-drums/main/Samples/tom_22/center/cl/t22_vl7_rr1.flac
+crash_clash_vcsl.wav <- VCSL: Clash Cymbals 2/cymbal_crash2_f1.wav
+    https://raw.githubusercontent.com/sgossner/VCSL/master/Idiophones/Struck%20Idiophones/Clash%20Cymbals%202/cymbal_crash2_f1.wav
+crash_suspended_vcsl.wav <- VCSL: Suspended Cymbal 2/susCymb2_hit_stick_mf1.wav
+    https://raw.githubusercontent.com/sgossner/VCSL/master/Idiophones/Struck%20Idiophones/Suspended%20Cymbal%202/susCymb2_hit_stick_mf1.wav
+hihat_open_vcsl.wav <- VCSL: Hi-Hat Cymbal/HiHat_HitO_rr1_Mid.wav
+    https://raw.githubusercontent.com/sgossner/VCSL/master/Idiophones/Struck%20Idiophones/Hi-Hat%20Cymbal/HiHat_HitO_rr1_Mid.wav
+perc_finger_cymbal.wav <- VCSL: Finger Cymbals/Fing_Cymb.wav
+    https://raw.githubusercontent.com/sgossner/VCSL/master/Idiophones/Struck%20Idiophones/Finger%20Cymbals/Fing_Cymb.wav
+hihat_closed_808.wav <- Fischer TR-808 (1994): ch8/CH.WAV
+    https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/main/ch8/CH.WAV
+hihat_open_808.wav <- Fischer TR-808 (1994): oh8/OH50.WAV
+    https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/main/oh8/OH50.WAV
+cymbal_808.wav <- Fischer TR-808 (1994): cy8/CY5050.WAV
+    https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/main/cy8/CY5050.WAV

@@ -14,12 +14,16 @@ class ScaleKeyboard extends StatefulWidget {
     required this.rootPitchClass,
     required this.onNoteOn,
     required this.onNoteOff,
+    this.labels,
   });
 
   final List<int> notes;
   final int rootPitchClass;
   final void Function(int note, double velocity) onNoteOn;
   final void Function(int note) onNoteOff;
+
+  /// 鍵の名前を音名の代わりに出す（ドラムキットの音の名前など）
+  final Map<int, String>? labels;
 
   @override
   State<ScaleKeyboard> createState() => _ScaleKeyboardState();
@@ -89,8 +93,9 @@ class _ScaleKeyboardState extends State<ScaleKeyboard> {
             for (final note in widget.notes)
               Expanded(
                 child: _Key(
-                  label: noteName(note, withOctave: note % 12 == widget.rootPitchClass),
-                  isRoot: note % 12 == widget.rootPitchClass,
+                  label: widget.labels?[note] ?? noteName(note, withOctave: note % 12 == widget.rootPitchClass),
+                  small: widget.labels != null,
+                  isRoot: widget.labels == null && note % 12 == widget.rootPitchClass,
                   isDown: _held.containsValue(note),
                 ),
               ),
@@ -102,9 +107,10 @@ class _ScaleKeyboardState extends State<ScaleKeyboard> {
 }
 
 class _Key extends StatelessWidget {
-  const _Key({required this.label, required this.isRoot, required this.isDown});
+  const _Key({required this.label, required this.isRoot, required this.isDown, this.small = false});
 
   final String label;
+  final bool small; // 長い名前（ドラムの音の名前）は小さく2行まで
   final bool isRoot;
   final bool isDown;
 
@@ -124,10 +130,13 @@ class _Key extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 10),
         child: Text(
           label,
+          maxLines: small ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
           style: TextStyle(
             color: isDown ? DawColors.background : DawColors.text,
             fontWeight: FontWeight.w700,
-            fontSize: 13,
+            fontSize: small ? 9 : 13,
           ),
         ),
       ),

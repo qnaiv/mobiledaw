@@ -1,0 +1,76 @@
+{
+  "name": "House",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "自作合成（同梱可）＋CC0-1.0（TR-808）",
+  "description": "ハウス・テクノ用キック、808 のハット・クラップ・パーカッション",
+  "sounds": [
+    {
+      "file": "clap_wide.wav",
+      "name": "Clap Wide",
+      "note": 28
+    },
+    {
+      "file": "kick_techno.wav",
+      "name": "Kick Techno",
+      "note": 35
+    },
+    {
+      "file": "kick_house.wav",
+      "name": "Kick House",
+      "note": 36
+    },
+    {
+      "file": "808_rimshot.wav",
+      "name": "808 Rimshot",
+      "note": 37
+    },
+    {
+      "file": "snare_tight_dry.wav",
+      "name": "Snare Tight Dry",
+      "note": 38
+    },
+    {
+      "file": "808_clap.wav",
+      "name": "808 Clap",
+      "note": 39
+    },
+    {
+      "file": "808_hihat_closed.wav",
+      "name": "808 Hihat Closed",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "808_hihat_open_long.wav",
+      "name": "808 Hihat Open Long",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "808_cymbal.wav",
+      "name": "808 Cymbal",
+      "note": 49
+    },
+    {
+      "file": "808_cowbell.wav",
+      "name": "808 Cowbell",
+      "note": 56
+    },
+    {
+      "file": "808_maracas.wav",
+      "name": "808 Maracas",
+      "note": 70
+    },
+    {
+      "file": "808_claves.wav",
+      "name": "808 Claves",
+      "note": 75
+    },
+    {
+      "file": "shaker_bright.wav",
+      "name": "Shaker Bright",
+      "note": 82
+    }
+  ]
+}

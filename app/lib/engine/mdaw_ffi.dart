@@ -212,6 +212,14 @@ class MdawEngine {
 
   late final _setProjectTitle = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>),
       int Function(_EnginePtr, Pointer<Utf8>)>('mdaw_set_project_title');
+  late final _setKitsDir =
+      _lib.lookupFunction<Void Function(_EnginePtr, Pointer<Utf8>), void Function(_EnginePtr, Pointer<Utf8>)>('mdaw_set_kits_dir');
+  late final _reloadKits =
+      _lib.lookupFunction<Void Function(_EnginePtr), void Function(_EnginePtr)>('mdaw_reload_kits');
+  late final _setTrackKit = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>),
+      int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_set_track_kit');
+  late final _kitError = _lib.lookupFunction<Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>),
+      Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>)>('mdaw_kit_error');
   late final _exportStart = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>, Uint64),
       int Function(_EnginePtr, Pointer<Utf8>, int)>('mdaw_export_start');
   late final _exportState =
@@ -305,6 +313,39 @@ class MdawEngine {
     final p = title.toNativeUtf8();
     try {
       return _setProjectTitle(_handle, p) != 0;
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  /// ドラムキットを探す場所（filesDir/kits）
+  void setKitsDir(String dir) {
+    final p = dir.toNativeUtf8();
+    try {
+      _setKitsDir(_handle, p);
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  /// キットをダウンロード・削除したあとに呼ぶ（読み直して鳴らし直す）
+  void reloadKits() => _reloadKits(_handle);
+
+  /// トラックの音源をキットにする（空ならシンセに戻す）。Undo できる
+  bool setTrackKit(int trackId, String kitId) {
+    final p = kitId.toNativeUtf8();
+    try {
+      return _setTrackKit(_handle, trackId, p) != 0;
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  /// キットが読めなければ理由、読めれば ''
+  String kitError(String kitId) {
+    final p = kitId.toNativeUtf8();
+    try {
+      return _kitError(_handle, p).toDartString();
     } finally {
       malloc.free(p);
     }

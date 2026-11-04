@@ -9,6 +9,7 @@
 
 #include "fx.h"
 #include "playback.h"
+#include "sampler.h"
 #include "spsc_queue.h"
 #include "synth.h"
 
@@ -84,6 +85,8 @@ public:
 private:
     struct Slot {
         Synth synth;
+        DrumSampler drums;               // キットのトラックはこちらで鳴らす
+        const Kit* kit = nullptr;        // current_ のスナップショットが持っているキット
         TrackFx fx;
         Id trackId = kNoId;
         SynthParams snapParams;         // 直前のスナップショットの値（変わったときだけ反映する）

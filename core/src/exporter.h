@@ -8,7 +8,10 @@
 #include <string>
 #include <thread>
 
+#include <memory>
+
 #include "model.h"
+#include "playback.h"
 
 namespace mdaw {
 
@@ -22,7 +25,7 @@ public:
 
     // project は呼んだ時点の写しを使う。trackId が kNoId なら曲全体（仕上げあり）、
     // それ以外はそのトラックだけ（ミュート・ソロは無視、仕上げなし）。書き出し中なら false
-    bool start(const Project& project, const std::string& path, Id trackId);
+    bool start(std::unique_ptr<PlaybackSnapshot> snapshot, const std::string& path, Id trackId);
     void cancel() noexcept { cancel_.store(true); }
 
     State state() const noexcept { return static_cast<State>(state_.load()); }
@@ -31,7 +34,7 @@ public:
     const std::string& error() const noexcept { return error_; }
 
     // 書き出しの本体（テストからも直接呼ぶ）。失敗したら false と error
-    static bool render(const Project& project, const std::string& path, Id trackId,
+    static bool render(std::unique_ptr<PlaybackSnapshot> snap, const std::string& path, Id trackId,
                        const std::atomic<bool>* cancel, std::atomic<float>* progress, std::string& error);
 
 private:

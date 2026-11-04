@@ -1,0 +1,66 @@
+{
+  "name": "Lo-fi Boom Bap",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "CC0-1.0 の加工＋自作合成",
+  "description": "生ドラムをローファイ加工、808 サブ",
+  "sounds": [
+    {
+      "file": "sidestick_lofi.wav",
+      "name": "Sidestick Lofi",
+      "note": 33
+    },
+    {
+      "file": "808_kick_sub.wav",
+      "name": "808 Kick Sub",
+      "note": 35
+    },
+    {
+      "file": "kick_lofi.wav",
+      "name": "Kick Lofi",
+      "note": 36
+    },
+    {
+      "file": "rimshot_lofi.wav",
+      "name": "Rimshot Lofi",
+      "note": 37
+    },
+    {
+      "file": "snare_lofi.wav",
+      "name": "Snare Lofi",
+      "note": 38
+    },
+    {
+      "file": "hihat_closed_lofi.wav",
+      "name": "Hihat Closed Lofi",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "tom_low_lofi.wav",
+      "name": "Tom Low Lofi",
+      "note": 45
+    },
+    {
+      "file": "hihat_open_lofi.wav",
+      "name": "Hihat Open Lofi",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "crash_lofi.wav",
+      "name": "Crash Lofi",
+      "note": 49
+    },
+    {
+      "file": "tom_high_lofi.wav",
+      "name": "Tom High Lofi",
+      "note": 50
+    },
+    {
+      "file": "ride_lofi.wav",
+      "name": "Ride Lofi",
+      "note": 51
+    }
+  ]
+}

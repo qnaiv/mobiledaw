@@ -1,0 +1,628 @@
+{
+ "format": "mobiledaw-kits",
+ "version": 1,
+ "kits": [
+  {
+   "id": "acoustic-live",
+   "name": "Acoustic Live",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）",
+   "description": "生ドラム。クローズマイク",
+   "sounds": 24,
+   "size": 4790361,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 2627,
+     "sha256": "62e8475ea7c9808945e5ae3f0a552708257051af2b5fdf828323099f2b44fd82"
+    },
+    {
+     "path": "snare_rimshot.wav",
+     "size": 21642,
+     "sha256": "79a88667bc402c916a8c78ff46d2b1ed7de801d8ea9dfed1cce6fefb0f31f40b"
+    },
+    {
+     "path": "kick_real.wav",
+     "size": 24348,
+     "sha256": "c3b256fa72ecaa1b0a77280c15c28346b95c5e2e018c1176e9834093a3fc5440"
+    },
+    {
+     "path": "sidestick.wav",
+     "size": 28166,
+     "sha256": "24a6ac0ce3299d1cf8daae2d6c84d5999b77e1ada01836d47f3eea05622b8aa0"
+    },
+    {
+     "path": "snare_real.wav",
+     "size": 26892,
+     "sha256": "423a112bc69a10c96fee24252b64ea712a7b581ca79c943344f5c1e09bf32c7b"
+    },
+    {
+     "path": "hihat_closed_808.wav",
+     "size": 16004,
+     "sha256": "672feca8a7ace72e01a58ea39342e5cc87eb0e224ca47557e5676a4f7db6f048"
+    },
+    {
+     "path": "hihat_pedal.wav",
+     "size": 25660,
+     "sha256": "ddb2afe3d451d5afcd95d795125cd16dfd1d87ab089cc7a92ab58e5bc1ea4159"
+    },
+    {
+     "path": "tom_low_real.wav",
+     "size": 120978,
+     "sha256": "9052ee8248b05e7068e0579be501c86aed2601aa3888109bd34a07b2b1d4e8bc"
+    },
+    {
+     "path": "hihat_halfopen.wav",
+     "size": 123880,
+     "sha256": "4132ff6368264bacf71244be982a8194dddc469478f3dd2518b1755987df0a4e"
+    },
+    {
+     "path": "tom_mid_real.wav",
+     "size": 51986,
+     "sha256": "62b12d2fb0bdd15bce4f0f2f215207b3531590c3324503284674982066af55ef"
+    },
+    {
+     "path": "crash_real.wav",
+     "size": 167936,
+     "sha256": "fa0aa918b08faef5cdde69439f2f950e3e70b862d6c0d105c8687fd8e8c7f682"
+    },
+    {
+     "path": "tom_high_real.wav",
+     "size": 68536,
+     "sha256": "72fbd86fef393557edaf556515f0e5da921e7ac066b428b0d28d3edd8db7f770"
+    },
+    {
+     "path": "ride_bow.wav",
+     "size": 167532,
+     "sha256": "4124f3a3b1d2bd92febac9344b8464d5bbcee831e8790d702c0d61705ac7780e"
+    },
+    {
+     "path": "china_real.wav",
+     "size": 345770,
+     "sha256": "5efb4ca578870fc1e71970ce3f02549d7d215eb4ed124ecae1bcaa1f499fb626"
+    },
+    {
+     "path": "ride_bell.wav",
+     "size": 54848,
+     "sha256": "6912ab7b861b08f2045e7777680c212d3c7aafd14f5143e5a0199222b57be6d7"
+    },
+    {
+     "path": "crash_clash_vcsl.wav",
+     "size": 353704,
+     "sha256": "aa2e9d0ea42afc540529adb8a78288d6e82ddb165819a070fdd52ad990556eb4"
+    },
+    {
+     "path": "crash_choke.wav",
+     "size": 57856,
+     "sha256": "46df7db460653e5c940c27db87a238b607f5ace5c1112facbbed86dda3554b44"
+    },
+    {
+     "path": "cymbal_808.wav",
+     "size": 135432,
+     "sha256": "66cdc73300ffdeed2c14481649f93862acf829ec9b0fd23f30f57df99c7c2c62"
+    },
+    {
+     "path": "hihat_open_808.wav",
+     "size": 41942,
+     "sha256": "a8548381aeebd9eca3454a8ce3074145f804dd008c30ef9362b9c2fb9be29cb4"
+    },
+    {
+     "path": "hihat_open_real.wav",
+     "size": 264644,
+     "sha256": "858191cc62c8875ab4ffd3ef8f9c3d2eb3f23be7fef9fb235bb9075dc99ca0c4"
+    },
+    {
+     "path": "crash_suspended_vcsl.wav",
+     "size": 1058444,
+     "sha256": "068bb5249b5bad745ab4d7ef167261fbc727206d3c203f543c3b0d33e83e5b7f"
+    },
+    {
+     "path": "hihat_closed_real.wav",
+     "size": 28752,
+     "sha256": "8c6f247aff1fb029899ea2a4d3896fdd805c6fdf4fb9fafd98785a42abb8c4d2"
+    },
+    {
+     "path": "hihat_open_vcsl.wav",
+     "size": 293364,
+     "sha256": "48d0ca90599155390028a95f9a25bb23524cc1886ee370555dd8c06c3310d472"
+    },
+    {
+     "path": "crash_sizzle_real.wav",
+     "size": 427374,
+     "sha256": "24cb7a4aa4302c29416df4740d25e907c5f1bf4fe6aa0bf5205bed2783bddd6e"
+    },
+    {
+     "path": "perc_finger_cymbal.wav",
+     "size": 882044,
+     "sha256": "3c9c2c18f3c92c6dc585e110a25e8ed56021e8058830e865b2bd1e762c27ca90"
+    }
+   ]
+  },
+  {
+   "id": "chiptune",
+   "name": "Chiptune",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "自作合成（同梱可）",
+   "description": "8bit・ゲーム音楽向け",
+   "sounds": 11,
+   "size": 351753,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 1121,
+     "sha256": "ead9d083836fe2010beba378196c3fc9a9f7afe49f4607d20325a937538a1841"
+    },
+    {
+     "path": "kick.wav",
+     "size": 39734,
+     "sha256": "cfe61d5309bf04897b99b3e9f2ed0573dfef00af3a9c08f4f5bf75c748b4118f"
+    },
+    {
+     "path": "rim.wav",
+     "size": 7100,
+     "sha256": "c25759df6cd5821a0eeb22117ce24a79958ae21596275d332d0ae22d91b1bd71"
+    },
+    {
+     "path": "snare.wav",
+     "size": 19448,
+     "sha256": "1b60a52d1507e93796749989a9b63fef123cad05a292eb818247c914a40e11b7"
+    },
+    {
+     "path": "clap.wav",
+     "size": 24740,
+     "sha256": "561d503deeeafd3cd6f2abf5ba9496aa808eaf81d4c3fa4b0174ed772dd1740c"
+    },
+    {
+     "path": "hihat_closed.wav",
+     "size": 5336,
+     "sha256": "cfcb19296ae1e86b20ddc5dea9b6c9d358637c0b0ff4a3599f5025049d24f11a"
+    },
+    {
+     "path": "tom_low.wav",
+     "size": 30912,
+     "sha256": "dab7abe88e63dbffdecf9f7b5edac152c91b271e981cfc6890f0a20f939dcc68"
+    },
+    {
+     "path": "hihat_open.wav",
+     "size": 39734,
+     "sha256": "90fa6c2ec82293c661ff67965c1121b03a5dc97c0f84381e53667329b73e0dd6"
+    },
+    {
+     "path": "tom_mid.wav",
+     "size": 30912,
+     "sha256": "11a46e18e3e803cb813fb84e78b87646be62369c90a8581152485cd5f4a61157"
+    },
+    {
+     "path": "crash.wav",
+     "size": 105884,
+     "sha256": "ab9e650b5aa93c13ae3ff5a46d9e0b17a7f34c7c3340d75edfa9ffec075b3510"
+    },
+    {
+     "path": "tom_high.wav",
+     "size": 30912,
+     "sha256": "47628fd17869defd0700eb00f1f747fb05f9d75b93a6d0725961227e506349a6"
+    },
+    {
+     "path": "shaker.wav",
+     "size": 15920,
+     "sha256": "3bd849d0e5418c465c573a2c1b3582355079ac1ea978709a736cdf269556e806"
+    }
+   ]
+  },
+  {
+   "id": "future-bass",
+   "name": "Future Bass",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "CC0-1.0（TR-808 実機録音）＋自作合成（同梱可）",
+   "description": "タイトなキック・スネア、808 一式、かわいいパーカッション",
+   "sounds": 30,
+   "size": 2316853,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 3201,
+     "sha256": "6b31ea21b734980305bb6bcb0d467d72f20c901e50933943bbc7970cec683522"
+    },
+    {
+     "path": "808_kick_punch.wav",
+     "size": 15434,
+     "sha256": "997dd66f073b1c968b31eec65fe42b115b97ee42e51d8a059d2e1e7cfbc65d3e"
+    },
+    {
+     "path": "808_kick_sub.wav",
+     "size": 15414,
+     "sha256": "debb5e80250e7919f5e9361d1983dc6de1c9327e79179c660bdc354e065bd52a"
+    },
+    {
+     "path": "clap_wide.wav",
+     "size": 79424,
+     "sha256": "edafd703a48ce2238e08e2f96e84929082dbd73c1420b2918e697ca263239e9f"
+    },
+    {
+     "path": "snare_tight_dry.wav",
+     "size": 35324,
+     "sha256": "0ef4da873edd6f8571cfddd70e9373b7d689245971618dc9a849c8dfce0402e3"
+    },
+    {
+     "path": "808_snare_bright.wav",
+     "size": 17030,
+     "sha256": "a1f930ef1c2a6eabf78dea677d9cc0ec0bad16b629d363deae7fda282d517809"
+    },
+    {
+     "path": "kick_soft.wav",
+     "size": 74132,
+     "sha256": "1d6f1b35c41ac5b83ac62382dfc42d714c7a770a193e53b2183c0c512f1b1e2b"
+    },
+    {
+     "path": "kick_punchy.wav",
+     "size": 88244,
+     "sha256": "85efbb021384ce7fb0c3210915a8504ae457533cf2a888433cf68b3315086ef4"
+    },
+    {
+     "path": "808_rimshot.wav",
+     "size": 10310,
+     "sha256": "65292e461447fed34ddd37386d1d63c24b17bf2ec16578eab5812f261dcc8bc3"
+    },
+    {
+     "path": "808_snare.wav",
+     "size": 18580,
+     "sha256": "84969539bbf9d909ee3954d547193df4d4049dcb4454811289c0f8967c1328ec"
+    },
+    {
+     "path": "808_clap.wav",
+     "size": 29336,
+     "sha256": "7c836c37247d25eacfcd31095434d627bf33924b857ebf50a98e8d00038ac4c8"
+    },
+    {
+     "path": "snare_punch_dry.wav",
+     "size": 38852,
+     "sha256": "e9b2b18a4e1f5297c797a6088966b5ab3889e1807a42899806c990af5c5abf18"
+    },
+    {
+     "path": "snare_cute_tight.wav",
+     "size": 28268,
+     "sha256": "cf548d8802ef0a6c72b0aae84989ba3d7304ad902856859de5b3eec5c0591cef"
+    },
+    {
+     "path": "808_hihat_closed.wav",
+     "size": 14240,
+     "sha256": "e81707bb184aca702a8a8e3e08fff46da6c4abcaf880f86d0cf88f3be29528d2"
+    },
+    {
+     "path": "snare_snap_short.wav",
+     "size": 22976,
+     "sha256": "b2589b8f8f86db23ae90d8d9187cf3cf77ef5868d804f54c555d2c555cba6f04"
+    },
+    {
+     "path": "808_tom_low.wav",
+     "size": 43046,
+     "sha256": "4d3bd54dfd95b25a3fde9187f453ffa684d815bd720a24161e03908ab2bc9d05"
+    },
+    {
+     "path": "808_hihat_open_long.wav",
+     "size": 53454,
+     "sha256": "53b915afc8746b0fa7c37ce43612aabcb13870156c124f2ec7972807ed2dc6ca"
+    },
+    {
+     "path": "808_tom_mid.wav",
+     "size": 31646,
+     "sha256": "ed1f240bf7547c960b46d87ed775ef38dfa3edfde62ae5394b15f253e5eead2e"
+    },
+    {
+     "path": "808_cymbal.wav",
+     "size": 133668,
+     "sha256": "bde6d67604d7a7aa8537950a0bfdc5ca747d83fbe1e8e06cfeb77dbe3ea174d8"
+    },
+    {
+     "path": "808_tom_high.wav",
+     "size": 25526,
+     "sha256": "bfdeb25a4ba4f1f8f8df5d43e44d2416e3bce242a9afdda8ebbe8b54290a5958"
+    },
+    {
+     "path": "808_cowbell.wav",
+     "size": 35334,
+     "sha256": "66ceab6f0410eb887b5e7043f55d09533836d33a4660f1a4ee9b830b517be030"
+    },
+    {
+     "path": "perc_finger_cymbal.wav",
+     "size": 882044,
+     "sha256": "3c9c2c18f3c92c6dc585e110a25e8ed56021e8058830e865b2bd1e762c27ca90"
+    },
+    {
+     "path": "808_hihat_open_short.wav",
+     "size": 22096,
+     "sha256": "48e635b60a204129b2dc80e75ad08e130921d17e0ffc6f4fd8a2c27f369428c3"
+    },
+    {
+     "path": "perc_bubble.wav",
+     "size": 28268,
+     "sha256": "51edd9cf5f46ab398864a68f553105a19067fbe4e40ac0e74fed06c1f46bad22"
+    },
+    {
+     "path": "riser_sparkle.wav",
+     "size": 176444,
+     "sha256": "53f85a7ef0f18aba1a9b04d1561def6b6eb35e7733f6f85fc99a2b2aae43b8ab"
+    },
+    {
+     "path": "perc_water_drop.wav",
+     "size": 49436,
+     "sha256": "e909c1949d2c117aedcaf5c4687607ec845eddfacb30fd7cec2e0b51fa041f8d"
+    },
+    {
+     "path": "perc_sparkle_chime.wav",
+     "size": 123520,
+     "sha256": "0935d2a6f9d6c53bfb2f071e48d36d17285d20ddad0e1aab1ed5794f09313965"
+    },
+    {
+     "path": "808_maracas.wav",
+     "size": 11792,
+     "sha256": "b00f1584d546c610b604fde7b7344ef74f7884a07dc221f85717a5f0c01eabca"
+    },
+    {
+     "path": "808_claves.wav",
+     "size": 12158,
+     "sha256": "4a81721d131135cc2e3ec3150823c52714ace6203fbd74f4c85254182c0f6156"
+    },
+    {
+     "path": "shaker_bright.wav",
+     "size": 38852,
+     "sha256": "01b0c15844aab6abd24eb32af35d8fd216cef7c72104381baee61ad0fbb053ac"
+    },
+    {
+     "path": "bass_808_C2.wav",
+     "size": 158804,
+     "sha256": "15bc6a88ff67a3f3d6a374a0976f26e82f009428763b8d20b0d9050b9f8d02d3"
+    }
+   ]
+  },
+  {
+   "id": "house",
+   "name": "House",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "自作合成（同梱可）＋CC0-1.0（TR-808）",
+   "description": "ハウス・テクノ用キック、808 のハット・クラップ・パーカッション",
+   "sounds": 13,
+   "size": 568385,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 1509,
+     "sha256": "f6f955b7bf2a489845f403982d06c33793be86b535d214f30668ba0e0af20c53"
+    },
+    {
+     "path": "clap_wide.wav",
+     "size": 79424,
+     "sha256": "edafd703a48ce2238e08e2f96e84929082dbd73c1420b2918e697ca263239e9f"
+    },
+    {
+     "path": "kick_techno.wav",
+     "size": 56492,
+     "sha256": "d346330c7ca3e9d2fe56a67d8e9d341813c5f46db87628c19feca3cc324297bb"
+    },
+    {
+     "path": "kick_house.wav",
+     "size": 56492,
+     "sha256": "49da2320abd5d77c6beb7856df28eb1345baa2ed2592801462d26463574f23d8"
+    },
+    {
+     "path": "808_rimshot.wav",
+     "size": 10310,
+     "sha256": "65292e461447fed34ddd37386d1d63c24b17bf2ec16578eab5812f261dcc8bc3"
+    },
+    {
+     "path": "snare_tight_dry.wav",
+     "size": 35324,
+     "sha256": "0ef4da873edd6f8571cfddd70e9373b7d689245971618dc9a849c8dfce0402e3"
+    },
+    {
+     "path": "808_clap.wav",
+     "size": 29336,
+     "sha256": "7c836c37247d25eacfcd31095434d627bf33924b857ebf50a98e8d00038ac4c8"
+    },
+    {
+     "path": "808_hihat_closed.wav",
+     "size": 14240,
+     "sha256": "e81707bb184aca702a8a8e3e08fff46da6c4abcaf880f86d0cf88f3be29528d2"
+    },
+    {
+     "path": "808_hihat_open_long.wav",
+     "size": 53454,
+     "sha256": "53b915afc8746b0fa7c37ce43612aabcb13870156c124f2ec7972807ed2dc6ca"
+    },
+    {
+     "path": "808_cymbal.wav",
+     "size": 133668,
+     "sha256": "bde6d67604d7a7aa8537950a0bfdc5ca747d83fbe1e8e06cfeb77dbe3ea174d8"
+    },
+    {
+     "path": "808_cowbell.wav",
+     "size": 35334,
+     "sha256": "66ceab6f0410eb887b5e7043f55d09533836d33a4660f1a4ee9b830b517be030"
+    },
+    {
+     "path": "808_maracas.wav",
+     "size": 11792,
+     "sha256": "b00f1584d546c610b604fde7b7344ef74f7884a07dc221f85717a5f0c01eabca"
+    },
+    {
+     "path": "808_claves.wav",
+     "size": 12158,
+     "sha256": "4a81721d131135cc2e3ec3150823c52714ace6203fbd74f4c85254182c0f6156"
+    },
+    {
+     "path": "shaker_bright.wav",
+     "size": 38852,
+     "sha256": "01b0c15844aab6abd24eb32af35d8fd216cef7c72104381baee61ad0fbb053ac"
+    }
+   ]
+  },
+  {
+   "id": "lofi-boombap",
+   "name": "Lo-fi Boom Bap",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "CC0-1.0 の加工＋自作合成",
+   "description": "生ドラムをローファイ加工、808 サブ",
+   "sounds": 11,
+   "size": 936117,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 1277,
+     "sha256": "642975a2cddf33b8c4309e20c7b0d061f11aba54d78932f0aef10d11e3cbfe52"
+    },
+    {
+     "path": "sidestick_lofi.wav",
+     "size": 28166,
+     "sha256": "1593545be0e0aac4415d5afe05993ac73a43858dd51a053b16e9b86587a4899b"
+    },
+    {
+     "path": "808_kick_sub.wav",
+     "size": 15414,
+     "sha256": "debb5e80250e7919f5e9361d1983dc6de1c9327e79179c660bdc354e065bd52a"
+    },
+    {
+     "path": "kick_lofi.wav",
+     "size": 24348,
+     "sha256": "62b07261d25838200262d1c584ccd376e58c70a2b1681ed1071b905a8b5d59f8"
+    },
+    {
+     "path": "rimshot_lofi.wav",
+     "size": 21642,
+     "sha256": "aa7cefd9d4afb2f14a5bc9acddd3d4ec107c0c3ef586da706517a2ab7a6b2e68"
+    },
+    {
+     "path": "snare_lofi.wav",
+     "size": 26892,
+     "sha256": "b42c0931b38a5ea663cdb982e5b038ad34fee37887af8a7bc1c6eff4ce23b5d0"
+    },
+    {
+     "path": "hihat_closed_lofi.wav",
+     "size": 28752,
+     "sha256": "98c4f55b61053b621705f4fb8f72f91acd6fa071e8cf99be37b90cd352092bd5"
+    },
+    {
+     "path": "tom_low_lofi.wav",
+     "size": 120978,
+     "sha256": "1eec77086d7f7b3103ff4f19044801ebc0272cc215d87a2b841c928650a1d368"
+    },
+    {
+     "path": "hihat_open_lofi.wav",
+     "size": 264644,
+     "sha256": "03e58cef99724db35674fbdefbd288632fa9d8b8035698abe2095686a8e3fa24"
+    },
+    {
+     "path": "crash_lofi.wav",
+     "size": 167936,
+     "sha256": "d989360256ed92abd7ba832a682277a5fa8e055f1d0638f2367668c82b65cb5b"
+    },
+    {
+     "path": "tom_high_lofi.wav",
+     "size": 68536,
+     "sha256": "d74a51de41b37bdb63d4ce99ba63800fc9890c07975bee99e74be8ef51230fa3"
+    },
+    {
+     "path": "ride_lofi.wav",
+     "size": 167532,
+     "sha256": "3f9d8aa71c0633ef766523a777fa683216f0e0d183ca024c55656d4e4c668728"
+    }
+   ]
+  },
+  {
+   "id": "trap",
+   "name": "Trap",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "CC0-1.0（TR-808）＋自作合成の 808 ベース",
+   "description": "808 一式＋音程つき 808 ベース（F1・G1・A1・C2・D2）",
+   "sounds": 15,
+   "size": 1179568,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 1726,
+     "sha256": "d68e3108b66485e976de4af840863fc77c24b75e293ea922df49fe10288deb20"
+    },
+    {
+     "path": "snare_snap_short.wav",
+     "size": 22976,
+     "sha256": "b2589b8f8f86db23ae90d8d9187cf3cf77ef5868d804f54c555d2c555cba6f04"
+    },
+    {
+     "path": "808_kick_punch.wav",
+     "size": 15434,
+     "sha256": "997dd66f073b1c968b31eec65fe42b115b97ee42e51d8a059d2e1e7cfbc65d3e"
+    },
+    {
+     "path": "808_rimshot.wav",
+     "size": 10310,
+     "sha256": "65292e461447fed34ddd37386d1d63c24b17bf2ec16578eab5812f261dcc8bc3"
+    },
+    {
+     "path": "808_snare.wav",
+     "size": 18580,
+     "sha256": "84969539bbf9d909ee3954d547193df4d4049dcb4454811289c0f8967c1328ec"
+    },
+    {
+     "path": "808_clap.wav",
+     "size": 29336,
+     "sha256": "7c836c37247d25eacfcd31095434d627bf33924b857ebf50a98e8d00038ac4c8"
+    },
+    {
+     "path": "808_snare_bright.wav",
+     "size": 17030,
+     "sha256": "a1f930ef1c2a6eabf78dea677d9cc0ec0bad16b629d363deae7fda282d517809"
+    },
+    {
+     "path": "808_hihat_closed.wav",
+     "size": 14240,
+     "sha256": "e81707bb184aca702a8a8e3e08fff46da6c4abcaf880f86d0cf88f3be29528d2"
+    },
+    {
+     "path": "808_hihat_open_long.wav",
+     "size": 53454,
+     "sha256": "53b915afc8746b0fa7c37ce43612aabcb13870156c124f2ec7972807ed2dc6ca"
+    },
+    {
+     "path": "808_cowbell.wav",
+     "size": 35334,
+     "sha256": "66ceab6f0410eb887b5e7043f55d09533836d33a4660f1a4ee9b830b517be030"
+    },
+    {
+     "path": "808_hihat_open_short.wav",
+     "size": 22096,
+     "sha256": "48e635b60a204129b2dc80e75ad08e130921d17e0ffc6f4fd8a2c27f369428c3"
+    },
+    {
+     "path": "bass_808_F1.wav",
+     "size": 237944,
+     "sha256": "0f47eaf7b16ec483cfe3a41d64c4d54a7c215d855634bc8f3cb41cac56d12fd7"
+    },
+    {
+     "path": "bass_808_G1.wav",
+     "size": 211972,
+     "sha256": "05f02d302d137275fa0489acd90115d681b49b04541b21dee2b70d79c02c49f3"
+    },
+    {
+     "path": "bass_808_A1.wav",
+     "size": 188852,
+     "sha256": "c6a0e2b7f311dc3034e03c571971169aa4478ca8f210592c8fe8d9d54c17f350"
+    },
+    {
+     "path": "bass_808_C2.wav",
+     "size": 158804,
+     "sha256": "15bc6a88ff67a3f3d6a374a0976f26e82f009428763b8d20b0d9050b9f8d02d3"
+    },
+    {
+     "path": "bass_808_D2.wav",
+     "size": 141480,
+     "sha256": "fa2830e55df33d03a7e217b2ce748c68cce8ec3d11155d2ab499698e820541fd"
+    }
+   ]
+  }
+ ]
+}

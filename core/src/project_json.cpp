@@ -1,5 +1,7 @@
 #include "project_json.h"
 
+#include "kit.h"
+
 #include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
@@ -95,8 +97,10 @@ std::string projectToJson(const Project& p) {
         put(o, "name", juce::String::fromUTF8(t.name.c_str()));
         put(o, "color", juce::String::toHexString(static_cast<juce::int64>(t.color)).paddedLeft('0', 8));
         auto instrument = object();
-        put(instrument, "type", "synth");
-        put(instrument, "params", synthToVar(t.synth));
+        put(instrument, "type", t.kitId.empty() ? "synth" : "kit");
+        if (!t.kitId.empty())
+            put(instrument, "kit", juce::String(t.kitId));
+        put(instrument, "params", synthToVar(t.synth)); // キットにしてもシンセの設定は残す
         put(o, "instrument", instrument);
         put(o, "fx", fxToVar(t.fx));
         auto mixer = object();
@@ -189,6 +193,11 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
             t.name = get(o, "name").toString().toStdString();
             t.color = static_cast<uint32_t>(get(o, "color").toString().getHexValue64());
             t.synth = synthFromVar(get(get(o, "instrument"), "params"));
+            if (get(get(o, "instrument"), "type").toString() == "kit") {
+                const auto kit = get(get(o, "instrument"), "kit").toString().toStdString();
+                if (isValidKitId(kit))
+                    t.kitId = kit;
+            }
             t.fx = fxFromVar(get(o, "fx"));
             const auto m = get(o, "mixer");
             t.mixer.gain = static_cast<float>(std::clamp(num(m, "gain", 0.8), 0.0, 2.0));

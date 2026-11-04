@@ -1,0 +1,162 @@
+{
+  "name": "Future Bass",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "CC0-1.0（TR-808 実機録音）＋自作合成（同梱可）",
+  "description": "タイトなキック・スネア、808 一式、かわいいパーカッション",
+  "sounds": [
+    {
+      "file": "808_kick_punch.wav",
+      "name": "808 Kick Punch",
+      "note": 24
+    },
+    {
+      "file": "808_kick_sub.wav",
+      "name": "808 Kick Sub",
+      "note": 25
+    },
+    {
+      "file": "clap_wide.wav",
+      "name": "Clap Wide",
+      "note": 28
+    },
+    {
+      "file": "snare_tight_dry.wav",
+      "name": "Snare Tight Dry",
+      "note": 31
+    },
+    {
+      "file": "808_snare_bright.wav",
+      "name": "808 Snare Bright",
+      "note": 32
+    },
+    {
+      "file": "kick_soft.wav",
+      "name": "Kick Soft",
+      "note": 35
+    },
+    {
+      "file": "kick_punchy.wav",
+      "name": "Kick Punchy",
+      "note": 36
+    },
+    {
+      "file": "808_rimshot.wav",
+      "name": "808 Rimshot",
+      "note": 37
+    },
+    {
+      "file": "808_snare.wav",
+      "name": "808 Snare",
+      "note": 38
+    },
+    {
+      "file": "808_clap.wav",
+      "name": "808 Clap",
+      "note": 39
+    },
+    {
+      "file": "snare_punch_dry.wav",
+      "name": "Snare Punch Dry",
+      "note": 40
+    },
+    {
+      "file": "snare_cute_tight.wav",
+      "name": "Snare Cute Tight",
+      "note": 41
+    },
+    {
+      "file": "808_hihat_closed.wav",
+      "name": "808 Hihat Closed",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "snare_snap_short.wav",
+      "name": "Snare Snap Short",
+      "note": 43
+    },
+    {
+      "file": "808_tom_low.wav",
+      "name": "808 Tom Low",
+      "note": 45
+    },
+    {
+      "file": "808_hihat_open_long.wav",
+      "name": "808 Hihat Open Long",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "808_tom_mid.wav",
+      "name": "808 Tom Mid",
+      "note": 47
+    },
+    {
+      "file": "808_cymbal.wav",
+      "name": "808 Cymbal",
+      "note": 49
+    },
+    {
+      "file": "808_tom_high.wav",
+      "name": "808 Tom High",
+      "note": 50
+    },
+    {
+      "file": "808_cowbell.wav",
+      "name": "808 Cowbell",
+      "note": 56
+    },
+    {
+      "file": "perc_finger_cymbal.wav",
+      "name": "Perc Finger Cymbal",
+      "note": 57
+    },
+    {
+      "file": "808_hihat_open_short.wav",
+      "name": "808 Hihat Open Short",
+      "note": 58,
+      "choke": 1
+    },
+    {
+      "file": "perc_bubble.wav",
+      "name": "Perc Bubble",
+      "note": 60
+    },
+    {
+      "file": "riser_sparkle.wav",
+      "name": "Riser Sparkle",
+      "note": 61
+    },
+    {
+      "file": "perc_water_drop.wav",
+      "name": "Perc Water Drop",
+      "note": 62
+    },
+    {
+      "file": "perc_sparkle_chime.wav",
+      "name": "Perc Sparkle Chime",
+      "note": 63
+    },
+    {
+      "file": "808_maracas.wav",
+      "name": "808 Maracas",
+      "note": 70
+    },
+    {
+      "file": "808_claves.wav",
+      "name": "808 Claves",
+      "note": 75
+    },
+    {
+      "file": "shaker_bright.wav",
+      "name": "Shaker Bright",
+      "note": 82
+    },
+    {
+      "file": "bass_808_C2.wav",
+      "name": "Bass 808 C2",
+      "note": 84
+    }
+  ]
+}

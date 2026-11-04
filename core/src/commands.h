@@ -188,6 +188,20 @@ private:
     Track track_;
 };
 
+// トラックの音源をドラムキットにする（kitId が空ならシンセに戻す）
+class SetTrackKit final : public Command {
+public:
+    SetTrackKit(Id trackId, std::string kitId) : trackId_(trackId), kitId_(std::move(kitId)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetTrackKit"; }
+
+private:
+    Id trackId_;
+    std::string kitId_;
+    std::string old_;
+};
+
 // 曲の名前（1〜64バイト、前後の空白は落とす）
 class SetProjectTitle final : public Command {
 public:

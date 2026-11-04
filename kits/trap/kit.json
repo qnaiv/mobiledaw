@@ -1,0 +1,87 @@
+{
+  "name": "Trap",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "CC0-1.0（TR-808）＋自作合成の 808 ベース",
+  "description": "808 一式＋音程つき 808 ベース（F1・G1・A1・C2・D2）",
+  "sounds": [
+    {
+      "file": "snare_snap_short.wav",
+      "name": "Snare Snap Short",
+      "note": 31
+    },
+    {
+      "file": "808_kick_punch.wav",
+      "name": "808 Kick Punch",
+      "note": 36
+    },
+    {
+      "file": "808_rimshot.wav",
+      "name": "808 Rimshot",
+      "note": 37
+    },
+    {
+      "file": "808_snare.wav",
+      "name": "808 Snare",
+      "note": 38
+    },
+    {
+      "file": "808_clap.wav",
+      "name": "808 Clap",
+      "note": 39
+    },
+    {
+      "file": "808_snare_bright.wav",
+      "name": "808 Snare Bright",
+      "note": 40
+    },
+    {
+      "file": "808_hihat_closed.wav",
+      "name": "808 Hihat Closed",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "808_hihat_open_long.wav",
+      "name": "808 Hihat Open Long",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "808_cowbell.wav",
+      "name": "808 Cowbell",
+      "note": 56
+    },
+    {
+      "file": "808_hihat_open_short.wav",
+      "name": "808 Hihat Open Short",
+      "note": 58,
+      "choke": 1
+    },
+    {
+      "file": "bass_808_F1.wav",
+      "name": "Bass 808 F1",
+      "note": 84
+    },
+    {
+      "file": "bass_808_G1.wav",
+      "name": "Bass 808 G1",
+      "note": 85
+    },
+    {
+      "file": "bass_808_A1.wav",
+      "name": "Bass 808 A1",
+      "note": 86
+    },
+    {
+      "file": "bass_808_C2.wav",
+      "name": "Bass 808 C2",
+      "note": 87
+    },
+    {
+      "file": "bass_808_D2.wav",
+      "name": "Bass 808 D2",
+      "note": 88
+    }
+  ]
+}

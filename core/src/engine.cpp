@@ -29,6 +29,7 @@ void Engine::prepare(double sampleRate) {
     master_.prepare(sampleRate);
     for (auto& s : slots_) {
         s.synth.prepare(sampleRate, kMaxBlock);
+        s.drums.prepare(sampleRate);
         s.fx.prepare(sampleRate, kMaxBlock);
         s.held = {};
         s.tailSamples = 0;
@@ -57,7 +58,13 @@ void Engine::collectRetired() {
 
 void Engine::handle(const Event& e) noexcept {
     switch (e.type) {
-        case Event::Type::NoteOn:      preview_.noteOn(e.index, e.value); break;
+        case Event::Type::NoteOn:
+            // 試聴：キットのトラックを選んでいればそのキットで、そうでなければ試聴用のシンセで
+            if (previewSlot_ >= 0 && slots_[static_cast<size_t>(previewSlot_)].kit != nullptr)
+                slots_[static_cast<size_t>(previewSlot_)].drums.noteOn(e.index, e.value);
+            else
+                preview_.noteOn(e.index, e.value);
+            break;
         case Event::Type::NoteOff:     preview_.noteOff(e.index); break;
         case Event::Type::AllNotesOff: preview_.allNotesOff(); break;
         case Event::Type::Param:       preview_.setParam(e.index, e.value); break;
@@ -149,8 +156,9 @@ void Engine::adoptPendingSnapshot() noexcept {
     auto* next = pending_.exchange(nullptr, std::memory_order_acq_rel);
     if (next == nullptr)
         return;
-    if (current_ != nullptr)
-        retired_.push(current_);
+    // 古いスナップショットは、スロットが新しいキットを指し直してから返す
+    // （返したとたんにコアスレッドが解放して、古いキットの音を読めなくなるため）
+    PlaybackSnapshot* old = current_;
     current_ = next;
 
     // トラックの割り当てと音色
@@ -184,7 +192,15 @@ void Engine::adoptPendingSnapshot() noexcept {
             }
         }
         s.fx.setTempo(current_->tempo);
+        const Kit* kit = t != nullptr ? t->kit.get() : nullptr;
+        if (kit != s.kit) {
+            s.drums.setKit(kit); // 鳴っていた古いキットの音はここで止まる
+            s.kit = kit;
+        }
     }
+
+    if (old != nullptr)
+        retired_.push(old);
 
     // 曲が短くなって再生位置がはみ出したらループの頭へ
     if (position_ >= loopEnd() || position_ < loopStart()) {
@@ -218,7 +234,10 @@ void Engine::fireDueEvents() noexcept {
             continue;
         auto& s = slots_[e.slot];
         if (e.type == SeqEvent::Type::NoteOn) {
-            s.synth.noteOn(e.pitch, e.velocity);
+            if (s.kit != nullptr)
+                s.drums.noteOn(e.pitch, e.velocity);
+            else
+                s.synth.noteOn(e.pitch, e.velocity);
             s.held.set(e.pitch);
             if (s.fx.params().sidechainSource >= 0.5f)
                 sidechainTrigger_ = true;
@@ -269,7 +288,8 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
                 targetR = t.gain * std::min(1.0f, 1.0f + t.pan);
             }
         }
-        const bool sounding = s.synth.activeVoices() > 0 || (previewToSlot && previewSlot_ == si);
+        const bool sounding = s.synth.activeVoices() > 0 || s.drums.activeVoices() > 0
+                              || (previewToSlot && previewSlot_ == si);
         if (sounding)
             s.tailSamples = static_cast<int64_t>(s.fx.tailSeconds() * sr);
         if (!sounding && s.tailSamples <= 0) {
@@ -281,6 +301,8 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         s.tailSamples -= n;
 
         s.synth.render(bufL_.data(), bufR_.data(), n);
+        if (s.drums.activeVoices() > 0)
+            s.drums.render(bufL_.data(), bufR_.data(), n);
         if (previewToSlot && previewSlot_ == si) {
             for (size_t i = 0; i < un; ++i) {
                 bufL_[i] += prevL_[i];
@@ -380,7 +402,7 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
 
     int voices = preview_.activeVoices();
     for (const auto& s : slots_)
-        voices += s.synth.activeVoices();
+        voices += s.synth.activeVoices() + s.drums.activeVoices();
     framesRendered_.fetch_add(frames, std::memory_order_relaxed);
     activeVoices_.store(voices, std::memory_order_relaxed);
     playingOut_.store(playing_, std::memory_order_relaxed);

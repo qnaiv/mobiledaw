@@ -25,7 +25,7 @@ size_t PlaybackSnapshot::firstEventAfter(double tick) const noexcept {
     return static_cast<size_t>(it - events.begin());
 }
 
-std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project) {
+std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const KitResolver& kits) {
     auto snap = std::make_unique<PlaybackSnapshot>();
     snap->tempo = std::clamp(project.tempo, 20.0, 400.0);
     snap->ticksPerBar = std::max<int64_t>(project.ticksPerBar(), 1);
@@ -42,6 +42,8 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project) {
         st.id = t.id;
         st.synth = t.synth;
         st.fx = t.fx;
+        if (!t.kitId.empty() && kits)
+            st.kit = kits(t.kitId);
         st.gain = std::clamp(t.mixer.gain, 0.0f, 2.0f);
         st.pan = std::clamp(t.mixer.pan, -1.0f, 1.0f);
         st.audible = !t.mixer.mute && (!anySolo || t.mixer.solo);

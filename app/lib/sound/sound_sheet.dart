@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../arrange/mixer_sheet.dart';
 import '../arrange/song_controller.dart';
 import '../engine/mdaw_ffi.dart';
+import '../kits/kits_screen.dart';
 import '../model/project.dart';
 import '../ui/theme.dart';
 import 'sound_params.dart';
@@ -24,9 +25,20 @@ class _SoundSheet extends StatelessWidget {
   final SongController song;
   final int trackId;
 
-  void _audition() {
+  void _audition(TrackData track) {
     song.previewTrack(trackId);
-    song.auditionChord(const [60, 63, 67, 70]);
+    final kit = track.isKit ? song.kits.installed(track.kitId) : null;
+    if (kit != null) {
+      // キットは最初の数音を順に
+      song.auditionSequence([for (final n in kit.notes.take(4)) [n]], each: const Duration(milliseconds: 280));
+    } else {
+      song.auditionChord(const [60, 63, 67, 70]);
+    }
+  }
+
+  Future<void> _pickKit(BuildContext context) async {
+    await Navigator.of(context).push(MaterialPageRoute<String>(builder: (_) => KitsScreen(song: song, pickFor: trackId)));
+    song.previewTrack(trackId);
   }
 
   @override
@@ -57,7 +69,8 @@ class _SoundSheet extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                     ),
-                    IconButton(tooltip: '試聴', onPressed: _audition, icon: const Icon(Icons.play_circle_outline)),
+                    IconButton(
+                        tooltip: '試聴', onPressed: () => _audition(track), icon: const Icon(Icons.play_circle_outline)),
                     IconButton(
                       tooltip: 'ミキサー',
                       onPressed: () => showMixerSheet(context, song, focusTrackId: trackId),
@@ -71,19 +84,117 @@ class _SoundSheet extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                const _Caption('プリセット'),
-                _PresetRow(song: song, trackId: trackId),
+                const _Caption('音源'),
+                SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, label: Text('シンセ'), icon: Icon(Icons.graphic_eq)),
+                    ButtonSegment(value: true, label: Text('ドラムキット'), icon: Icon(Icons.album_outlined)),
+                  ],
+                  selected: {track.isKit},
+                  onSelectionChanged: (s) {
+                    if (!s.first) {
+                      song.setTrackKit(trackId, '');
+                      return;
+                    }
+                    // 入っているキットがあれば最初のもの、無ければ探す画面へ
+                    final have = song.kits.installedKits();
+                    if (have.isEmpty) {
+                      _pickKit(context);
+                    } else {
+                      song.setTrackKit(trackId, have.first.id);
+                      song.previewTrack(trackId);
+                    }
+                  },
+                ),
                 const SizedBox(height: 12),
-                const _Caption('大きいつまみ'),
-                for (final m in soundMacros) _MacroSlider(song: song, track: track, macro: m),
-                const SizedBox(height: 8),
-                _DetailSection(title: '詳しく：音の素・フィルター・エンベロープ', song: song, track: track, params: synthParams),
-                _DetailSection(title: '詳しく：エフェクト', song: song, track: track, params: fxParams),
+                if (track.isKit) ...[
+                  _KitPanel(song: song, track: track, onBrowse: () => _pickKit(context)),
+                  const SizedBox(height: 8),
+                  for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(song: song, track: track, macro: m),
+                  _DetailSection(title: '詳しく：エフェクト', song: song, track: track, params: fxParams),
+                ] else ...[
+                  const _Caption('プリセット'),
+                  _PresetRow(song: song, trackId: trackId),
+                  const SizedBox(height: 12),
+                  const _Caption('大きいつまみ'),
+                  for (final m in soundMacros) _MacroSlider(song: song, track: track, macro: m),
+                  const SizedBox(height: 8),
+                  _DetailSection(title: '詳しく：音の素・フィルター・エンベロープ', song: song, track: track, params: synthParams),
+                  _DetailSection(title: '詳しく：エフェクト', song: song, track: track, params: fxParams),
+                ],
               ],
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// キットのトラック：使っているキット、入っている音（タップで試聴）、別のキットに替える
+class _KitPanel extends StatelessWidget {
+  const _KitPanel({required this.song, required this.track, required this.onBrowse});
+
+  final SongController song;
+  final TrackData track;
+  final VoidCallback onBrowse;
+
+  @override
+  Widget build(BuildContext context) {
+    final kit = song.kits.installed(track.kitId);
+    final installed = song.kits.installedKits();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: installed.isEmpty
+                  ? const Text('ダウンロード済みのキットがありません', style: TextStyle(color: DawColors.muted))
+                  : DropdownButton<String>(
+                      isExpanded: true,
+                      value: kit != null ? track.kitId : null,
+                      hint: Text('「${track.kitId}」（未ダウンロード）', style: const TextStyle(color: DawColors.danger)),
+                      items: [
+                        for (final k in installed) DropdownMenuItem(value: k.id, child: Text('${k.name}（${k.sounds.length}音）')),
+                      ],
+                      onChanged: (id) {
+                        if (id == null) return;
+                        song.setTrackKit(track.id, id);
+                        song.previewTrack(track.id);
+                      },
+                    ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(onPressed: onBrowse, icon: const Icon(Icons.cloud_download_outlined, size: 18), label: const Text('キットを探す')),
+          ],
+        ),
+        if (kit == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text('このキットはまだこの端末にありません。「キットを探す」から入れると鳴ります',
+                style: TextStyle(fontSize: 12, color: DawColors.danger)),
+          )
+        else ...[
+          const SizedBox(height: 8),
+          const _Caption('入っている音（タップで試聴。ピアノロールの列になります）'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final snd in kit.sounds)
+                ActionChip(
+                  label: Text(snd.name, style: const TextStyle(fontSize: 12)),
+                  onPressed: () {
+                    song.previewTrack(track.id);
+                    song.audition(snd.note, velocity: 0.9);
+                  },
+                ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

@@ -19,6 +19,7 @@ struct mdaw_engine {
     mdaw::Engine engine;
     mdaw::Session session{engine};
     mdaw::Exporter exporter;
+    std::string kitError; // mdaw_kit_error が返す文字列の置き場
     std::unique_ptr<mdaw::AudioOutput> output = mdaw::createPlatformAudioOutput();
 };
 
@@ -112,9 +113,30 @@ int32_t mdaw_set_project_title(mdaw_engine* e, const char* title) {
 }
 
 int32_t mdaw_export_start(mdaw_engine* e, const char* path, mdaw_id track) {
-    if (e == nullptr || path == nullptr)
+    if (e == nullptr || path == nullptr || e->exporter.state() == mdaw::Exporter::Running)
         return 0;
-    return e->exporter.start(e->session.project(), path, track) ? 1 : 0;
+    return e->exporter.start(e->session.snapshot(), path, track) ? 1 : 0;
+}
+
+void mdaw_set_kits_dir(mdaw_engine* e, const char* dir) {
+    if (e != nullptr && dir != nullptr)
+        e->session.setKitsRoot(dir);
+}
+
+void mdaw_reload_kits(mdaw_engine* e) {
+    if (e != nullptr)
+        e->session.reloadKits();
+}
+
+int32_t mdaw_set_track_kit(mdaw_engine* e, mdaw_id track, const char* kit) {
+    return run(e, std::make_unique<mdaw::SetTrackKit>(track, kit ? kit : ""));
+}
+
+const char* mdaw_kit_error(mdaw_engine* e, const char* kit) {
+    if (e == nullptr || kit == nullptr)
+        return "";
+    e->kitError = e->session.kitError(kit);
+    return e->kitError.c_str();
 }
 
 int32_t mdaw_export_state(mdaw_engine* e) { return e ? e->exporter.state() : MDAW_EXPORT_IDLE; }

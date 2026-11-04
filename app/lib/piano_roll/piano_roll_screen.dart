@@ -209,7 +209,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                 const SizedBox(height: 2),
                 Text(
-                  '$bars小節（小節 ${pl.startBar + 1}–${pl.endBar}）· ${_chromatic ? '全音表示' : '$key のみ表示'}',
+                  '$bars小節（小節 ${pl.startBar + 1}–${pl.endBar}）· '
+                  '${track != null && track.isKit ? 'ドラムキット：${song.kits.installed(track.kitId)?.name ?? '${track.kitId}（未ダウンロード）'}' : _chromatic ? '全音表示' : '$key のみ表示'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: DawColors.muted),
@@ -591,6 +592,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   Widget _roll(ClipData clip, Scale scale, TrackData? track) {
+    final kit = track != null && track.isKit ? song.kits.installed(track.kitId) : null;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(color: const Color(0xFF16181B), borderRadius: BorderRadius.circular(14)),
@@ -603,7 +605,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
           final rowHeight = _rowHeightFor(viewportH, rows);
           final g = RollGeometry(
-            columns: rollColumns(scale, chromatic: _chromatic),
+            // ドラムキットのトラックは、キットに入っている音だけを列にする
+            columns: kit != null && kit.sounds.isNotEmpty ? kit.notes : rollColumns(scale, chromatic: _chromatic),
             colWidth: _colWidth,
             step: _step,
             rowHeight: rowHeight,
@@ -712,6 +715,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     height: _keyboardHeight,
                     child: ScaleKeyboard(
                       notes: g.columns,
+                      labels: kit?.labels,
                       rootPitchClass: scale.root,
                       onNoteOn: (note, velocity) => song.engine.noteOn(note, velocity),
                       onNoteOff: (note) => song.engine.noteOff(note),
@@ -732,6 +736,14 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     if (!_centered) {
       final oct = bestOctave(clip, scale);
       pitch = (oct + 1) * 12 + scale.root + 6; // そのオクターブの真ん中あたり
+      if (!g.columns.contains(pitch) && g.columns.length < 40) {
+        // ドラムキット：左端（キック）から見せる
+        _centered = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_h.hasClients) _h.jumpTo(0);
+        });
+        return;
+      }
     }
     if (pitch == null) return;
     _centered = true;

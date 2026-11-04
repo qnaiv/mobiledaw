@@ -1,0 +1,66 @@
+{
+  "name": "Chiptune",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "自作合成（同梱可）",
+  "description": "8bit・ゲーム音楽向け",
+  "sounds": [
+    {
+      "file": "kick.wav",
+      "name": "Kick",
+      "note": 36
+    },
+    {
+      "file": "rim.wav",
+      "name": "Rim",
+      "note": 37
+    },
+    {
+      "file": "snare.wav",
+      "name": "Snare",
+      "note": 38
+    },
+    {
+      "file": "clap.wav",
+      "name": "Clap",
+      "note": 39
+    },
+    {
+      "file": "hihat_closed.wav",
+      "name": "Hihat Closed",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "tom_low.wav",
+      "name": "Tom Low",
+      "note": 45
+    },
+    {
+      "file": "hihat_open.wav",
+      "name": "Hihat Open",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "tom_mid.wav",
+      "name": "Tom Mid",
+      "note": 47
+    },
+    {
+      "file": "crash.wav",
+      "name": "Crash",
+      "note": 49
+    },
+    {
+      "file": "tom_high.wav",
+      "name": "Tom High",
+      "note": 50
+    },
+    {
+      "file": "shaker.wav",
+      "name": "Shaker",
+      "note": 82
+    }
+  ]
+}

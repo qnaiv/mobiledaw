@@ -1,0 +1,13 @@
+Original Synthesized Drum Kit
+==============================
+
+These WAV files were synthesized from scratch with DSP code
+(make_kit.py) — no recorded samples, no third-party sample libraries,
+and no AI-generated audio were used as source material.
+
+You may use, copy, modify, and bundle these files in your own
+applications and works, including commercial ones, without royalty
+payment. Attribution is appreciated but not required.
+
+Note: This is a statement about how these specific files were made.
+It is not legal advice about any other audio you use in your app.

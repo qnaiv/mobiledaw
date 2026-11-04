@@ -11,6 +11,7 @@ import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'demo_song.dart';
 import '../export/export_sheet.dart';
+import '../kits/kits_screen.dart';
 import '../project/projects_screen.dart';
 import '../sound/sound_sheet.dart';
 import 'mixer_sheet.dart';
@@ -110,6 +111,12 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               subtitle: const Text('WAV（まとめて・トラックごと）・MIDI'),
               onTap: () => Navigator.pop(context, 'export'),
             ),
+            ListTile(
+              leading: const Icon(Icons.album_outlined),
+              title: const Text('ドラムキット'),
+              subtitle: const Text('キットを探す・ダウンロード・削除'),
+              onTap: () => Navigator.pop(context, 'kits'),
+            ),
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.add),
@@ -159,6 +166,8 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProjectsScreen(song: song)));
       case 'export':
         await showExportSheet(context, song);
+      case 'kits':
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => KitsScreen(song: song)));
       case 'track':
         song.addTrack();
       case 'mixer':

@@ -39,17 +39,21 @@ int main(int argc, char** argv) {
     engine.play();
 
     const int frames = static_cast<int>(seconds * kRate);
+    const int songEnd = frames - static_cast<int>(3.0 * kRate);
     juce::AudioBuffer<float> buffer(2, frames);
     std::vector<float> block(512 * 2);
-    for (int done = 0; done < frames; done += 512) {
-        const int n = std::min(512, frames - done);
-        if (done >= frames - static_cast<int>(3.0 * kRate) && engine.isPlaying())
+    for (int done = 0; done < frames;) {
+        int n = std::min(512, frames - done);
+        if (done < songEnd)
+            n = std::min(n, songEnd - done); // 曲の終わりちょうどで止める（頭に戻って鳴らさない）
+        if (done == songEnd)
             engine.stop(); // 最後の3秒は残響だけ
         engine.render(block.data(), n, 2);
         for (int i = 0; i < n; ++i) {
             buffer.setSample(0, done + i, block[static_cast<size_t>(i) * 2]);
             buffer.setSample(1, done + i, block[static_cast<size_t>(i) * 2 + 1]);
         }
+        done += n;
     }
 
     // 大きさの目安（全体の RMS とピーク、帯域ごとはしない）

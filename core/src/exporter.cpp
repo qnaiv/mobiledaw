@@ -22,7 +22,7 @@ void Exporter::join() {
         thread_.join();
 }
 
-bool Exporter::start(const Project& project, const std::string& path, Id trackId) {
+bool Exporter::start(std::unique_ptr<PlaybackSnapshot> snapshot, const std::string& path, Id trackId) {
     if (state() == Running)
         return false;
     join();
@@ -30,9 +30,13 @@ bool Exporter::start(const Project& project, const std::string& path, Id trackId
     progress_.store(0.0f);
     error_.clear();
     state_.store(Running);
-    thread_ = std::thread([this, copy = project, path, trackId]() {
+    // std::thread に渡すため shared_ptr に（中身は1つのスレッドしか触らない）
+    std::shared_ptr<PlaybackSnapshot> snap(std::move(snapshot));
+    thread_ = std::thread([this, snap, path, trackId]() mutable {
         std::string error;
-        const bool ok = render(copy, path, trackId, &cancel_, &progress_, error);
+        auto owned = std::make_unique<PlaybackSnapshot>(std::move(*snap));
+        snap.reset();
+        const bool ok = render(std::move(owned), path, trackId, &cancel_, &progress_, error);
         error_ = error;
         if (ok)
             progress_.store(1.0f);
@@ -41,9 +45,12 @@ bool Exporter::start(const Project& project, const std::string& path, Id trackId
     return true;
 }
 
-bool Exporter::render(const Project& project, const std::string& path, Id trackId, const std::atomic<bool>* cancel,
-                      std::atomic<float>* progress, std::string& error) {
-    auto snap = buildSnapshot(project);
+bool Exporter::render(std::unique_ptr<PlaybackSnapshot> snap, const std::string& path, Id trackId,
+                      const std::atomic<bool>* cancel, std::atomic<float>* progress, std::string& error) {
+    if (snap == nullptr) {
+        error = "曲がありません";
+        return false;
+    }
     const bool stem = trackId != kNoId;
     if (stem) {
         bool found = false;
@@ -56,7 +63,7 @@ bool Exporter::render(const Project& project, const std::string& path, Id trackI
             return false;
         }
     }
-    if (project.placements.empty()) {
+    if (snap->events.empty()) {
         error = "曲が空です（クリップを置いてから書き出してください）";
         return false;
     }

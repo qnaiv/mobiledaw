@@ -1,0 +1,136 @@
+{
+  "name": "Acoustic Live",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）",
+  "description": "生ドラム。クローズマイク",
+  "sounds": [
+    {
+      "file": "snare_rimshot.wav",
+      "name": "Snare Rimshot",
+      "note": 33
+    },
+    {
+      "file": "kick_real.wav",
+      "name": "Kick Real",
+      "note": 36
+    },
+    {
+      "file": "sidestick.wav",
+      "name": "Sidestick",
+      "note": 37
+    },
+    {
+      "file": "snare_real.wav",
+      "name": "Snare Real",
+      "note": 38
+    },
+    {
+      "file": "hihat_closed_808.wav",
+      "name": "Hihat Closed 808",
+      "note": 42,
+      "choke": 1
+    },
+    {
+      "file": "hihat_pedal.wav",
+      "name": "Hihat Pedal",
+      "note": 44,
+      "choke": 1
+    },
+    {
+      "file": "tom_low_real.wav",
+      "name": "Tom Low Real",
+      "note": 45
+    },
+    {
+      "file": "hihat_halfopen.wav",
+      "name": "Hihat Halfopen",
+      "note": 46,
+      "choke": 1
+    },
+    {
+      "file": "tom_mid_real.wav",
+      "name": "Tom Mid Real",
+      "note": 47
+    },
+    {
+      "file": "crash_real.wav",
+      "name": "Crash Real",
+      "note": 49
+    },
+    {
+      "file": "tom_high_real.wav",
+      "name": "Tom High Real",
+      "note": 50
+    },
+    {
+      "file": "ride_bow.wav",
+      "name": "Ride Bow",
+      "note": 51
+    },
+    {
+      "file": "china_real.wav",
+      "name": "China Real",
+      "note": 52
+    },
+    {
+      "file": "ride_bell.wav",
+      "name": "Ride Bell",
+      "note": 53
+    },
+    {
+      "file": "crash_clash_vcsl.wav",
+      "name": "Crash Clash VCSL",
+      "note": 54
+    },
+    {
+      "file": "crash_choke.wav",
+      "name": "Crash Choke",
+      "note": 55
+    },
+    {
+      "file": "cymbal_808.wav",
+      "name": "Cymbal 808",
+      "note": 57
+    },
+    {
+      "file": "hihat_open_808.wav",
+      "name": "Hihat Open 808",
+      "note": 58,
+      "choke": 1
+    },
+    {
+      "file": "hihat_open_real.wav",
+      "name": "Hihat Open Real",
+      "note": 59,
+      "choke": 1
+    },
+    {
+      "file": "crash_suspended_vcsl.wav",
+      "name": "Crash Suspended VCSL",
+      "note": 60
+    },
+    {
+      "file": "hihat_closed_real.wav",
+      "name": "Hihat Closed Real",
+      "note": 65,
+      "choke": 1
+    },
+    {
+      "file": "hihat_open_vcsl.wav",
+      "name": "Hihat Open VCSL",
+      "note": 66,
+      "choke": 1
+    },
+    {
+      "file": "crash_sizzle_real.wav",
+      "name": "Crash Sizzle Real",
+      "note": 69
+    },
+    {
+      "file": "perc_finger_cymbal.wav",
+      "name": "Perc Finger Cymbal",
+      "note": 71
+    }
+  ]
+}

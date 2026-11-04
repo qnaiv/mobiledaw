@@ -31,6 +31,8 @@ jobs:
         run: cmake --build build --parallel
       - name: Test
         run: ctest --test-dir build --output-on-failure
+      - name: Drum kit index is up to date
+        run: python3 tools/kits/build_index.py --check
 
   android-apk:
     name: Android APK

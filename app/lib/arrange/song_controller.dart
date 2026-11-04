@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
 import '../music/voicing.dart';
+import '../kits/kit_store.dart';
 import '../project/library.dart';
 import 'demo_song.dart';
 import 'timeline_math.dart';
@@ -15,7 +16,7 @@ import 'timeline_math.dart';
 /// 画面とコアのあいだ。編集はコアに頼み、変わったら読み直して画面に知らせる。
 /// 編集後 2 秒操作がなければ自動で保存する（バックグラウンドに回るときは [saveNow]）。
 class SongController extends ChangeNotifier {
-  SongController(this.engine, {required this.library, required String projectPath})
+  SongController(this.engine, {required this.library, required this.kits, required String projectPath})
       : _projectPath = projectPath,
         project = engine.project {
     _version = engine.projectVersion;
@@ -28,6 +29,7 @@ class SongController extends ChangeNotifier {
 
   final MdawEngine engine;
   final ProjectLibrary library;
+  final KitStore kits;
   String _projectPath;
 
   /// 開いている曲の project.json
@@ -185,6 +187,15 @@ class SongController extends ChangeNotifier {
     _gesture = false;
     engine.endEditGroup();
     _refresh(force: true); // Undo ボタンの状態を更新
+  }
+
+  /// トラックの音源をドラムキットにする（空ならシンセに戻す）。Undo できる
+  bool setTrackKit(int trackId, String kitId) => _edit(() => engine.setTrackKit(trackId, kitId));
+
+  /// キットをダウンロード・削除したあと：コアに読み直してもらい、画面も描き直す
+  void kitsChanged() {
+    engine.reloadKits();
+    notifyListeners();
   }
 
   /// 音色・エフェクトの値を1つ変える（MdawParam の ID）
