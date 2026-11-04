@@ -39,6 +39,9 @@ public:
     // 音声スレッドが止まっている間に呼ぶ（確保あり）
     void prepare(double sampleRate);
 
+    // 曲全体の仕上げ（コンプ・リミッター）を通すか。トラック別の書き出しでは切る。音声スレッドが止まっている間に呼ぶ
+    void setMasterEnabled(bool enabled) noexcept { masterEnabled_ = enabled; }
+
     // 音声スレッドから呼ぶ（確保・ロックなし）。interleaved に frames × channels を上書きする。
     void render(float* interleaved, int frames, int channels) noexcept;
 
@@ -108,6 +111,7 @@ private:
     std::array<Slot, kMaxSlots> slots_;
     std::vector<float> bufL_, bufR_, prevL_, prevR_, mixL_, mixR_;
     MasterBus master_;
+    bool masterEnabled_ = true;
     int64_t sidechainAge_ = 1 << 30; // キックが鳴ってからのサンプル数
     bool sidechainTrigger_ = false;
 

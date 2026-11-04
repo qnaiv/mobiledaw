@@ -188,6 +188,19 @@ private:
     Track track_;
 };
 
+// 曲の名前（1〜64バイト、前後の空白は落とす）
+class SetProjectTitle final : public Command {
+public:
+    explicit SetProjectTitle(std::string title) : title_(std::move(title)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override { p.title = old_; }
+    const char* name() const override { return "SetProjectTitle"; }
+
+private:
+    std::string title_;
+    std::string old_;
+};
+
 // トラックの音量・パン・ミュート・ソロをまとめて変える
 class SetTrackMixer final : public Command {
 public:

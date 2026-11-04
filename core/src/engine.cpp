@@ -322,7 +322,8 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
     }
     sidechainAge_ = std::min<int64_t>(sidechainAge_ + n, int64_t{1} << 40);
 
-    master_.process(mixL_.data(), mixR_.data(), n);
+    if (masterEnabled_)
+        master_.process(mixL_.data(), mixR_.data(), n);
 
     for (size_t i = 0; i < un; ++i) {
         const float l = mixL_[i];

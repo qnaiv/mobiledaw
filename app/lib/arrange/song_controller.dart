@@ -8,13 +8,16 @@ import 'package:flutter/services.dart';
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
 import '../music/voicing.dart';
+import '../project/library.dart';
 import 'demo_song.dart';
 import 'timeline_math.dart';
 
 /// 画面とコアのあいだ。編集はコアに頼み、変わったら読み直して画面に知らせる。
 /// 編集後 2 秒操作がなければ自動で保存する（バックグラウンドに回るときは [saveNow]）。
 class SongController extends ChangeNotifier {
-  SongController(this.engine, {required this.projectPath}) : project = engine.project {
+  SongController(this.engine, {required this.library, required String projectPath})
+      : _projectPath = projectPath,
+        project = engine.project {
     _version = engine.projectVersion;
   }
 
@@ -24,7 +27,12 @@ class SongController extends ChangeNotifier {
   static const trackColors = [0xFFF28C38, 0xFF5AA9F2, 0xFFC8F25A, 0xFFE879C6, 0xFF9A7CF2, 0xFF5AD6C0];
 
   final MdawEngine engine;
-  final String projectPath;
+  final ProjectLibrary library;
+  String _projectPath;
+
+  /// 開いている曲の project.json
+  String get projectPath => _projectPath;
+  String? get projectId => library.idOf(_projectPath);
 
   ProjectData project;
   int _version = 0;
@@ -56,7 +64,62 @@ class SongController extends ChangeNotifier {
       } on MdawFileException catch (e) {
         saveError = '保存した曲を読めませんでした：${e.message}';
       }
+    } else {
+      engine.newProject();
     }
+    library.lastOpened = projectId;
+    _refresh(force: true);
+  }
+
+  // ---- 曲の一覧・保存 ------------------------------------------------------------
+
+  /// 一覧の別の曲に切り替える（今の曲は保存してから）
+  void openProject(String id) {
+    if (id == projectId) return;
+    saveNow();
+    engine.stopPlayback();
+    engine.clearLoop();
+    _projectPath = library.pathFor(id);
+    selectedPlacementId = null;
+    open();
+  }
+
+  /// 新しい曲を一覧に作って開く
+  void newSong({String title = '無題の曲'}) {
+    saveNow();
+    engine.stopPlayback();
+    engine.clearLoop();
+    _projectPath = library.pathFor(library.newId());
+    engine.newProject();
+    _startFresh(title);
+  }
+
+  /// 名前をつけて、今の中身を新しい曲として保存し、そちらを開く（元の曲は最後に保存した状態で残る）
+  void saveAs(String title) {
+    saveNow();
+    _projectPath = library.pathFor(library.newId());
+    engine.setProjectTitle(title.trim());
+    library.lastOpened = projectId;
+    _refresh(force: true);
+    saveNow(force: true);
+  }
+
+  /// 開いている曲の名前を変える（Undo できる）
+  bool renameSong(String title) => _edit(() => engine.setProjectTitle(title.trim()));
+
+  /// 新しく作った曲を、名前だけ入れて保存し、読み直す（Undo の履歴を空にするため）
+  void _startFresh(String title) {
+    engine.setProjectTitle(title);
+    try {
+      File(projectPath).parent.createSync(recursive: true);
+      engine.saveProject(projectPath);
+      engine.loadProject(projectPath);
+      saveError = null;
+    } on Object catch (e) {
+      saveError = '保存できませんでした：$e';
+    }
+    selectedPlacementId = null;
+    library.lastOpened = projectId;
     _refresh(force: true);
   }
 
@@ -104,14 +167,6 @@ class SongController extends ChangeNotifier {
 
   // ---- 曲全体 -----------------------------------------------------------------
 
-  void newSong() {
-    engine.stopPlayback();
-    engine.newProject();
-    selectedPlacementId = null;
-    _refresh(force: true);
-    saveNow(force: true); // 前の曲のファイルを上書きしておく
-  }
-
   bool renameTrack(int trackId, String name) => _edit(() => engine.renameTrack(trackId, name.trim()));
 
   // ---- ミキサー・音色 ----------------------------------------------------------
@@ -155,29 +210,35 @@ class SongController extends ChangeNotifier {
         gain: gain ?? m.gain, pan: pan ?? m.pan, mute: mute ?? m.mute, solo: solo ?? m.solo));
   }
 
-  /// 確かめ用のデモ曲。コードで組み立てる曲は Undo 1回で消せる（同梱ファイルの曲は読み込みなので Undo なし）
+  /// 確かめ用のデモ曲を、新しい曲として一覧に入れて開く
   Future<void> loadDemo(DemoSong demo) async {
+    saveNow();
     engine.stopPlayback();
+    engine.clearLoop();
     final asset = demoAsset(demo);
+    final path = library.pathFor(library.newId());
     if (asset == null) {
+      _projectPath = path;
       engine.newProject();
       buildDemoSong(engine);
-    } else {
-      final json = await rootBundle.loadString(asset);
-      final tmp = File('${File(projectPath).parent.path}/demo_loading.json');
-      try {
-        tmp.parent.createSync(recursive: true);
-        tmp.writeAsStringSync(json);
-        engine.loadProject(tmp.path);
-      } on Object catch (e) {
-        saveError = 'デモ曲を読めませんでした：$e';
-      } finally {
-        if (tmp.existsSync()) tmp.deleteSync();
-      }
+      _startFresh(demoTitle(demo));
+      return;
+    }
+    final json = await rootBundle.loadString(asset);
+    try {
+      final file = File(path);
+      file.parent.createSync(recursive: true);
+      file.writeAsStringSync(json);
+      engine.loadProject(path);
+      _projectPath = path;
+      if (engine.setProjectTitle(demoTitle(demo))) saveNow(force: true);
+      engine.loadProject(path); // 履歴を空に
+    } on Object catch (e) {
+      saveError = 'デモ曲を読めませんでした：$e';
     }
     selectedPlacementId = null;
+    library.lastOpened = projectId;
     _refresh(force: true);
-    saveNow(force: true);
   }
 
   bool setTempo(double bpm) => _edit(() => engine.setTempo(bpm));

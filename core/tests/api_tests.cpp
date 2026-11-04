@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_core/juce_core.h>
 
 #include "commands.h"
@@ -197,6 +198,78 @@ TEST(api_save_and_load) {
     juce::File(path).deleteFile();
     mdaw_destroy(a);
     mdaw_destroy(b);
+}
+
+TEST(api_project_title) {
+    mdaw_engine* e = mdaw_create();
+    CHECK(mdaw_set_project_title(e, "  はじめての曲  ") == 1);
+    CHECK(std::string(mdaw_project_json(e)).find("\"はじめての曲\"") != std::string::npos);
+    CHECK(mdaw_set_project_title(e, "   ") == 0);
+    CHECK(mdaw_set_project_title(e, std::string(65, 'a').c_str()) == 0);
+    CHECK(mdaw_undo(e) == 1);
+    CHECK(std::string(mdaw_project_json(e)).find("はじめての曲") == std::string::npos);
+    mdaw_destroy(e);
+}
+
+// 書き出し：別スレッドで wav を作り、長さと中身を確かめる
+TEST(api_export_wav) {
+    mdaw_engine* e = mdaw_create();
+    const auto path = tempPath("export") + ".wav";
+    CHECK(mdaw_export_start(e, path.c_str(), 0) == 1);
+    while (mdaw_export_state(e) == MDAW_EXPORT_RUNNING)
+        juce::Thread::sleep(5);
+    CHECK(mdaw_export_state(e) == MDAW_EXPORT_FAILED); // 空の曲は書き出さない
+    CHECK(std::string(mdaw_export_error(e)).size() > 0);
+
+    mdaw_set_tempo(e, 120.0);
+    const mdaw_id track = mdaw_add_track(e, "Keys", 0xFFFFFFFFu);
+    const mdaw_id clip = mdaw_create_clip(e, track, 0, 2, nullptr);
+    mdaw_add_note(e, clip, 0, 960, 60, 1.0f);
+    mdaw_set_track_param(e, track, MDAW_FX_REVERB, 0.5f);
+    CHECK(mdaw_export_start(e, path.c_str(), 0) == 1);
+    while (mdaw_export_state(e) == MDAW_EXPORT_RUNNING)
+        juce::Thread::sleep(5);
+    CHECK(mdaw_export_state(e) == MDAW_EXPORT_DONE);
+    CHECK(mdaw_export_progress(e) == 1.0f);
+
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+    {
+        std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(juce::File(path)));
+        CHECK(reader != nullptr);
+        if (reader != nullptr) {
+            const double seconds = static_cast<double>(reader->lengthInSamples) / reader->sampleRate;
+            std::printf("  %.2f 秒, %d bit, %.0f Hz\n", seconds, reader->bitsPerSample, reader->sampleRate);
+            CHECK(reader->bitsPerSample == 24);
+            CHECK(reader->sampleRate == 48000.0);
+            CHECK(seconds > 4.0 && seconds < 4.0 + 8.1); // 2小節（4秒）＋残響
+            juce::AudioBuffer<float> buf(2, static_cast<int>(reader->lengthInSamples));
+            reader->read(&buf, 0, buf.getNumSamples(), 0, true, true);
+            CHECK(buf.getMagnitude(0, 48000) > 0.05f);
+        }
+    }
+
+    // トラックだけ（もう1つのトラックは入らない）
+    const mdaw_id other = mdaw_add_track(e, "Other", 0xFFFFFFFFu);
+    CHECK(mdaw_export_start(e, path.c_str(), other) == 1);
+    while (mdaw_export_state(e) == MDAW_EXPORT_RUNNING)
+        juce::Thread::sleep(5);
+    CHECK(mdaw_export_state(e) == MDAW_EXPORT_DONE);
+    {
+        std::unique_ptr<juce::AudioFormatReader> reader(formats.createReaderFor(juce::File(path)));
+        CHECK(reader != nullptr);
+        if (reader != nullptr) {
+            juce::AudioBuffer<float> buf(2, static_cast<int>(reader->lengthInSamples));
+            reader->read(&buf, 0, buf.getNumSamples(), 0, true, true);
+            CHECK(buf.getMagnitude(0, buf.getNumSamples()) == 0.0f);
+        }
+    }
+    CHECK(mdaw_export_start(e, path.c_str(), 12345) == 1);
+    while (mdaw_export_state(e) == MDAW_EXPORT_RUNNING)
+        juce::Thread::sleep(5);
+    CHECK(mdaw_export_state(e) == MDAW_EXPORT_FAILED);
+    juce::File(path).deleteFile();
+    mdaw_destroy(e);
 }
 
 // 編集すると、そのまま再生に反映される（コア → スナップショット → 音声）

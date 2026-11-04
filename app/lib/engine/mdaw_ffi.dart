@@ -56,6 +56,9 @@ abstract final class MdawResult {
 }
 
 /// 保存・読み込みの失敗
+/// mdaw.h の MDAW_EXPORT_* と同じ並び
+enum ExportState { idle, running, done, failed, cancelled }
+
 class MdawFileException implements Exception {
   const MdawFileException(this.message);
   final String message;
@@ -207,6 +210,18 @@ class MdawEngine {
   late final _isDirty = _lib
       .lookupFunction<Int32 Function(_EnginePtr), int Function(_EnginePtr)>('mdaw_project_is_dirty', isLeaf: true);
 
+  late final _setProjectTitle = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>),
+      int Function(_EnginePtr, Pointer<Utf8>)>('mdaw_set_project_title');
+  late final _exportStart = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>, Uint64),
+      int Function(_EnginePtr, Pointer<Utf8>, int)>('mdaw_export_start');
+  late final _exportState =
+      _lib.lookupFunction<Int32 Function(_EnginePtr), int Function(_EnginePtr)>('mdaw_export_state', isLeaf: true);
+  late final _exportProgress = _lib
+      .lookupFunction<Float Function(_EnginePtr), double Function(_EnginePtr)>('mdaw_export_progress', isLeaf: true);
+  late final _exportCancel =
+      _lib.lookupFunction<Void Function(_EnginePtr), void Function(_EnginePtr)>('mdaw_export_cancel', isLeaf: true);
+  late final _exportError = _lib.lookupFunction<Pointer<Utf8> Function(_EnginePtr),
+      Pointer<Utf8> Function(_EnginePtr)>('mdaw_export_error');
   late final _addTrack = _lib.lookupFunction<Uint64 Function(_EnginePtr, Pointer<Utf8>, Uint32),
       int Function(_EnginePtr, Pointer<Utf8>, int)>('mdaw_add_track');
   late final _renameTrack = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>),
@@ -284,6 +299,31 @@ class MdawEngine {
       malloc.free(p);
     }
   }
+
+  /// 曲の名前（Undo できる）。空・長すぎ・同じなら false
+  bool setProjectTitle(String title) {
+    final p = title.toNativeUtf8();
+    try {
+      return _setProjectTitle(_handle, p) != 0;
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  /// 書き出しを始める（別スレッド）。[trackId] が 0 なら曲全体、それ以外はそのトラックだけ
+  bool exportStart(String path, {int trackId = 0}) {
+    final p = path.toNativeUtf8();
+    try {
+      return _exportStart(_handle, p, trackId) != 0;
+    } finally {
+      malloc.free(p);
+    }
+  }
+
+  ExportState get exportState => ExportState.values[_exportState(_handle).clamp(0, ExportState.values.length - 1)];
+  double get exportProgress => _exportProgress(_handle);
+  void exportCancel() => _exportCancel(_handle);
+  String get exportError => _exportError(_handle).toDartString();
 
   bool renameTrack(int trackId, String name) {
     final p = name.toNativeUtf8();

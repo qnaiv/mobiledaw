@@ -79,6 +79,7 @@ std::string projectToJson(const Project& p) {
     auto root = object();
     put(root, "format", "mobiledaw-project");
     put(root, "version", Project::kVersion);
+    put(root, "title", juce::String::fromUTF8(p.title.c_str()));
     put(root, "tempo", p.tempo);
     juce::Array<var> sig{p.timeSigNumerator, p.timeSigDenominator};
     put(root, "timeSig", sig);
@@ -173,6 +174,8 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
         }
     }
     const auto key = get(root, "key");
+    if (const auto title = get(root, "title").toString().trim(); title.isNotEmpty())
+        p.title = title.substring(0, 64).toStdString();
     p.keyRoot = static_cast<int>(std::clamp<int64_t>(integer(key, "root", 0), 0, 11));
     if (const auto scale = get(key, "scale").toString(); scale.isNotEmpty())
         p.scale = scale.toStdString();

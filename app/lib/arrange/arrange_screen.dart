@@ -10,6 +10,8 @@ import '../piano_roll/piano_roll_screen.dart';
 import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'demo_song.dart';
+import '../export/export_sheet.dart';
+import '../project/projects_screen.dart';
 import '../sound/sound_sheet.dart';
 import 'mixer_sheet.dart';
 import 'song_controller.dart';
@@ -86,6 +88,30 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.save_outlined),
+              title: const Text('保存'),
+              subtitle: const Text('編集すると自動でも保存されます'),
+              onTap: () => Navigator.pop(context, 'save'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.save_as_outlined),
+              title: const Text('別名で保存'),
+              onTap: () => Navigator.pop(context, 'saveAs'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.library_music_outlined),
+              title: const Text('曲の一覧'),
+              subtitle: const Text('開く・新しい曲・複製・名前を変える・削除'),
+              onTap: () => Navigator.pop(context, 'projects'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.ios_share),
+              title: const Text('書き出し'),
+              subtitle: const Text('WAV（まとめて・トラックごと）・MIDI'),
+              onTap: () => Navigator.pop(context, 'export'),
+            ),
+            const Divider(height: 1),
+            ListTile(
               leading: const Icon(Icons.add),
               title: const Text('トラックを追加'),
               enabled: song.canAddTrack,
@@ -103,17 +129,11 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
             ),
             for (final demo in DemoSong.values)
               ListTile(
-                leading: const Icon(Icons.library_music_outlined),
+                leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text('デモ曲：${demoLabel(demo)}'),
-                subtitle: const Text('今の曲は置き換わります（Undo で戻せます）'),
+                subtitle: const Text('新しい曲として一覧に入ります'),
                 onTap: () => Navigator.pop(context, 'demo:${demo.name}'),
               ),
-            ListTile(
-              leading: const Icon(Icons.note_add_outlined),
-              title: const Text('新しい曲'),
-              subtitle: const Text('今の曲は消えます'),
-              onTap: () => Navigator.pop(context, 'new'),
-            ),
             ListTile(
               leading: const Icon(Icons.graphic_eq),
               title: const Text('音出しテスト'),
@@ -125,6 +145,20 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
     );
     if (!mounted) return;
     switch (action) {
+      case 'save':
+        song.saveNow(force: true);
+        _toast(song.saveError ?? '「${song.project.title}」を保存しました');
+      case 'saveAs':
+        final title = await askSongTitle(context,
+            title: '別名で保存', initial: '${song.project.title} のコピー', ok: '保存');
+        if (title != null) {
+          song.saveAs(title);
+          _toast('「$title」として保存しました（今はこちらを開いています）');
+        }
+      case 'projects':
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProjectsScreen(song: song)));
+      case 'export':
+        await showExportSheet(context, song);
       case 'track':
         song.addTrack();
       case 'mixer':
@@ -133,26 +167,14 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
         await _editTempo();
       case final String a when a.startsWith('demo:'):
         await song.loadDemo(DemoSong.values.byName(a.substring(5)));
-      case 'new':
-        if (await _confirm('新しい曲にしますか？', '今の曲は消え、元に戻せません。')) song.newSong();
       case 'soundcheck':
         widget.onOpenSoundCheck();
     }
   }
 
-  Future<bool> _confirm(String title, String body) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('やめる')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('新しくする')),
-        ],
-      ),
-    );
-    return ok ?? false;
+  void _toast(String text) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _editTempo() async {
@@ -208,7 +230,26 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('untitled 01', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                // 曲名をタップで名前を変える
+                GestureDetector(
+                  onTap: () async {
+                    final title = await askSongTitle(context, title: '曲の名前', initial: p.title);
+                    if (title != null) song.renameSong(title);
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(p.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.edit, size: 14, color: DawColors.muted),
+                    ],
+                  ),
+                ),
                 const SizedBox(height: 2),
                 Text(
                   error ?? '${p.tempo.round()} BPM · $key · ${p.timeSigNumerator}/${p.timeSigDenominator}',

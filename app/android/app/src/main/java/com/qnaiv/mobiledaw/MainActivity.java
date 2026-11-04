@@ -10,6 +10,8 @@ import androidx.annotation.NonNull;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -20,6 +22,8 @@ public class MainActivity extends FlutterActivity {
     private static final String UPDATER_CHANNEL = "mobiledaw/updater";
     // lib/platform_paths.dart と揃える
     private static final String PATHS_CHANNEL = "mobiledaw/paths";
+    // lib/export/share.dart と揃える
+    private static final String SHARE_CHANNEL = "mobiledaw/share";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +43,33 @@ public class MainActivity extends FlutterActivity {
                         result.success(getFilesDir().getAbsolutePath());
                     } else {
                         result.notImplemented();
+                    }
+                });
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), SHARE_CHANNEL)
+                .setMethodCallHandler((call, result) -> {
+                    switch (call.method) {
+                        case "exportsDir": {
+                            // res/xml/update_paths.xml の cache-path「exports」と同じ場所
+                            File dir = new File(getCacheDir(), "exports");
+                            //noinspection ResultOfMethodCallIgnored
+                            dir.mkdirs();
+                            result.success(dir.getAbsolutePath());
+                            break;
+                        }
+                        case "share": {
+                            List<String> paths = call.argument("paths");
+                            String mime = call.argument("mimeType");
+                            String title = call.argument("title");
+                            try {
+                                shareFiles(paths, mime, title);
+                                result.success(null);
+                            } catch (Exception e) {
+                                result.error("share", e.toString(), null);
+                            }
+                            break;
+                        }
+                        default:
+                            result.notImplemented();
                     }
                 });
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), UPDATER_CHANNEL)
@@ -61,6 +92,30 @@ public class MainActivity extends FlutterActivity {
                             result.notImplemented();
                     }
                 });
+    }
+
+    /** 書き出したファイルを共有シートへ（1つなら ACTION_SEND、複数なら ACTION_SEND_MULTIPLE） */
+    private void shareFiles(List<String> paths, String mime, String title) {
+        if (paths == null || paths.isEmpty())
+            throw new IllegalArgumentException("no files");
+        ArrayList<Uri> uris = new ArrayList<>();
+        for (String p : paths)
+            uris.add(FileProvider.getUriForFile(this, getPackageName() + ".updates", new File(p)));
+        Intent send;
+        if (uris.size() == 1) {
+            send = new Intent(Intent.ACTION_SEND);
+            send.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+        } else {
+            send = new Intent(Intent.ACTION_SEND_MULTIPLE);
+            send.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+        }
+        send.setType(mime != null ? mime : "*/*");
+        if (title != null)
+            send.putExtra(Intent.EXTRA_SUBJECT, title);
+        send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent chooser = Intent.createChooser(send, title != null ? title : "書き出したファイル");
+        chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(chooser);
     }
 
     /**

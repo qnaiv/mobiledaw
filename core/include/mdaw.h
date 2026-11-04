@@ -69,6 +69,9 @@ enum {
     MDAW_FX_END = 43
 };
 
+/* 書き出しの状態（mdaw_export_state） */
+enum { MDAW_EXPORT_IDLE = 0, MDAW_EXPORT_RUNNING = 1, MDAW_EXPORT_DONE = 2, MDAW_EXPORT_FAILED = 3, MDAW_EXPORT_CANCELLED = 4 };
+
 MDAW_API mdaw_engine* mdaw_create(void);
 MDAW_API void mdaw_destroy(mdaw_engine* engine);
 
@@ -107,6 +110,7 @@ MDAW_API uint64_t mdaw_project_version(mdaw_engine* engine);
 MDAW_API int32_t mdaw_project_is_dirty(mdaw_engine* engine); /* 最後の保存・読み込みから変わったか */
 
 /* 編集。ID を返すものは 0 で失敗、それ以外は 1 = 適用した、0 = 適用できなかった（対象がない・はみ出す など）。 */
+MDAW_API int32_t mdaw_set_project_title(mdaw_engine* engine, const char* title); /* 曲の名前（1〜64バイト） */
 MDAW_API mdaw_id mdaw_add_track(mdaw_engine* engine, const char* name, uint32_t color_argb);
 MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const char* name); /* 1〜64バイト */
 /* トラックの音量（0〜2、1 = そのまま）・パン（-1 左〜1 右）・ミュート・ソロ。変わらなければ 0 */
@@ -152,6 +156,15 @@ MDAW_API double mdaw_output_latency_ms(mdaw_engine* engine); /* 不明なら -1 
 MDAW_API int64_t mdaw_frames_rendered(mdaw_engine* engine);
 MDAW_API int32_t mdaw_xrun_count(mdaw_engine* engine);       /* 不明なら -1 */
 MDAW_API int32_t mdaw_active_voices(mdaw_engine* engine);
+
+/* 書き出し：今の曲を wav（48kHz・24bit・ステレオ）にする。別スレッドで計算し、すぐ戻る。
+   track_id が 0 なら曲全体（仕上げのコンプ・リミッターあり）、それ以外はそのトラックだけ（仕上げなし）。
+   書き出し中は 0 を返す。進み具合は mdaw_export_progress（0〜1）、終わったかは mdaw_export_state */
+MDAW_API int32_t mdaw_export_start(mdaw_engine* engine, const char* path, mdaw_id track_id);
+MDAW_API int32_t mdaw_export_state(mdaw_engine* engine);
+MDAW_API float mdaw_export_progress(mdaw_engine* engine);
+MDAW_API void mdaw_export_cancel(mdaw_engine* engine);
+MDAW_API const char* mdaw_export_error(mdaw_engine* engine); /* 状態が FAILED のときの理由 */
 
 #ifdef __cplusplus
 }

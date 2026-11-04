@@ -8,6 +8,3 @@ Future<String> appFilesDir() async {
   if (dir == null) throw StateError('保存先を取得できませんでした');
   return dir;
 }
-
-/// いま開いている曲の保存先。設計書の保存フォルダ（<名前>.qdaw/project.json）に合わせる
-String projectFilePath(String filesDir) => '$filesDir/projects/untitled-01.qdaw/project.json';

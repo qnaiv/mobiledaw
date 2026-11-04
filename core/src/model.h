@@ -68,6 +68,7 @@ struct Project {
     static constexpr int kVersion = 1;
     static constexpr int kMaxTracks = 8;
 
+    std::string title = "無題の曲";
     double tempo = 120.0;
     int timeSigNumerator = 4;
     int timeSigDenominator = 4;

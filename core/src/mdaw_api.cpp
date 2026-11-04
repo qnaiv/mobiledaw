@@ -6,6 +6,7 @@
 #include "audio_output.h"
 #include "commands.h"
 #include "engine.h"
+#include "exporter.h"
 #include "session.h"
 
 namespace mdaw {
@@ -17,6 +18,7 @@ std::unique_ptr<AudioOutput> createPlatformAudioOutput() { return nullptr; }
 struct mdaw_engine {
     mdaw::Engine engine;
     mdaw::Session session{engine};
+    mdaw::Exporter exporter;
     std::unique_ptr<mdaw::AudioOutput> output = mdaw::createPlatformAudioOutput();
 };
 
@@ -104,6 +106,26 @@ const char* mdaw_project_json(mdaw_engine* e) { return e ? e->session.json().c_s
 const char* mdaw_last_error(mdaw_engine* e) { return e ? e->session.lastError().c_str() : ""; }
 uint64_t mdaw_project_version(mdaw_engine* e) { return e ? e->session.version() : 0; }
 int32_t mdaw_project_is_dirty(mdaw_engine* e) { return e && e->session.dirty() ? 1 : 0; }
+
+int32_t mdaw_set_project_title(mdaw_engine* e, const char* title) {
+    return run(e, std::make_unique<mdaw::SetProjectTitle>(title ? title : ""));
+}
+
+int32_t mdaw_export_start(mdaw_engine* e, const char* path, mdaw_id track) {
+    if (e == nullptr || path == nullptr)
+        return 0;
+    return e->exporter.start(e->session.project(), path, track) ? 1 : 0;
+}
+
+int32_t mdaw_export_state(mdaw_engine* e) { return e ? e->exporter.state() : MDAW_EXPORT_IDLE; }
+float mdaw_export_progress(mdaw_engine* e) { return e ? e->exporter.progress() : 0.0f; }
+void mdaw_export_cancel(mdaw_engine* e) {
+    if (e != nullptr)
+        e->exporter.cancel();
+}
+const char* mdaw_export_error(mdaw_engine* e) {
+    return e && e->exporter.state() != mdaw::Exporter::Running ? e->exporter.error().c_str() : "";
+}
 
 mdaw_id mdaw_add_track(mdaw_engine* e, const char* name, uint32_t color) {
     return runForId(e, std::make_unique<mdaw::AddTrack>(name ? name : "", color),

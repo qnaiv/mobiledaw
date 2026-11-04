@@ -3,6 +3,7 @@
 #include "mdaw.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 
 namespace mdaw {
@@ -322,6 +323,18 @@ bool AddTrack::apply(Project& p) {
 void AddTrack::revert(Project& p) { eraseById(p.tracks, track_.id); }
 
 //==============================================================================
+bool SetProjectTitle::apply(Project& p) {
+    auto t = title_;
+    const auto notSpace = [](unsigned char c) { return !std::isspace(c); };
+    t.erase(t.begin(), std::find_if(t.begin(), t.end(), notSpace));
+    t.erase(std::find_if(t.rbegin(), t.rend(), notSpace).base(), t.end());
+    if (t.empty() || t.size() > 64 || t == p.title)
+        return false;
+    old_ = p.title;
+    p.title = t;
+    return true;
+}
+
 bool SetTrackMixer::apply(Project& p) {
     auto* t = p.findTrack(trackId_);
     if (t == nullptr || !std::isfinite(next_.gain) || !std::isfinite(next_.pan))

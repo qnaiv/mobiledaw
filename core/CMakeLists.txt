@@ -69,7 +69,8 @@ set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/history.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/project_json.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/playback.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/exporter.cpp)
 
 set(MDAW_WARNINGS -Wall -Wextra -Wno-unused-parameter)
 

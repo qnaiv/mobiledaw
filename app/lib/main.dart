@@ -9,6 +9,7 @@ import 'arrange/song_controller.dart';
 import 'engine/mdaw_ffi.dart';
 import 'music/scale.dart';
 import 'platform_paths.dart';
+import 'project/library.dart';
 import 'ui/scale_keyboard.dart';
 import 'ui/theme.dart';
 import 'update/updater.dart';
@@ -66,7 +67,8 @@ class _AppRootState extends State<AppRoot> {
     try {
       final engine = MdawEngine.open();
       final filesDir = await appFilesDir();
-      final song = SongController(engine, projectPath: projectFilePath(filesDir))..open();
+      final library = ProjectLibrary(filesDir);
+      final song = SongController(engine, library: library, projectPath: library.initialPath())..open();
       final started = engine.start();
       if (!mounted) return;
       setState(() {

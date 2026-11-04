@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- アップデートの APK は キャッシュの updates/ に置く（MainActivity・lib/update/updater.dart と揃える） -->
+<!-- アップデートの APK は キャッシュの updates/、書き出したファイルは exports/ に置く
+     （MainActivity・lib/update/updater.dart・lib/export/share.dart と揃える） -->
 <paths>
     <cache-path name="updates" path="updates/" />
+    <cache-path name="exports" path="exports/" />
 </paths>

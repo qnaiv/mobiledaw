@@ -13,6 +13,12 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.futureBass => 'kawaii フューチャーベース（約2分）',
     };
 
+/// 一覧に入るときの曲名
+String demoTitle(DemoSong d) => switch (d) {
+      DemoSong.simple => 'デモ：シンプル',
+      DemoSong.futureBass => 'デモ：kawaii フューチャーベース',
+    };
+
 /// 同梱のプロジェクトファイルで入る曲はそのパス。null ならコードで組み立てる（[buildDemoSong]）
 String? demoAsset(DemoSong d) => switch (d) {
       DemoSong.simple => null,

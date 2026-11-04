@@ -137,6 +137,7 @@ class TrackData {
 
 class ProjectData {
   const ProjectData({
+    this.title = '無題の曲',
     required this.tempo,
     required this.timeSigNumerator,
     required this.timeSigDenominator,
@@ -147,6 +148,7 @@ class ProjectData {
     required this.placements,
   });
 
+  final String title;
   final double tempo;
   final int timeSigNumerator;
   final int timeSigDenominator;
@@ -173,6 +175,7 @@ class ProjectData {
     final sig = j['timeSig'] is List ? j['timeSig']! as List<Object?> : const <Object?>[4, 4];
     final key = _map(j['key']);
     return ProjectData(
+      title: j['title'] is String && (j['title']! as String).trim().isNotEmpty ? j['title']! as String : '無題の曲',
       tempo: _double(j['tempo'], 120),
       timeSigNumerator: sig.isNotEmpty ? _int(sig[0], 4) : 4,
       timeSigDenominator: sig.length > 1 ? _int(sig[1], 4) : 4,
