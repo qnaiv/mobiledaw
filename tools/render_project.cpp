@@ -1,5 +1,6 @@
 // プロジェクトファイル（project.json）を wav に書き出す。音作りの確認用（アプリには入らない）。
 //   mdaw_render <project.json> <out.wav> [繰り返し回数=1]
+// ドラムキットは ./kits（リポジトリの kits/）から読む。別の場所は環境変数 MDAW_KITS で
 #include <cmath>
 #include <cstdio>
 #include <memory>
@@ -8,7 +9,10 @@
 
 #include <juce_audio_formats/juce_audio_formats.h>
 
+#include <cstdlib>
+
 #include "engine.h"
+#include "kit.h"
 #include "playback.h"
 #include "project_json.h"
 
@@ -33,7 +37,13 @@ int main(int argc, char** argv) {
     constexpr double kRate = 48000.0;
     Engine engine;
     engine.prepare(kRate);
-    auto snap = buildSnapshot(project);
+    KitCache kits;
+    const char* kitsEnv = std::getenv("MDAW_KITS");
+    kits.setRoot(kitsEnv != nullptr ? kitsEnv : juce::File::getCurrentWorkingDirectory().getChildFile("kits").getFullPathName().toStdString());
+    for (const auto& t : project.tracks)
+        if (!t.kitId.empty() && kits.get(t.kitId) == nullptr)
+            std::fprintf(stderr, "キットを読めません: %s（%s）\n", t.kitId.c_str(), kits.error(t.kitId).c_str());
+    auto snap = buildSnapshot(project, [&](const std::string& id) { return kits.get(id); });
     const double seconds = static_cast<double>(snap->loopEndTicks) / kPpq * 60.0 / snap->tempo * loops + 3.0;
     engine.publish(std::move(snap));
     engine.play();

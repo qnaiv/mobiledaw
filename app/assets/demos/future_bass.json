@@ -181,7 +181,8 @@
    "name": "Kick",
    "color": "fff28c38",
    "instrument": {
-    "type": "synth",
+    "type": "kit",
+    "kit": "future-bass",
     "params": {
      "cutoffHz": 40,
      "resonance": 0.7,
@@ -203,11 +204,11 @@
     }
    },
    "fx": {
-    "saturation": 0.35,
+    "saturation": 0.1,
     "sidechainSource": 1
    },
    "mixer": {
-    "gain": 0.5,
+    "gain": 0.2,
     "pan": 0,
     "mute": false,
     "solo": false
@@ -218,7 +219,8 @@
    "name": "Clap",
    "color": "fff2d45a",
    "instrument": {
-    "type": "synth",
+    "type": "kit",
+    "kit": "future-bass",
     "params": {
      "cutoffHz": 2600,
      "resonance": 0.9,
@@ -239,13 +241,13 @@
     }
    },
    "fx": {
-    "lowCutHz": 250,
-    "saturation": 0.5,
-    "reverb": 0.32,
+    "lowCutHz": 200,
+    "saturation": 0.1,
+    "reverb": 0.3,
     "reverbSize": 0.45
    },
    "mixer": {
-    "gain": 1.4,
+    "gain": 0.42,
     "pan": 0,
     "mute": false,
     "solo": false
@@ -256,7 +258,8 @@
    "name": "Hats",
    "color": "ff5ad6c0",
    "instrument": {
-    "type": "synth",
+    "type": "kit",
+    "kit": "future-bass",
     "params": {
      "cutoffHz": 16000,
      "resonance": 0.7,
@@ -271,14 +274,14 @@
     }
    },
    "fx": {
-    "lowCutHz": 6500,
+    "lowCutHz": 300,
     "reverb": 0.12,
     "reverbSize": 0.3,
     "sidechain": 0.3,
     "sidechainReleaseS": 0.12
    },
    "mixer": {
-    "gain": 1.4,
+    "gain": 0.45,
     "pan": 0.2,
     "mute": false,
     "solo": false
@@ -704,224 +707,224 @@
      "id": "0000000000000048",
      "tick": 0,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000049",
      "tick": 480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000004a",
      "tick": 960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000004b",
      "tick": 1440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000004c",
      "tick": 1920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000004d",
      "tick": 2400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000004e",
      "tick": 2880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000004f",
      "tick": 3360,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000050",
      "tick": 3840,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000051",
      "tick": 4320,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000052",
      "tick": 4800,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000053",
      "tick": 5280,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000054",
      "tick": 5760,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000055",
      "tick": 6240,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000056",
      "tick": 6720,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000057",
      "tick": 7200,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000058",
      "tick": 7680,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000059",
      "tick": 8160,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000005a",
      "tick": 8640,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000005b",
      "tick": 9120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000005c",
      "tick": 9600,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000005d",
      "tick": 10080,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000005e",
      "tick": 10560,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000005f",
      "tick": 11040,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000060",
      "tick": 11520,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000061",
      "tick": 12000,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000062",
      "tick": 12480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000063",
      "tick": 12960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000064",
      "tick": 13440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000065",
      "tick": 13920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000066",
      "tick": 14400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000067",
      "tick": 14880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     }
    ]
@@ -2076,98 +2079,98 @@
      "id": "0000000000000117",
      "tick": 0,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000118",
      "tick": 1440,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000119",
      "tick": 2400,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011a",
      "tick": 3840,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011b",
      "tick": 5280,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011c",
      "tick": 6000,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011d",
      "tick": 7200,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011e",
      "tick": 7680,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000011f",
      "tick": 9120,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000120",
      "tick": 10080,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000121",
      "tick": 11520,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000122",
      "tick": 12960,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000123",
      "tick": 13680,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000124",
      "tick": 14880,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     }
    ]
@@ -2181,417 +2184,445 @@
      "id": "000000000000012a",
      "tick": 1920,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
      "id": "000000000000012b",
-     "tick": 5760,
+     "tick": 1920,
      "length": 240,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.95
     },
     {
      "id": "000000000000012c",
-     "tick": 9600,
+     "tick": 5760,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
      "id": "000000000000012d",
-     "tick": 13440,
+     "tick": 5760,
      "length": 240,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.95
     },
     {
      "id": "000000000000012e",
-     "tick": 14880,
+     "tick": 9600,
      "length": 240,
-     "pitch": 50,
-     "velocity": 0.8
+     "pitch": 28,
+     "velocity": 0.95
     },
     {
      "id": "000000000000012f",
+     "tick": 9600,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000130",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000131",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000132",
+     "tick": 14880,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000133",
      "tick": 15120,
      "length": 240,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.8
     }
    ]
   },
   {
-   "id": "0000000000000134",
+   "id": "0000000000000138",
    "trackId": "0000000000000007",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000135",
+     "id": "0000000000000139",
      "tick": 0,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.5
-    },
-    {
-     "id": "0000000000000136",
-     "tick": 480,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000137",
-     "tick": 960,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.5
-    },
-    {
-     "id": "0000000000000138",
-     "tick": 1440,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000139",
-     "tick": 1920,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000013a",
-     "tick": 2400,
+     "tick": 480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000013b",
-     "tick": 2880,
+     "tick": 960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000013c",
-     "tick": 3360,
+     "tick": 1440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000013d",
-     "tick": 3840,
+     "tick": 1920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000013e",
-     "tick": 4320,
+     "tick": 2400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000013f",
-     "tick": 4800,
+     "tick": 2880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000140",
-     "tick": 5280,
+     "tick": 3360,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000141",
-     "tick": 5760,
+     "tick": 3840,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000142",
-     "tick": 6240,
+     "tick": 4320,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000143",
-     "tick": 6720,
+     "tick": 4800,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000144",
-     "tick": 7200,
+     "tick": 5280,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000145",
-     "tick": 7680,
+     "tick": 5760,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000146",
-     "tick": 8160,
+     "tick": 6240,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000147",
-     "tick": 8640,
+     "tick": 6720,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000148",
-     "tick": 9120,
+     "tick": 7200,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000149",
-     "tick": 9600,
+     "tick": 7680,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000014a",
-     "tick": 10080,
+     "tick": 8160,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000014b",
-     "tick": 10560,
+     "tick": 8640,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000014c",
-     "tick": 11040,
+     "tick": 9120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000014d",
-     "tick": 11520,
+     "tick": 9600,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "000000000000014e",
-     "tick": 12000,
+     "tick": 10080,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "000000000000014f",
-     "tick": 12480,
+     "tick": 10560,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000150",
-     "tick": 12960,
+     "tick": 11040,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000151",
-     "tick": 13440,
+     "tick": 11520,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000152",
-     "tick": 13920,
+     "tick": 12000,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     },
     {
      "id": "0000000000000153",
-     "tick": 14400,
+     "tick": 12480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.5
     },
     {
      "id": "0000000000000154",
+     "tick": 12960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.85
+    },
+    {
+     "id": "0000000000000155",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.5
+    },
+    {
+     "id": "0000000000000156",
+     "tick": 13920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.85
+    },
+    {
+     "id": "0000000000000157",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.5
+    },
+    {
+     "id": "0000000000000158",
      "tick": 14880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.85
     }
    ]
   },
   {
-   "id": "0000000000000159",
+   "id": "000000000000015d",
    "trackId": "0000000000000001",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "000000000000015a",
+     "id": "000000000000015e",
      "tick": 0,
      "length": 3780,
      "pitch": 58,
      "velocity": 0.7
     },
     {
-     "id": "000000000000015b",
+     "id": "000000000000015f",
      "tick": 0,
      "length": 3780,
      "pitch": 62,
      "velocity": 0.7
     },
     {
-     "id": "000000000000015c",
+     "id": "0000000000000160",
      "tick": 0,
      "length": 3780,
      "pitch": 65,
      "velocity": 0.7
     },
     {
-     "id": "000000000000015d",
+     "id": "0000000000000161",
      "tick": 0,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.7
     },
     {
-     "id": "000000000000015e",
+     "id": "0000000000000162",
      "tick": 0,
      "length": 3780,
      "pitch": 70,
      "velocity": 0.7
     },
     {
-     "id": "000000000000015f",
+     "id": "0000000000000163",
      "tick": 3840,
      "length": 3780,
      "pitch": 57,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000160",
+     "id": "0000000000000164",
      "tick": 3840,
      "length": 3780,
      "pitch": 60,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000161",
+     "id": "0000000000000165",
      "tick": 3840,
      "length": 3780,
      "pitch": 64,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000162",
+     "id": "0000000000000166",
      "tick": 3840,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000163",
+     "id": "0000000000000167",
      "tick": 3840,
      "length": 3780,
      "pitch": 72,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000164",
-     "tick": 7680,
-     "length": 3780,
-     "pitch": 58,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000165",
-     "tick": 7680,
-     "length": 3780,
-     "pitch": 62,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000166",
-     "tick": 7680,
-     "length": 3780,
-     "pitch": 65,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000167",
-     "tick": 7680,
-     "length": 3780,
-     "pitch": 69,
      "velocity": 0.7
     },
     {
      "id": "0000000000000168",
      "tick": 7680,
      "length": 3780,
-     "pitch": 74,
+     "pitch": 58,
      "velocity": 0.7
     },
     {
      "id": "0000000000000169",
+     "tick": 7680,
+     "length": 3780,
+     "pitch": 62,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000016a",
+     "tick": 7680,
+     "length": 3780,
+     "pitch": 65,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000016b",
+     "tick": 7680,
+     "length": 3780,
+     "pitch": 69,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000016c",
+     "tick": 7680,
+     "length": 3780,
+     "pitch": 74,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000016d",
      "tick": 11520,
      "length": 3780,
      "pitch": 60,
      "velocity": 0.7
     },
     {
-     "id": "000000000000016a",
+     "id": "000000000000016e",
      "tick": 11520,
      "length": 3780,
      "pitch": 64,
      "velocity": 0.7
     },
     {
-     "id": "000000000000016b",
+     "id": "000000000000016f",
      "tick": 11520,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.7
     },
     {
-     "id": "000000000000016c",
+     "id": "0000000000000170",
      "tick": 11520,
      "length": 3780,
      "pitch": 72,
      "velocity": 0.7
     },
     {
-     "id": "000000000000016d",
+     "id": "0000000000000171",
      "tick": 11520,
      "length": 3780,
      "pitch": 74,
@@ -2600,33 +2631,33 @@
    ]
   },
   {
-   "id": "0000000000000170",
+   "id": "0000000000000174",
    "trackId": "0000000000000004",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000171",
+     "id": "0000000000000175",
      "tick": 0,
      "length": 3780,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000172",
+     "id": "0000000000000176",
      "tick": 3840,
      "length": 3780,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000173",
+     "id": "0000000000000177",
      "tick": 7680,
      "length": 3780,
      "pitch": 46,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000174",
+     "id": "0000000000000178",
      "tick": 11520,
      "length": 3780,
      "pitch": 48,
@@ -2635,1076 +2666,1132 @@
    ]
   },
   {
-   "id": "0000000000000176",
+   "id": "000000000000017a",
    "trackId": "0000000000000005",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000177",
+     "id": "000000000000017b",
      "tick": 0,
      "length": 480,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "0000000000000178",
-     "tick": 960,
-     "length": 480,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "0000000000000179",
-     "tick": 1920,
-     "length": 480,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "000000000000017a",
-     "tick": 2880,
-     "length": 480,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "000000000000017b",
-     "tick": 3840,
-     "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000017c",
-     "tick": 4800,
+     "tick": 960,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000017d",
-     "tick": 5760,
+     "tick": 1920,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000017e",
-     "tick": 6720,
+     "tick": 2880,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "000000000000017f",
-     "tick": 7680,
+     "tick": 3840,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000180",
-     "tick": 8640,
+     "tick": 4800,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000181",
-     "tick": 9600,
+     "tick": 5760,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000182",
-     "tick": 10560,
+     "tick": 6720,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000183",
-     "tick": 11520,
+     "tick": 7680,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000184",
-     "tick": 12480,
+     "tick": 8640,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000185",
-     "tick": 13440,
+     "tick": 9600,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "0000000000000186",
+     "tick": 10560,
+     "length": 480,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000187",
+     "tick": 11520,
+     "length": 480,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000188",
+     "tick": 12480,
+     "length": 480,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000189",
+     "tick": 13440,
+     "length": 480,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "000000000000018a",
      "tick": 14400,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     }
    ]
   },
   {
-   "id": "0000000000000188",
+   "id": "000000000000018c",
    "trackId": "0000000000000006",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000189",
+     "id": "000000000000018d",
      "tick": 960,
      "length": 240,
-     "pitch": 50,
-     "velocity": 0.95
-    },
-    {
-     "id": "000000000000018a",
-     "tick": 2880,
-     "length": 240,
-     "pitch": 50,
-     "velocity": 0.95
-    },
-    {
-     "id": "000000000000018b",
-     "tick": 4800,
-     "length": 240,
-     "pitch": 50,
-     "velocity": 0.95
-    },
-    {
-     "id": "000000000000018c",
-     "tick": 6720,
-     "length": 240,
-     "pitch": 50,
-     "velocity": 0.95
-    },
-    {
-     "id": "000000000000018d",
-     "tick": 8640,
-     "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
      "id": "000000000000018e",
-     "tick": 10560,
+     "tick": 960,
      "length": 240,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.95
     },
     {
      "id": "000000000000018f",
-     "tick": 12480,
+     "tick": 2880,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
      "id": "0000000000000190",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000191",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000192",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000193",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000194",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000195",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000196",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000197",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000198",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000199",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "000000000000019a",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "000000000000019b",
      "tick": 14400,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
+     "velocity": 0.95
+    },
+    {
+     "id": "000000000000019c",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 41,
      "velocity": 0.95
     }
    ]
   },
   {
-   "id": "0000000000000192",
+   "id": "000000000000019e",
    "trackId": "0000000000000007",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000193",
+     "id": "000000000000019f",
      "tick": 0,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000194",
-     "tick": 240,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000195",
-     "tick": 480,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000196",
-     "tick": 720,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000197",
-     "tick": 960,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000198",
-     "tick": 1200,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000199",
-     "tick": 1440,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000019a",
-     "tick": 1680,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000019b",
-     "tick": 1920,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000019c",
-     "tick": 2160,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000019d",
-     "tick": 2400,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000019e",
-     "tick": 2640,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000019f",
-     "tick": 2880,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a0",
-     "tick": 3120,
+     "tick": 240,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a1",
-     "tick": 3360,
+     "tick": 480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001a2",
-     "tick": 3600,
+     "tick": 720,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a3",
-     "tick": 3840,
+     "tick": 960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a4",
-     "tick": 4080,
+     "tick": 1200,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a5",
-     "tick": 4320,
+     "tick": 1440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001a6",
-     "tick": 4560,
+     "tick": 1680,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a7",
-     "tick": 4800,
+     "tick": 1920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a8",
-     "tick": 5040,
+     "tick": 2160,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001a9",
-     "tick": 5280,
+     "tick": 2400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001aa",
-     "tick": 5520,
+     "tick": 2640,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001ab",
-     "tick": 5760,
+     "tick": 2880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001ac",
-     "tick": 6000,
+     "tick": 3120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001ad",
-     "tick": 6240,
+     "tick": 3360,
      "length": 240,
-     "pitch": 72,
+     "pitch": 58,
      "velocity": 0.9
     },
     {
      "id": "00000000000001ae",
-     "tick": 6480,
+     "tick": 3600,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001af",
-     "tick": 6720,
+     "tick": 3840,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b0",
-     "tick": 6960,
+     "tick": 4080,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b1",
-     "tick": 7200,
+     "tick": 4320,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001b2",
-     "tick": 7440,
+     "tick": 4560,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b3",
-     "tick": 7680,
+     "tick": 4800,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b4",
-     "tick": 7920,
+     "tick": 5040,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b5",
-     "tick": 8160,
+     "tick": 5280,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001b6",
-     "tick": 8400,
+     "tick": 5520,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b7",
-     "tick": 8640,
+     "tick": 5760,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b8",
-     "tick": 8880,
+     "tick": 6000,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001b9",
-     "tick": 9120,
+     "tick": 6240,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001ba",
-     "tick": 9360,
+     "tick": 6480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001bb",
-     "tick": 9600,
+     "tick": 6720,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001bc",
-     "tick": 9840,
+     "tick": 6960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001bd",
-     "tick": 10080,
+     "tick": 7200,
      "length": 240,
-     "pitch": 72,
+     "pitch": 58,
      "velocity": 0.9
     },
     {
      "id": "00000000000001be",
-     "tick": 10320,
+     "tick": 7440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001bf",
-     "tick": 10560,
+     "tick": 7680,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c0",
-     "tick": 10800,
+     "tick": 7920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c1",
-     "tick": 11040,
+     "tick": 8160,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001c2",
-     "tick": 11280,
+     "tick": 8400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c3",
-     "tick": 11520,
+     "tick": 8640,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c4",
-     "tick": 11760,
+     "tick": 8880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c5",
-     "tick": 12000,
+     "tick": 9120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001c6",
-     "tick": 12240,
+     "tick": 9360,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c7",
-     "tick": 12480,
+     "tick": 9600,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c8",
-     "tick": 12720,
+     "tick": 9840,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001c9",
-     "tick": 12960,
+     "tick": 10080,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001ca",
-     "tick": 13200,
+     "tick": 10320,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001cb",
-     "tick": 13440,
+     "tick": 10560,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001cc",
-     "tick": 13680,
+     "tick": 10800,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001cd",
-     "tick": 13920,
+     "tick": 11040,
      "length": 240,
-     "pitch": 72,
+     "pitch": 58,
      "velocity": 0.9
     },
     {
      "id": "00000000000001ce",
-     "tick": 14160,
+     "tick": 11280,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001cf",
-     "tick": 14400,
+     "tick": 11520,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001d0",
-     "tick": 14640,
+     "tick": 11760,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "00000000000001d1",
-     "tick": 14880,
+     "tick": 12000,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.9
     },
     {
      "id": "00000000000001d2",
+     "tick": 12240,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d3",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d4",
+     "tick": 12720,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d5",
+     "tick": 12960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000001d6",
+     "tick": 13200,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d7",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d8",
+     "tick": 13680,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001d9",
+     "tick": 13920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000001da",
+     "tick": 14160,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001db",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001dc",
+     "tick": 14640,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000001dd",
+     "tick": 14880,
+     "length": 240,
+     "pitch": 58,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000001de",
      "tick": 15120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     }
    ]
   },
   {
-   "id": "00000000000001d4",
+   "id": "00000000000001e0",
    "trackId": "0000000000000006",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "00000000000001d5",
+     "id": "00000000000001e1",
      "tick": 0,
      "length": 950,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.45
     },
     {
-     "id": "00000000000001d6",
+     "id": "00000000000001e2",
      "tick": 960,
      "length": 950,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.481
     },
     {
-     "id": "00000000000001d7",
+     "id": "00000000000001e3",
      "tick": 1920,
      "length": 950,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.512
     },
     {
-     "id": "00000000000001d8",
+     "id": "00000000000001e4",
      "tick": 2880,
      "length": 950,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.544
     },
     {
-     "id": "00000000000001d9",
+     "id": "00000000000001e5",
      "tick": 3840,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.575
     },
     {
-     "id": "00000000000001da",
+     "id": "00000000000001e6",
      "tick": 4320,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.591
     },
     {
-     "id": "00000000000001db",
+     "id": "00000000000001e7",
      "tick": 4800,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.606
     },
     {
-     "id": "00000000000001dc",
+     "id": "00000000000001e8",
      "tick": 5280,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.622
     },
     {
-     "id": "00000000000001dd",
+     "id": "00000000000001e9",
      "tick": 5760,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.637
     },
     {
-     "id": "00000000000001de",
+     "id": "00000000000001ea",
      "tick": 6240,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.653
     },
     {
-     "id": "00000000000001df",
+     "id": "00000000000001eb",
      "tick": 6720,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.669
     },
     {
-     "id": "00000000000001e0",
+     "id": "00000000000001ec",
      "tick": 7200,
      "length": 470,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.684
     },
     {
-     "id": "00000000000001e1",
+     "id": "00000000000001ed",
      "tick": 7680,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.7
     },
     {
-     "id": "00000000000001e2",
+     "id": "00000000000001ee",
      "tick": 7920,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.708
     },
     {
-     "id": "00000000000001e3",
+     "id": "00000000000001ef",
      "tick": 8160,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.716
     },
     {
-     "id": "00000000000001e4",
+     "id": "00000000000001f0",
      "tick": 8400,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.723
     },
     {
-     "id": "00000000000001e5",
+     "id": "00000000000001f1",
      "tick": 8640,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.731
     },
     {
-     "id": "00000000000001e6",
+     "id": "00000000000001f2",
      "tick": 8880,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.739
     },
     {
-     "id": "00000000000001e7",
+     "id": "00000000000001f3",
      "tick": 9120,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.747
     },
     {
-     "id": "00000000000001e8",
+     "id": "00000000000001f4",
      "tick": 9360,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.755
     },
     {
-     "id": "00000000000001e9",
+     "id": "00000000000001f5",
      "tick": 9600,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.762
     },
     {
-     "id": "00000000000001ea",
+     "id": "00000000000001f6",
      "tick": 9840,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.77
     },
     {
-     "id": "00000000000001eb",
+     "id": "00000000000001f7",
      "tick": 10080,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.778
     },
     {
-     "id": "00000000000001ec",
+     "id": "00000000000001f8",
      "tick": 10320,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.786
     },
     {
-     "id": "00000000000001ed",
+     "id": "00000000000001f9",
      "tick": 10560,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.794
     },
     {
-     "id": "00000000000001ee",
+     "id": "00000000000001fa",
      "tick": 10800,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.802
     },
     {
-     "id": "00000000000001ef",
+     "id": "00000000000001fb",
      "tick": 11040,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.809
     },
     {
-     "id": "00000000000001f0",
+     "id": "00000000000001fc",
      "tick": 11280,
      "length": 230,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.817
     },
     {
-     "id": "00000000000001f1",
+     "id": "00000000000001fd",
      "tick": 11520,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.825
     },
     {
-     "id": "00000000000001f2",
+     "id": "00000000000001fe",
      "tick": 11640,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.829
     },
     {
-     "id": "00000000000001f3",
+     "id": "00000000000001ff",
      "tick": 11760,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.833
     },
     {
-     "id": "00000000000001f4",
+     "id": "0000000000000200",
      "tick": 11880,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.837
     },
     {
-     "id": "00000000000001f5",
+     "id": "0000000000000201",
      "tick": 12000,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.841
     },
     {
-     "id": "00000000000001f6",
+     "id": "0000000000000202",
      "tick": 12120,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.845
     },
     {
-     "id": "00000000000001f7",
+     "id": "0000000000000203",
      "tick": 12240,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.848
     },
     {
-     "id": "00000000000001f8",
+     "id": "0000000000000204",
      "tick": 12360,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.852
     },
     {
-     "id": "00000000000001f9",
+     "id": "0000000000000205",
      "tick": 12480,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.856
     },
     {
-     "id": "00000000000001fa",
+     "id": "0000000000000206",
      "tick": 12600,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.86
     },
     {
-     "id": "00000000000001fb",
+     "id": "0000000000000207",
      "tick": 12720,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.864
     },
     {
-     "id": "00000000000001fc",
+     "id": "0000000000000208",
      "tick": 12840,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.868
     },
     {
-     "id": "00000000000001fd",
+     "id": "0000000000000209",
      "tick": 12960,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.872
     },
     {
-     "id": "00000000000001fe",
+     "id": "000000000000020a",
      "tick": 13080,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.876
     },
     {
-     "id": "00000000000001ff",
+     "id": "000000000000020b",
      "tick": 13200,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.88
     },
     {
-     "id": "0000000000000200",
+     "id": "000000000000020c",
      "tick": 13320,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.884
     },
     {
-     "id": "0000000000000201",
+     "id": "000000000000020d",
      "tick": 13440,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.887
     },
     {
-     "id": "0000000000000202",
+     "id": "000000000000020e",
      "tick": 13560,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.891
     },
     {
-     "id": "0000000000000203",
+     "id": "000000000000020f",
      "tick": 13680,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.895
     },
     {
-     "id": "0000000000000204",
+     "id": "0000000000000210",
      "tick": 13800,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.899
     },
     {
-     "id": "0000000000000205",
+     "id": "0000000000000211",
      "tick": 13920,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.903
     },
     {
-     "id": "0000000000000206",
+     "id": "0000000000000212",
      "tick": 14040,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.907
     },
     {
-     "id": "0000000000000207",
+     "id": "0000000000000213",
      "tick": 14160,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.911
     },
     {
-     "id": "0000000000000208",
+     "id": "0000000000000214",
      "tick": 14280,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.915
     },
     {
-     "id": "0000000000000209",
+     "id": "0000000000000215",
      "tick": 14400,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.919
     },
     {
-     "id": "000000000000020a",
+     "id": "0000000000000216",
      "tick": 14520,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.923
     },
     {
-     "id": "000000000000020b",
+     "id": "0000000000000217",
      "tick": 14640,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.927
     },
     {
-     "id": "000000000000020c",
+     "id": "0000000000000218",
      "tick": 14760,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.93
     },
     {
-     "id": "000000000000020d",
+     "id": "0000000000000219",
      "tick": 14880,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.934
     },
     {
-     "id": "000000000000020e",
+     "id": "000000000000021a",
      "tick": 15000,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.938
     },
     {
-     "id": "000000000000020f",
+     "id": "000000000000021b",
      "tick": 15120,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.942
     },
     {
-     "id": "0000000000000210",
+     "id": "000000000000021c",
      "tick": 15240,
      "length": 110,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.946
     }
    ]
   },
   {
-   "id": "0000000000000213",
+   "id": "000000000000021f",
    "trackId": "0000000000000008",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000214",
+     "id": "0000000000000220",
      "tick": 0,
      "length": 15160,
      "pitch": 60,
@@ -3713,145 +3800,145 @@
    ]
   },
   {
-   "id": "0000000000000217",
+   "id": "0000000000000223",
    "trackId": "0000000000000001",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "0000000000000218",
+     "id": "0000000000000224",
      "tick": 0,
      "length": 3780,
      "pitch": 58,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000219",
+     "id": "0000000000000225",
      "tick": 0,
      "length": 3780,
      "pitch": 62,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021a",
+     "id": "0000000000000226",
      "tick": 0,
      "length": 3780,
      "pitch": 65,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021b",
+     "id": "0000000000000227",
      "tick": 0,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021c",
+     "id": "0000000000000228",
      "tick": 0,
      "length": 3780,
      "pitch": 70,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021d",
+     "id": "0000000000000229",
      "tick": 3840,
      "length": 3780,
      "pitch": 57,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021e",
+     "id": "000000000000022a",
      "tick": 3840,
      "length": 3780,
      "pitch": 60,
      "velocity": 0.72
     },
     {
-     "id": "000000000000021f",
+     "id": "000000000000022b",
      "tick": 3840,
      "length": 3780,
      "pitch": 64,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000220",
+     "id": "000000000000022c",
      "tick": 3840,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000221",
+     "id": "000000000000022d",
      "tick": 3840,
      "length": 3780,
      "pitch": 72,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000222",
+     "id": "000000000000022e",
      "tick": 7680,
      "length": 3780,
      "pitch": 58,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000223",
+     "id": "000000000000022f",
      "tick": 7680,
      "length": 3780,
      "pitch": 62,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000224",
+     "id": "0000000000000230",
      "tick": 7680,
      "length": 3780,
      "pitch": 65,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000225",
+     "id": "0000000000000231",
      "tick": 7680,
      "length": 3780,
      "pitch": 69,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000226",
+     "id": "0000000000000232",
      "tick": 7680,
      "length": 3780,
      "pitch": 74,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000227",
+     "id": "0000000000000233",
      "tick": 11520,
      "length": 3780,
      "pitch": 58,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000228",
+     "id": "0000000000000234",
      "tick": 11520,
      "length": 3780,
      "pitch": 60,
      "velocity": 0.72
     },
     {
-     "id": "0000000000000229",
+     "id": "0000000000000235",
      "tick": 11520,
      "length": 3780,
      "pitch": 64,
      "velocity": 0.72
     },
     {
-     "id": "000000000000022a",
+     "id": "0000000000000236",
      "tick": 11520,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.72
     },
     {
-     "id": "000000000000022b",
+     "id": "0000000000000237",
      "tick": 11520,
      "length": 3780,
      "pitch": 72,
@@ -3860,285 +3947,285 @@
    ]
   },
   {
-   "id": "000000000000022d",
+   "id": "0000000000000239",
    "trackId": "0000000000000001",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "000000000000022e",
+     "id": "000000000000023a",
      "tick": 0,
      "length": 3810,
      "pitch": 58,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000022f",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 62,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000230",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 65,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000231",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 69,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000232",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 74,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000233",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000234",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 64,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000235",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 67,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000236",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000237",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 74,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000238",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 57,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000239",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000023a",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 64,
      "velocity": 0.9
     },
     {
      "id": "000000000000023b",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 62,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000023c",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 65,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000023d",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 69,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000023e",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 74,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000023f",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000240",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000241",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 67,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000242",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 72,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000243",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 74,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000244",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 57,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000245",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000246",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000247",
      "tick": 7680,
      "length": 3810,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "000000000000023c",
+     "id": "0000000000000248",
      "tick": 7680,
      "length": 3810,
      "pitch": 72,
      "velocity": 0.9
     },
     {
-     "id": "000000000000023d",
+     "id": "0000000000000249",
      "tick": 11520,
      "length": 3810,
      "pitch": 57,
      "velocity": 0.9
     },
     {
-     "id": "000000000000023e",
+     "id": "000000000000024a",
      "tick": 11520,
      "length": 3810,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "000000000000023f",
+     "id": "000000000000024b",
      "tick": 11520,
      "length": 3810,
      "pitch": 62,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000240",
+     "id": "000000000000024c",
      "tick": 11520,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000241",
+     "id": "000000000000024d",
      "tick": 11520,
      "length": 3810,
      "pitch": 69,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000242",
+     "id": "000000000000024e",
      "tick": 15360,
      "length": 3810,
      "pitch": 58,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000243",
+     "id": "000000000000024f",
      "tick": 15360,
      "length": 3810,
      "pitch": 62,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000244",
+     "id": "0000000000000250",
      "tick": 15360,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000245",
+     "id": "0000000000000251",
      "tick": 15360,
      "length": 3810,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000246",
+     "id": "0000000000000252",
      "tick": 15360,
      "length": 3810,
      "pitch": 70,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000247",
+     "id": "0000000000000253",
      "tick": 19200,
      "length": 3810,
      "pitch": 58,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000248",
+     "id": "0000000000000254",
      "tick": 19200,
      "length": 3810,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000249",
+     "id": "0000000000000255",
      "tick": 19200,
      "length": 3810,
      "pitch": 64,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024a",
+     "id": "0000000000000256",
      "tick": 19200,
      "length": 3810,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024b",
+     "id": "0000000000000257",
      "tick": 19200,
      "length": 3810,
      "pitch": 72,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024c",
+     "id": "0000000000000258",
      "tick": 23040,
      "length": 3810,
      "pitch": 57,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024d",
+     "id": "0000000000000259",
      "tick": 23040,
      "length": 3810,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024e",
+     "id": "000000000000025a",
      "tick": 23040,
      "length": 3810,
      "pitch": 64,
      "velocity": 0.9
     },
     {
-     "id": "000000000000024f",
+     "id": "000000000000025b",
      "tick": 23040,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000250",
+     "id": "000000000000025c",
      "tick": 23040,
      "length": 3810,
      "pitch": 72,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000251",
+     "id": "000000000000025d",
      "tick": 26880,
      "length": 3810,
      "pitch": 57,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000252",
+     "id": "000000000000025e",
      "tick": 26880,
      "length": 3810,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000253",
+     "id": "000000000000025f",
      "tick": 26880,
      "length": 3810,
      "pitch": 63,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000254",
+     "id": "0000000000000260",
      "tick": 26880,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000255",
+     "id": "0000000000000261",
      "tick": 26880,
      "length": 3810,
      "pitch": 69,
@@ -4147,285 +4234,285 @@
    ]
   },
   {
-   "id": "0000000000000259",
+   "id": "0000000000000265",
    "trackId": "0000000000000001",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "000000000000025a",
+     "id": "0000000000000266",
      "tick": 0,
      "length": 3810,
      "pitch": 58,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000025b",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 62,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000025c",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 65,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000025d",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 69,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000025e",
-     "tick": 0,
-     "length": 3810,
-     "pitch": 74,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000025f",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000260",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 64,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000261",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 67,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000262",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000263",
-     "tick": 3840,
-     "length": 3810,
-     "pitch": 74,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000264",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 57,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000265",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000266",
-     "tick": 7680,
-     "length": 3810,
-     "pitch": 64,
      "velocity": 0.9
     },
     {
      "id": "0000000000000267",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 62,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000268",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 65,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000269",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 69,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026a",
+     "tick": 0,
+     "length": 3810,
+     "pitch": 74,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026b",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026c",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026d",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 67,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026e",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 72,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000026f",
+     "tick": 3840,
+     "length": 3810,
+     "pitch": 74,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000270",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 57,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000271",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000272",
+     "tick": 7680,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000273",
      "tick": 7680,
      "length": 3810,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000268",
+     "id": "0000000000000274",
      "tick": 7680,
      "length": 3810,
      "pitch": 72,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000269",
+     "id": "0000000000000275",
      "tick": 11520,
      "length": 3810,
      "pitch": 57,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026a",
+     "id": "0000000000000276",
      "tick": 11520,
      "length": 3810,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026b",
+     "id": "0000000000000277",
      "tick": 11520,
      "length": 3810,
      "pitch": 62,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026c",
+     "id": "0000000000000278",
      "tick": 11520,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026d",
+     "id": "0000000000000279",
      "tick": 11520,
      "length": 3810,
      "pitch": 69,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026e",
+     "id": "000000000000027a",
      "tick": 15360,
      "length": 3810,
      "pitch": 58,
      "velocity": 0.9
     },
     {
-     "id": "000000000000026f",
+     "id": "000000000000027b",
      "tick": 15360,
      "length": 3810,
      "pitch": 62,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000270",
+     "id": "000000000000027c",
      "tick": 15360,
      "length": 3810,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000271",
+     "id": "000000000000027d",
      "tick": 15360,
      "length": 3810,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000272",
+     "id": "000000000000027e",
      "tick": 15360,
      "length": 3810,
      "pitch": 70,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000273",
+     "id": "000000000000027f",
      "tick": 19200,
      "length": 3810,
      "pitch": 58,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000274",
-     "tick": 19200,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000275",
-     "tick": 19200,
-     "length": 3810,
-     "pitch": 64,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000276",
-     "tick": 19200,
-     "length": 3810,
-     "pitch": 67,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000277",
-     "tick": 19200,
-     "length": 3810,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000278",
-     "tick": 23040,
-     "length": 3810,
-     "pitch": 57,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000279",
-     "tick": 23040,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027a",
-     "tick": 23040,
-     "length": 3810,
-     "pitch": 64,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027b",
-     "tick": 23040,
-     "length": 3810,
-     "pitch": 65,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027c",
-     "tick": 23040,
-     "length": 3810,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027d",
-     "tick": 26880,
-     "length": 3810,
-     "pitch": 57,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027e",
-     "tick": 26880,
-     "length": 3810,
-     "pitch": 60,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000027f",
-     "tick": 26880,
-     "length": 3810,
-     "pitch": 65,
-     "velocity": 0.9
-    },
-    {
      "id": "0000000000000280",
-     "tick": 26880,
+     "tick": 19200,
      "length": 3810,
-     "pitch": 67,
+     "pitch": 60,
      "velocity": 0.9
     },
     {
      "id": "0000000000000281",
+     "tick": 19200,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000282",
+     "tick": 19200,
+     "length": 3810,
+     "pitch": 67,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000283",
+     "tick": 19200,
+     "length": 3810,
+     "pitch": 72,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000284",
+     "tick": 23040,
+     "length": 3810,
+     "pitch": 57,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000285",
+     "tick": 23040,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000286",
+     "tick": 23040,
+     "length": 3810,
+     "pitch": 64,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000287",
+     "tick": 23040,
+     "length": 3810,
+     "pitch": 65,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000288",
+     "tick": 23040,
+     "length": 3810,
+     "pitch": 72,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000289",
+     "tick": 26880,
+     "length": 3810,
+     "pitch": 57,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000028a",
+     "tick": 26880,
+     "length": 3810,
+     "pitch": 60,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000028b",
+     "tick": 26880,
+     "length": 3810,
+     "pitch": 65,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000028c",
+     "tick": 26880,
+     "length": 3810,
+     "pitch": 67,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000028d",
      "tick": 26880,
      "length": 3810,
      "pitch": 72,
@@ -4434,306 +4521,306 @@
    ]
   },
   {
-   "id": "0000000000000283",
+   "id": "000000000000028f",
    "trackId": "0000000000000002",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "0000000000000284",
+     "id": "0000000000000290",
      "tick": 0,
      "length": 690,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000285",
+     "id": "0000000000000291",
      "tick": 720,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000286",
+     "id": "0000000000000292",
      "tick": 1440,
      "length": 450,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000287",
+     "id": "0000000000000293",
      "tick": 1920,
      "length": 450,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000288",
+     "id": "0000000000000294",
      "tick": 2400,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000289",
+     "id": "0000000000000295",
      "tick": 2880,
      "length": 930,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028a",
+     "id": "0000000000000296",
      "tick": 3840,
      "length": 690,
      "pitch": 84,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028b",
+     "id": "0000000000000297",
      "tick": 4560,
      "length": 690,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028c",
+     "id": "0000000000000298",
      "tick": 5280,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028d",
+     "id": "0000000000000299",
      "tick": 5760,
      "length": 930,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028e",
+     "id": "000000000000029a",
      "tick": 6720,
      "length": 450,
      "pitch": 76,
      "velocity": 0.85
     },
     {
-     "id": "000000000000028f",
+     "id": "000000000000029b",
      "tick": 7200,
      "length": 450,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "0000000000000290",
-     "tick": 7680,
-     "length": 690,
-     "pitch": 79,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000291",
-     "tick": 8400,
-     "length": 690,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000292",
-     "tick": 9120,
-     "length": 450,
-     "pitch": 76,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000293",
-     "tick": 9600,
-     "length": 450,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000294",
-     "tick": 10080,
-     "length": 450,
-     "pitch": 79,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000295",
-     "tick": 10560,
-     "length": 930,
-     "pitch": 81,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000296",
-     "tick": 11520,
-     "length": 1410,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000297",
-     "tick": 12960,
-     "length": 450,
-     "pitch": 76,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000298",
-     "tick": 13440,
-     "length": 930,
-     "pitch": 74,
-     "velocity": 0.85
-    },
-    {
-     "id": "0000000000000299",
-     "tick": 14400,
-     "length": 450,
-     "pitch": 72,
-     "velocity": 0.85
-    },
-    {
-     "id": "000000000000029a",
-     "tick": 14880,
-     "length": 450,
-     "pitch": 74,
-     "velocity": 0.85
-    },
-    {
-     "id": "000000000000029b",
-     "tick": 15360,
-     "length": 690,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
      "id": "000000000000029c",
-     "tick": 16080,
+     "tick": 7680,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
      "id": "000000000000029d",
+     "tick": 8400,
+     "length": 690,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "000000000000029e",
+     "tick": 9120,
+     "length": 450,
+     "pitch": 76,
+     "velocity": 0.85
+    },
+    {
+     "id": "000000000000029f",
+     "tick": 9600,
+     "length": 450,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a0",
+     "tick": 10080,
+     "length": 450,
+     "pitch": 79,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a1",
+     "tick": 10560,
+     "length": 930,
+     "pitch": 81,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a2",
+     "tick": 11520,
+     "length": 1410,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a3",
+     "tick": 12960,
+     "length": 450,
+     "pitch": 76,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a4",
+     "tick": 13440,
+     "length": 930,
+     "pitch": 74,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a5",
+     "tick": 14400,
+     "length": 450,
+     "pitch": 72,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a6",
+     "tick": 14880,
+     "length": 450,
+     "pitch": 74,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a7",
+     "tick": 15360,
+     "length": 690,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a8",
+     "tick": 16080,
+     "length": 690,
+     "pitch": 79,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002a9",
      "tick": 16800,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "000000000000029e",
+     "id": "00000000000002aa",
      "tick": 17280,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "000000000000029f",
+     "id": "00000000000002ab",
      "tick": 17760,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a0",
+     "id": "00000000000002ac",
      "tick": 18240,
      "length": 930,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a1",
+     "id": "00000000000002ad",
      "tick": 19200,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a2",
+     "id": "00000000000002ae",
      "tick": 19920,
      "length": 690,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a3",
+     "id": "00000000000002af",
      "tick": 20640,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a4",
+     "id": "00000000000002b0",
      "tick": 21120,
      "length": 930,
      "pitch": 84,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a5",
+     "id": "00000000000002b1",
      "tick": 22080,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a6",
+     "id": "00000000000002b2",
      "tick": 22560,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a7",
+     "id": "00000000000002b3",
      "tick": 23040,
      "length": 1410,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a8",
+     "id": "00000000000002b4",
      "tick": 24480,
      "length": 450,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002a9",
+     "id": "00000000000002b5",
      "tick": 24960,
      "length": 930,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002aa",
+     "id": "00000000000002b6",
      "tick": 25920,
      "length": 930,
      "pitch": 76,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ab",
+     "id": "00000000000002b7",
      "tick": 26880,
      "length": 930,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ac",
+     "id": "00000000000002b8",
      "tick": 27840,
      "length": 450,
      "pitch": 75,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ad",
+     "id": "00000000000002b9",
      "tick": 28320,
      "length": 450,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ae",
+     "id": "00000000000002ba",
      "tick": 28800,
      "length": 1890,
      "pitch": 81,
@@ -4742,306 +4829,306 @@
    ]
   },
   {
-   "id": "00000000000002b2",
+   "id": "00000000000002be",
    "trackId": "0000000000000002",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "00000000000002b3",
+     "id": "00000000000002bf",
      "tick": 0,
      "length": 690,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b4",
+     "id": "00000000000002c0",
      "tick": 720,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b5",
+     "id": "00000000000002c1",
      "tick": 1440,
      "length": 450,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b6",
+     "id": "00000000000002c2",
      "tick": 1920,
      "length": 450,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b7",
+     "id": "00000000000002c3",
      "tick": 2400,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b8",
+     "id": "00000000000002c4",
      "tick": 2880,
      "length": 930,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002b9",
+     "id": "00000000000002c5",
      "tick": 3840,
      "length": 690,
      "pitch": 84,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ba",
+     "id": "00000000000002c6",
      "tick": 4560,
      "length": 690,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002bb",
+     "id": "00000000000002c7",
      "tick": 5280,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002bc",
+     "id": "00000000000002c8",
      "tick": 5760,
      "length": 930,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002bd",
+     "id": "00000000000002c9",
      "tick": 6720,
      "length": 450,
      "pitch": 76,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002be",
+     "id": "00000000000002ca",
      "tick": 7200,
      "length": 450,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002bf",
-     "tick": 7680,
-     "length": 690,
-     "pitch": 79,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c0",
-     "tick": 8400,
-     "length": 690,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c1",
-     "tick": 9120,
-     "length": 450,
-     "pitch": 76,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c2",
-     "tick": 9600,
-     "length": 450,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c3",
-     "tick": 10080,
-     "length": 450,
-     "pitch": 79,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c4",
-     "tick": 10560,
-     "length": 930,
-     "pitch": 81,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c5",
-     "tick": 11520,
-     "length": 1410,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c6",
-     "tick": 12960,
-     "length": 450,
-     "pitch": 76,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c7",
-     "tick": 13440,
-     "length": 930,
-     "pitch": 74,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c8",
-     "tick": 14400,
-     "length": 450,
-     "pitch": 72,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002c9",
-     "tick": 14880,
-     "length": 450,
-     "pitch": 74,
-     "velocity": 0.85
-    },
-    {
-     "id": "00000000000002ca",
-     "tick": 15360,
-     "length": 690,
-     "pitch": 77,
-     "velocity": 0.85
-    },
-    {
      "id": "00000000000002cb",
-     "tick": 16080,
+     "tick": 7680,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
      "id": "00000000000002cc",
+     "tick": 8400,
+     "length": 690,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002cd",
+     "tick": 9120,
+     "length": 450,
+     "pitch": 76,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002ce",
+     "tick": 9600,
+     "length": 450,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002cf",
+     "tick": 10080,
+     "length": 450,
+     "pitch": 79,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d0",
+     "tick": 10560,
+     "length": 930,
+     "pitch": 81,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d1",
+     "tick": 11520,
+     "length": 1410,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d2",
+     "tick": 12960,
+     "length": 450,
+     "pitch": 76,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d3",
+     "tick": 13440,
+     "length": 930,
+     "pitch": 74,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d4",
+     "tick": 14400,
+     "length": 450,
+     "pitch": 72,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d5",
+     "tick": 14880,
+     "length": 450,
+     "pitch": 74,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d6",
+     "tick": 15360,
+     "length": 690,
+     "pitch": 77,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d7",
+     "tick": 16080,
+     "length": 690,
+     "pitch": 79,
+     "velocity": 0.85
+    },
+    {
+     "id": "00000000000002d8",
      "tick": 16800,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002cd",
+     "id": "00000000000002d9",
      "tick": 17280,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002ce",
+     "id": "00000000000002da",
      "tick": 17760,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002cf",
+     "id": "00000000000002db",
      "tick": 18240,
      "length": 930,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d0",
+     "id": "00000000000002dc",
      "tick": 19200,
      "length": 690,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d1",
+     "id": "00000000000002dd",
      "tick": 19920,
      "length": 690,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d2",
+     "id": "00000000000002de",
      "tick": 20640,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d3",
+     "id": "00000000000002df",
      "tick": 21120,
      "length": 930,
      "pitch": 84,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d4",
+     "id": "00000000000002e0",
      "tick": 22080,
      "length": 450,
      "pitch": 82,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d5",
+     "id": "00000000000002e1",
      "tick": 22560,
      "length": 450,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d6",
+     "id": "00000000000002e2",
      "tick": 23040,
      "length": 1410,
      "pitch": 81,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d7",
+     "id": "00000000000002e3",
      "tick": 24480,
      "length": 450,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d8",
+     "id": "00000000000002e4",
      "tick": 24960,
      "length": 930,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002d9",
+     "id": "00000000000002e5",
      "tick": 25920,
      "length": 930,
      "pitch": 76,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002da",
+     "id": "00000000000002e6",
      "tick": 26880,
      "length": 930,
      "pitch": 77,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002db",
+     "id": "00000000000002e7",
      "tick": 27840,
      "length": 450,
      "pitch": 76,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002dc",
+     "id": "00000000000002e8",
      "tick": 28320,
      "length": 450,
      "pitch": 79,
      "velocity": 0.85
     },
     {
-     "id": "00000000000002dd",
+     "id": "00000000000002e9",
      "tick": 28800,
      "length": 1890,
      "pitch": 77,
@@ -5050,397 +5137,397 @@
    ]
   },
   {
-   "id": "00000000000002df",
+   "id": "00000000000002eb",
    "trackId": "0000000000000003",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "00000000000002e0",
+     "id": "00000000000002ec",
      "tick": 0,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e1",
+     "id": "00000000000002ed",
      "tick": 720,
      "length": 440,
      "pitch": 81,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e2",
+     "id": "00000000000002ee",
      "tick": 1440,
      "length": 440,
      "pitch": 86,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e3",
+     "id": "00000000000002ef",
      "tick": 1920,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e4",
+     "id": "00000000000002f0",
      "tick": 2400,
      "length": 440,
      "pitch": 81,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e5",
+     "id": "00000000000002f1",
      "tick": 3120,
      "length": 440,
      "pitch": 86,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e6",
+     "id": "00000000000002f2",
      "tick": 3360,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e7",
+     "id": "00000000000002f3",
      "tick": 3840,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e8",
+     "id": "00000000000002f4",
      "tick": 4560,
      "length": 440,
      "pitch": 84,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002e9",
+     "id": "00000000000002f5",
      "tick": 5280,
      "length": 440,
      "pitch": 86,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002ea",
+     "id": "00000000000002f6",
      "tick": 5760,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002eb",
+     "id": "00000000000002f7",
      "tick": 6240,
      "length": 440,
      "pitch": 84,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002ec",
+     "id": "00000000000002f8",
      "tick": 6960,
      "length": 440,
      "pitch": 86,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002ed",
+     "id": "00000000000002f9",
      "tick": 7200,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002ee",
+     "id": "00000000000002fa",
      "tick": 7680,
      "length": 440,
      "pitch": 76,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002ef",
+     "id": "00000000000002fb",
      "tick": 8400,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f0",
+     "id": "00000000000002fc",
      "tick": 9120,
      "length": 440,
      "pitch": 84,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f1",
+     "id": "00000000000002fd",
      "tick": 9600,
      "length": 440,
      "pitch": 76,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f2",
+     "id": "00000000000002fe",
      "tick": 10080,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f3",
+     "id": "00000000000002ff",
      "tick": 10800,
      "length": 440,
      "pitch": 84,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f4",
+     "id": "0000000000000300",
      "tick": 11040,
      "length": 440,
      "pitch": 76,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f5",
+     "id": "0000000000000301",
      "tick": 11520,
      "length": 440,
      "pitch": 74,
      "velocity": 0.75
     },
     {
-     "id": "00000000000002f6",
-     "tick": 12240,
-     "length": 440,
-     "pitch": 77,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002f7",
-     "tick": 12960,
-     "length": 440,
-     "pitch": 81,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002f8",
-     "tick": 13440,
-     "length": 440,
-     "pitch": 74,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002f9",
-     "tick": 13920,
-     "length": 440,
-     "pitch": 77,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002fa",
-     "tick": 14640,
-     "length": 440,
-     "pitch": 81,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002fb",
-     "tick": 14880,
-     "length": 440,
-     "pitch": 74,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002fc",
-     "tick": 15360,
-     "length": 440,
-     "pitch": 77,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002fd",
-     "tick": 16080,
-     "length": 440,
-     "pitch": 79,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002fe",
-     "tick": 16800,
-     "length": 440,
-     "pitch": 82,
-     "velocity": 0.75
-    },
-    {
-     "id": "00000000000002ff",
-     "tick": 17280,
-     "length": 440,
-     "pitch": 77,
-     "velocity": 0.75
-    },
-    {
-     "id": "0000000000000300",
-     "tick": 17760,
-     "length": 440,
-     "pitch": 79,
-     "velocity": 0.75
-    },
-    {
-     "id": "0000000000000301",
-     "tick": 18480,
-     "length": 440,
-     "pitch": 82,
-     "velocity": 0.75
-    },
-    {
      "id": "0000000000000302",
-     "tick": 18720,
+     "tick": 12240,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
      "id": "0000000000000303",
-     "tick": 19200,
+     "tick": 12960,
      "length": 440,
-     "pitch": 76,
+     "pitch": 81,
      "velocity": 0.75
     },
     {
      "id": "0000000000000304",
-     "tick": 19920,
+     "tick": 13440,
      "length": 440,
-     "pitch": 79,
+     "pitch": 74,
      "velocity": 0.75
     },
     {
      "id": "0000000000000305",
-     "tick": 20640,
+     "tick": 13920,
      "length": 440,
-     "pitch": 84,
+     "pitch": 77,
      "velocity": 0.75
     },
     {
      "id": "0000000000000306",
-     "tick": 21120,
+     "tick": 14640,
      "length": 440,
-     "pitch": 76,
+     "pitch": 81,
      "velocity": 0.75
     },
     {
      "id": "0000000000000307",
-     "tick": 21600,
+     "tick": 14880,
+     "length": 440,
+     "pitch": 74,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000308",
+     "tick": 15360,
+     "length": 440,
+     "pitch": 77,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000309",
+     "tick": 16080,
      "length": 440,
      "pitch": 79,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000308",
-     "tick": 22320,
-     "length": 440,
-     "pitch": 84,
-     "velocity": 0.75
-    },
-    {
-     "id": "0000000000000309",
-     "tick": 22560,
-     "length": 440,
-     "pitch": 76,
-     "velocity": 0.75
-    },
-    {
      "id": "000000000000030a",
-     "tick": 23040,
+     "tick": 16800,
      "length": 440,
-     "pitch": 76,
+     "pitch": 82,
      "velocity": 0.75
     },
     {
      "id": "000000000000030b",
-     "tick": 23760,
+     "tick": 17280,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
      "id": "000000000000030c",
-     "tick": 24480,
+     "tick": 17760,
      "length": 440,
-     "pitch": 84,
+     "pitch": 79,
      "velocity": 0.75
     },
     {
      "id": "000000000000030d",
-     "tick": 24960,
+     "tick": 18480,
      "length": 440,
-     "pitch": 76,
+     "pitch": 82,
      "velocity": 0.75
     },
     {
      "id": "000000000000030e",
-     "tick": 25440,
+     "tick": 18720,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
      "id": "000000000000030f",
+     "tick": 19200,
+     "length": 440,
+     "pitch": 76,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000310",
+     "tick": 19920,
+     "length": 440,
+     "pitch": 79,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000311",
+     "tick": 20640,
+     "length": 440,
+     "pitch": 84,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000312",
+     "tick": 21120,
+     "length": 440,
+     "pitch": 76,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000313",
+     "tick": 21600,
+     "length": 440,
+     "pitch": 79,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000314",
+     "tick": 22320,
+     "length": 440,
+     "pitch": 84,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000315",
+     "tick": 22560,
+     "length": 440,
+     "pitch": 76,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000316",
+     "tick": 23040,
+     "length": 440,
+     "pitch": 76,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000317",
+     "tick": 23760,
+     "length": 440,
+     "pitch": 77,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000318",
+     "tick": 24480,
+     "length": 440,
+     "pitch": 84,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000319",
+     "tick": 24960,
+     "length": 440,
+     "pitch": 76,
+     "velocity": 0.75
+    },
+    {
+     "id": "000000000000031a",
+     "tick": 25440,
+     "length": 440,
+     "pitch": 77,
+     "velocity": 0.75
+    },
+    {
+     "id": "000000000000031b",
      "tick": 26160,
      "length": 440,
      "pitch": 84,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000310",
+     "id": "000000000000031c",
      "tick": 26400,
      "length": 440,
      "pitch": 76,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000311",
+     "id": "000000000000031d",
      "tick": 26880,
      "length": 440,
      "pitch": 75,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000312",
+     "id": "000000000000031e",
      "tick": 27600,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000313",
+     "id": "000000000000031f",
      "tick": 28320,
      "length": 440,
      "pitch": 81,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000314",
+     "id": "0000000000000320",
      "tick": 28800,
      "length": 440,
      "pitch": 75,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000315",
+     "id": "0000000000000321",
      "tick": 29280,
      "length": 440,
      "pitch": 77,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000316",
+     "id": "0000000000000322",
      "tick": 30000,
      "length": 440,
      "pitch": 81,
      "velocity": 0.75
     },
     {
-     "id": "0000000000000317",
+     "id": "0000000000000323",
      "tick": 30240,
      "length": 440,
      "pitch": 75,
@@ -5449,614 +5536,614 @@
    ]
   },
   {
-   "id": "000000000000031a",
+   "id": "0000000000000326",
    "trackId": "0000000000000003",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "000000000000031b",
+     "id": "0000000000000327",
      "tick": 0,
      "length": 690,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "000000000000031c",
+     "id": "0000000000000328",
      "tick": 720,
      "length": 690,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "000000000000031d",
+     "id": "0000000000000329",
      "tick": 1440,
      "length": 450,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "000000000000031e",
+     "id": "000000000000032a",
      "tick": 1920,
      "length": 450,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "000000000000031f",
+     "id": "000000000000032b",
      "tick": 2400,
      "length": 450,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000320",
+     "id": "000000000000032c",
      "tick": 2880,
      "length": 930,
      "pitch": 94,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000321",
+     "id": "000000000000032d",
      "tick": 3840,
      "length": 690,
      "pitch": 96,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000322",
+     "id": "000000000000032e",
      "tick": 4560,
      "length": 690,
      "pitch": 94,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000323",
+     "id": "000000000000032f",
      "tick": 5280,
      "length": 450,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000324",
+     "id": "0000000000000330",
      "tick": 5760,
      "length": 930,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000325",
+     "id": "0000000000000331",
      "tick": 6720,
      "length": 450,
      "pitch": 88,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000326",
+     "id": "0000000000000332",
      "tick": 7200,
      "length": 450,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000327",
-     "tick": 7680,
-     "length": 690,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000328",
-     "tick": 8400,
-     "length": 690,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000329",
-     "tick": 9120,
-     "length": 450,
-     "pitch": 88,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032a",
-     "tick": 9600,
-     "length": 450,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032b",
-     "tick": 10080,
-     "length": 450,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032c",
-     "tick": 10560,
-     "length": 930,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032d",
-     "tick": 11520,
-     "length": 1410,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032e",
-     "tick": 12960,
-     "length": 450,
-     "pitch": 88,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000032f",
-     "tick": 13440,
-     "length": 930,
-     "pitch": 86,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000330",
-     "tick": 14400,
-     "length": 450,
-     "pitch": 84,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000331",
-     "tick": 14880,
-     "length": 450,
-     "pitch": 86,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000332",
-     "tick": 15360,
-     "length": 690,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
      "id": "0000000000000333",
-     "tick": 16080,
+     "tick": 7680,
      "length": 690,
      "pitch": 91,
      "velocity": 0.7
     },
     {
      "id": "0000000000000334",
-     "tick": 16800,
-     "length": 450,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000335",
-     "tick": 17280,
-     "length": 450,
-     "pitch": 94,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000336",
-     "tick": 17760,
-     "length": 450,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000337",
-     "tick": 18240,
-     "length": 930,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000338",
-     "tick": 19200,
-     "length": 690,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000339",
-     "tick": 19920,
-     "length": 690,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033a",
-     "tick": 20640,
-     "length": 450,
-     "pitch": 94,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033b",
-     "tick": 21120,
-     "length": 930,
-     "pitch": 96,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033c",
-     "tick": 22080,
-     "length": 450,
-     "pitch": 94,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033d",
-     "tick": 22560,
-     "length": 450,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033e",
-     "tick": 23040,
-     "length": 1410,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000033f",
-     "tick": 24480,
-     "length": 450,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000340",
-     "tick": 24960,
-     "length": 930,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000341",
-     "tick": 25920,
-     "length": 930,
-     "pitch": 88,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000342",
-     "tick": 26880,
-     "length": 930,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000343",
-     "tick": 27840,
-     "length": 450,
-     "pitch": 87,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000344",
-     "tick": 28320,
-     "length": 450,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000345",
-     "tick": 28800,
-     "length": 1890,
-     "pitch": 93,
-     "velocity": 0.7
-    }
-   ]
-  },
-  {
-   "id": "0000000000000347",
-   "trackId": "0000000000000003",
-   "lengthTicks": 30720,
-   "notes": [
-    {
-     "id": "0000000000000348",
-     "tick": 0,
-     "length": 690,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000349",
-     "tick": 720,
-     "length": 690,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034a",
-     "tick": 1440,
-     "length": 450,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034b",
-     "tick": 1920,
-     "length": 450,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034c",
-     "tick": 2400,
-     "length": 450,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034d",
-     "tick": 2880,
-     "length": 930,
-     "pitch": 94,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034e",
-     "tick": 3840,
-     "length": 690,
-     "pitch": 96,
-     "velocity": 0.7
-    },
-    {
-     "id": "000000000000034f",
-     "tick": 4560,
-     "length": 690,
-     "pitch": 94,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000350",
-     "tick": 5280,
-     "length": 450,
-     "pitch": 93,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000351",
-     "tick": 5760,
-     "length": 930,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000352",
-     "tick": 6720,
-     "length": 450,
-     "pitch": 88,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000353",
-     "tick": 7200,
-     "length": 450,
-     "pitch": 89,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000354",
-     "tick": 7680,
-     "length": 690,
-     "pitch": 91,
-     "velocity": 0.7
-    },
-    {
-     "id": "0000000000000355",
      "tick": 8400,
      "length": 690,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000356",
+     "id": "0000000000000335",
      "tick": 9120,
      "length": 450,
      "pitch": 88,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000357",
+     "id": "0000000000000336",
      "tick": 9600,
      "length": 450,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000358",
+     "id": "0000000000000337",
      "tick": 10080,
      "length": 450,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000359",
+     "id": "0000000000000338",
      "tick": 10560,
      "length": 930,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035a",
+     "id": "0000000000000339",
      "tick": 11520,
      "length": 1410,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035b",
+     "id": "000000000000033a",
      "tick": 12960,
      "length": 450,
      "pitch": 88,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035c",
+     "id": "000000000000033b",
      "tick": 13440,
      "length": 930,
      "pitch": 86,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035d",
+     "id": "000000000000033c",
      "tick": 14400,
      "length": 450,
      "pitch": 84,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035e",
+     "id": "000000000000033d",
      "tick": 14880,
      "length": 450,
      "pitch": 86,
      "velocity": 0.7
     },
     {
-     "id": "000000000000035f",
+     "id": "000000000000033e",
      "tick": 15360,
      "length": 690,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000360",
+     "id": "000000000000033f",
      "tick": 16080,
      "length": 690,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000361",
+     "id": "0000000000000340",
      "tick": 16800,
      "length": 450,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000362",
+     "id": "0000000000000341",
      "tick": 17280,
      "length": 450,
      "pitch": 94,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000363",
+     "id": "0000000000000342",
      "tick": 17760,
      "length": 450,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000364",
+     "id": "0000000000000343",
      "tick": 18240,
      "length": 930,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000365",
+     "id": "0000000000000344",
      "tick": 19200,
      "length": 690,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000366",
+     "id": "0000000000000345",
      "tick": 19920,
      "length": 690,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000367",
+     "id": "0000000000000346",
      "tick": 20640,
      "length": 450,
      "pitch": 94,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000368",
+     "id": "0000000000000347",
      "tick": 21120,
      "length": 930,
      "pitch": 96,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000369",
+     "id": "0000000000000348",
      "tick": 22080,
      "length": 450,
      "pitch": 94,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036a",
+     "id": "0000000000000349",
      "tick": 22560,
      "length": 450,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036b",
+     "id": "000000000000034a",
      "tick": 23040,
      "length": 1410,
      "pitch": 93,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036c",
+     "id": "000000000000034b",
      "tick": 24480,
      "length": 450,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036d",
+     "id": "000000000000034c",
      "tick": 24960,
      "length": 930,
      "pitch": 89,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036e",
+     "id": "000000000000034d",
      "tick": 25920,
      "length": 930,
      "pitch": 88,
      "velocity": 0.7
     },
     {
-     "id": "000000000000036f",
+     "id": "000000000000034e",
      "tick": 26880,
      "length": 930,
      "pitch": 89,
      "velocity": 0.7
     },
     {
+     "id": "000000000000034f",
+     "tick": 27840,
+     "length": 450,
+     "pitch": 87,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000350",
+     "tick": 28320,
+     "length": 450,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000351",
+     "tick": 28800,
+     "length": 1890,
+     "pitch": 93,
+     "velocity": 0.7
+    }
+   ]
+  },
+  {
+   "id": "0000000000000353",
+   "trackId": "0000000000000003",
+   "lengthTicks": 30720,
+   "notes": [
+    {
+     "id": "0000000000000354",
+     "tick": 0,
+     "length": 690,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000355",
+     "tick": 720,
+     "length": 690,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000356",
+     "tick": 1440,
+     "length": 450,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000357",
+     "tick": 1920,
+     "length": 450,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000358",
+     "tick": 2400,
+     "length": 450,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000359",
+     "tick": 2880,
+     "length": 930,
+     "pitch": 94,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035a",
+     "tick": 3840,
+     "length": 690,
+     "pitch": 96,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035b",
+     "tick": 4560,
+     "length": 690,
+     "pitch": 94,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035c",
+     "tick": 5280,
+     "length": 450,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035d",
+     "tick": 5760,
+     "length": 930,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035e",
+     "tick": 6720,
+     "length": 450,
+     "pitch": 88,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000035f",
+     "tick": 7200,
+     "length": 450,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000360",
+     "tick": 7680,
+     "length": 690,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000361",
+     "tick": 8400,
+     "length": 690,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000362",
+     "tick": 9120,
+     "length": 450,
+     "pitch": 88,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000363",
+     "tick": 9600,
+     "length": 450,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000364",
+     "tick": 10080,
+     "length": 450,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000365",
+     "tick": 10560,
+     "length": 930,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000366",
+     "tick": 11520,
+     "length": 1410,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000367",
+     "tick": 12960,
+     "length": 450,
+     "pitch": 88,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000368",
+     "tick": 13440,
+     "length": 930,
+     "pitch": 86,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000369",
+     "tick": 14400,
+     "length": 450,
+     "pitch": 84,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036a",
+     "tick": 14880,
+     "length": 450,
+     "pitch": 86,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036b",
+     "tick": 15360,
+     "length": 690,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036c",
+     "tick": 16080,
+     "length": 690,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036d",
+     "tick": 16800,
+     "length": 450,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036e",
+     "tick": 17280,
+     "length": 450,
+     "pitch": 94,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000036f",
+     "tick": 17760,
+     "length": 450,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
      "id": "0000000000000370",
+     "tick": 18240,
+     "length": 930,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000371",
+     "tick": 19200,
+     "length": 690,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000372",
+     "tick": 19920,
+     "length": 690,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000373",
+     "tick": 20640,
+     "length": 450,
+     "pitch": 94,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000374",
+     "tick": 21120,
+     "length": 930,
+     "pitch": 96,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000375",
+     "tick": 22080,
+     "length": 450,
+     "pitch": 94,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000376",
+     "tick": 22560,
+     "length": 450,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000377",
+     "tick": 23040,
+     "length": 1410,
+     "pitch": 93,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000378",
+     "tick": 24480,
+     "length": 450,
+     "pitch": 91,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000379",
+     "tick": 24960,
+     "length": 930,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000037a",
+     "tick": 25920,
+     "length": 930,
+     "pitch": 88,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000037b",
+     "tick": 26880,
+     "length": 930,
+     "pitch": 89,
+     "velocity": 0.7
+    },
+    {
+     "id": "000000000000037c",
      "tick": 27840,
      "length": 450,
      "pitch": 88,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000371",
+     "id": "000000000000037d",
      "tick": 28320,
      "length": 450,
      "pitch": 91,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000372",
+     "id": "000000000000037e",
      "tick": 28800,
      "length": 1890,
      "pitch": 89,
@@ -6065,572 +6152,285 @@
    ]
   },
   {
-   "id": "0000000000000374",
+   "id": "0000000000000380",
    "trackId": "0000000000000004",
    "lengthTicks": 30720,
    "notes": [
     {
-     "id": "0000000000000375",
+     "id": "0000000000000381",
      "tick": 0,
      "length": 450,
      "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000376",
-     "tick": 960,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000377",
-     "tick": 1920,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000378",
-     "tick": 2640,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000379",
-     "tick": 3360,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037a",
-     "tick": 3840,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037b",
-     "tick": 4800,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037c",
-     "tick": 5760,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037d",
-     "tick": 6480,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037e",
-     "tick": 7200,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000037f",
-     "tick": 7680,
-     "length": 450,
-     "pitch": 45,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000380",
-     "tick": 8640,
-     "length": 450,
-     "pitch": 45,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000381",
-     "tick": 9600,
-     "length": 450,
-     "pitch": 45,
      "velocity": 0.9
     },
     {
      "id": "0000000000000382",
-     "tick": 10320,
+     "tick": 960,
      "length": 450,
-     "pitch": 45,
+     "pitch": 46,
      "velocity": 0.9
     },
     {
      "id": "0000000000000383",
-     "tick": 11040,
+     "tick": 1920,
      "length": 450,
-     "pitch": 45,
+     "pitch": 46,
      "velocity": 0.9
     },
     {
      "id": "0000000000000384",
-     "tick": 11520,
+     "tick": 2640,
      "length": 450,
-     "pitch": 50,
+     "pitch": 46,
      "velocity": 0.9
     },
     {
      "id": "0000000000000385",
-     "tick": 12480,
+     "tick": 3360,
      "length": 450,
-     "pitch": 50,
+     "pitch": 46,
      "velocity": 0.9
     },
     {
      "id": "0000000000000386",
-     "tick": 13440,
+     "tick": 3840,
      "length": 450,
-     "pitch": 50,
+     "pitch": 48,
      "velocity": 0.9
     },
     {
      "id": "0000000000000387",
-     "tick": 14160,
+     "tick": 4800,
      "length": 450,
-     "pitch": 50,
+     "pitch": 48,
      "velocity": 0.9
     },
     {
      "id": "0000000000000388",
-     "tick": 14880,
-     "length": 450,
-     "pitch": 50,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000389",
-     "tick": 15360,
-     "length": 450,
-     "pitch": 43,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038a",
-     "tick": 16320,
-     "length": 450,
-     "pitch": 43,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038b",
-     "tick": 17280,
-     "length": 450,
-     "pitch": 43,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038c",
-     "tick": 18000,
-     "length": 450,
-     "pitch": 43,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038d",
-     "tick": 18720,
-     "length": 450,
-     "pitch": 43,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038e",
-     "tick": 19200,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000038f",
-     "tick": 20160,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000390",
-     "tick": 21120,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000391",
-     "tick": 21840,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000392",
-     "tick": 22560,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000393",
-     "tick": 23040,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000394",
-     "tick": 24000,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000395",
-     "tick": 24960,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000396",
-     "tick": 25680,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000397",
-     "tick": 26400,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000398",
-     "tick": 26880,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000399",
-     "tick": 27840,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000039a",
-     "tick": 28800,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000039b",
-     "tick": 29520,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000039c",
-     "tick": 30240,
-     "length": 450,
-     "pitch": 41,
-     "velocity": 0.9
-    }
-   ]
-  },
-  {
-   "id": "00000000000003a0",
-   "trackId": "0000000000000004",
-   "lengthTicks": 30720,
-   "notes": [
-    {
-     "id": "00000000000003a1",
-     "tick": 0,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a2",
-     "tick": 960,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a3",
-     "tick": 1920,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a4",
-     "tick": 2640,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a5",
-     "tick": 3360,
-     "length": 450,
-     "pitch": 46,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a6",
-     "tick": 3840,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a7",
-     "tick": 4800,
-     "length": 450,
-     "pitch": 48,
-     "velocity": 0.9
-    },
-    {
-     "id": "00000000000003a8",
      "tick": 5760,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003a9",
+     "id": "0000000000000389",
      "tick": 6480,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003aa",
+     "id": "000000000000038a",
      "tick": 7200,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003ab",
+     "id": "000000000000038b",
      "tick": 7680,
      "length": 450,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003ac",
+     "id": "000000000000038c",
      "tick": 8640,
      "length": 450,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003ad",
+     "id": "000000000000038d",
      "tick": 9600,
      "length": 450,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003ae",
+     "id": "000000000000038e",
      "tick": 10320,
      "length": 450,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003af",
+     "id": "000000000000038f",
      "tick": 11040,
      "length": 450,
      "pitch": 45,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b0",
+     "id": "0000000000000390",
      "tick": 11520,
      "length": 450,
      "pitch": 50,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b1",
+     "id": "0000000000000391",
      "tick": 12480,
      "length": 450,
      "pitch": 50,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b2",
+     "id": "0000000000000392",
      "tick": 13440,
      "length": 450,
      "pitch": 50,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b3",
+     "id": "0000000000000393",
      "tick": 14160,
      "length": 450,
      "pitch": 50,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b4",
+     "id": "0000000000000394",
      "tick": 14880,
      "length": 450,
      "pitch": 50,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b5",
+     "id": "0000000000000395",
      "tick": 15360,
      "length": 450,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b6",
+     "id": "0000000000000396",
      "tick": 16320,
      "length": 450,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b7",
+     "id": "0000000000000397",
      "tick": 17280,
      "length": 450,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b8",
+     "id": "0000000000000398",
      "tick": 18000,
      "length": 450,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003b9",
+     "id": "0000000000000399",
      "tick": 18720,
      "length": 450,
      "pitch": 43,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003ba",
+     "id": "000000000000039a",
      "tick": 19200,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003bb",
+     "id": "000000000000039b",
      "tick": 20160,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003bc",
+     "id": "000000000000039c",
      "tick": 21120,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003bd",
+     "id": "000000000000039d",
      "tick": 21840,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003be",
+     "id": "000000000000039e",
      "tick": 22560,
      "length": 450,
      "pitch": 48,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003bf",
+     "id": "000000000000039f",
      "tick": 23040,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c0",
+     "id": "00000000000003a0",
      "tick": 24000,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c1",
+     "id": "00000000000003a1",
      "tick": 24960,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c2",
+     "id": "00000000000003a2",
      "tick": 25680,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c3",
+     "id": "00000000000003a3",
      "tick": 26400,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c4",
+     "id": "00000000000003a4",
      "tick": 26880,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c5",
+     "id": "00000000000003a5",
      "tick": 27840,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c6",
+     "id": "00000000000003a6",
      "tick": 28800,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c7",
+     "id": "00000000000003a7",
      "tick": 29520,
      "length": 450,
      "pitch": 41,
      "velocity": 0.9
     },
     {
-     "id": "00000000000003c8",
+     "id": "00000000000003a8",
      "tick": 30240,
      "length": 450,
      "pitch": 41,
@@ -6639,733 +6439,1083 @@
    ]
   },
   {
-   "id": "00000000000003ca",
+   "id": "00000000000003ac",
+   "trackId": "0000000000000004",
+   "lengthTicks": 30720,
+   "notes": [
+    {
+     "id": "00000000000003ad",
+     "tick": 0,
+     "length": 450,
+     "pitch": 46,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003ae",
+     "tick": 960,
+     "length": 450,
+     "pitch": 46,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003af",
+     "tick": 1920,
+     "length": 450,
+     "pitch": 46,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b0",
+     "tick": 2640,
+     "length": 450,
+     "pitch": 46,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b1",
+     "tick": 3360,
+     "length": 450,
+     "pitch": 46,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b2",
+     "tick": 3840,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b3",
+     "tick": 4800,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b4",
+     "tick": 5760,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b5",
+     "tick": 6480,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b6",
+     "tick": 7200,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b7",
+     "tick": 7680,
+     "length": 450,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b8",
+     "tick": 8640,
+     "length": 450,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003b9",
+     "tick": 9600,
+     "length": 450,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003ba",
+     "tick": 10320,
+     "length": 450,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003bb",
+     "tick": 11040,
+     "length": 450,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003bc",
+     "tick": 11520,
+     "length": 450,
+     "pitch": 50,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003bd",
+     "tick": 12480,
+     "length": 450,
+     "pitch": 50,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003be",
+     "tick": 13440,
+     "length": 450,
+     "pitch": 50,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003bf",
+     "tick": 14160,
+     "length": 450,
+     "pitch": 50,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c0",
+     "tick": 14880,
+     "length": 450,
+     "pitch": 50,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c1",
+     "tick": 15360,
+     "length": 450,
+     "pitch": 43,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c2",
+     "tick": 16320,
+     "length": 450,
+     "pitch": 43,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c3",
+     "tick": 17280,
+     "length": 450,
+     "pitch": 43,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c4",
+     "tick": 18000,
+     "length": 450,
+     "pitch": 43,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c5",
+     "tick": 18720,
+     "length": 450,
+     "pitch": 43,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c6",
+     "tick": 19200,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c7",
+     "tick": 20160,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c8",
+     "tick": 21120,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003c9",
+     "tick": 21840,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003ca",
+     "tick": 22560,
+     "length": 450,
+     "pitch": 48,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003cb",
+     "tick": 23040,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003cc",
+     "tick": 24000,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003cd",
+     "tick": 24960,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003ce",
+     "tick": 25680,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003cf",
+     "tick": 26400,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003d0",
+     "tick": 26880,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003d1",
+     "tick": 27840,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003d2",
+     "tick": 28800,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003d3",
+     "tick": 29520,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "00000000000003d4",
+     "tick": 30240,
+     "length": 450,
+     "pitch": 41,
+     "velocity": 0.9
+    }
+   ]
+  },
+  {
+   "id": "00000000000003d6",
    "trackId": "0000000000000005",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "00000000000003cb",
+     "id": "00000000000003d7",
      "tick": 0,
      "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003cc",
-     "tick": 960,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003cd",
-     "tick": 1920,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003ce",
-     "tick": 2640,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003cf",
-     "tick": 3360,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d0",
-     "tick": 3840,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d1",
-     "tick": 4800,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d2",
-     "tick": 5760,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d3",
-     "tick": 6480,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d4",
-     "tick": 7200,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d5",
-     "tick": 7680,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d6",
-     "tick": 8640,
-     "length": 460,
-     "pitch": 43,
-     "velocity": 1.0
-    },
-    {
-     "id": "00000000000003d7",
-     "tick": 9600,
-     "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003d8",
-     "tick": 10320,
+     "tick": 960,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003d9",
-     "tick": 11040,
+     "tick": 1920,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003da",
-     "tick": 11520,
+     "tick": 2640,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003db",
-     "tick": 12480,
+     "tick": 3360,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003dc",
-     "tick": 13440,
+     "tick": 3840,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003dd",
-     "tick": 13920,
+     "tick": 4800,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003de",
-     "tick": 14400,
+     "tick": 5760,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003df",
-     "tick": 14640,
+     "tick": 6480,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003e0",
-     "tick": 14880,
+     "tick": 7200,
      "length": 460,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     },
     {
      "id": "00000000000003e1",
+     "tick": 7680,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e2",
+     "tick": 8640,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e3",
+     "tick": 9600,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e4",
+     "tick": 10320,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e5",
+     "tick": 11040,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e6",
+     "tick": 11520,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e7",
+     "tick": 12480,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e8",
+     "tick": 13440,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003e9",
+     "tick": 13920,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003ea",
+     "tick": 14400,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003eb",
+     "tick": 14640,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003ec",
+     "tick": 14880,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "00000000000003ed",
      "tick": 15120,
      "length": 240,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     }
    ]
   },
   {
-   "id": "00000000000003ea",
+   "id": "00000000000003f6",
    "trackId": "0000000000000006",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "00000000000003eb",
+     "id": "00000000000003f7",
      "tick": 960,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003ec",
+     "id": "00000000000003f8",
+     "tick": 960,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "00000000000003f9",
      "tick": 2880,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003ed",
+     "id": "00000000000003fa",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "00000000000003fb",
      "tick": 4800,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003ee",
+     "id": "00000000000003fc",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "00000000000003fd",
      "tick": 6720,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003ef",
+     "id": "00000000000003fe",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "00000000000003ff",
      "tick": 8640,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003f0",
+     "id": "0000000000000400",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000401",
      "tick": 10560,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003f1",
+     "id": "0000000000000402",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000403",
      "tick": 12480,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003f2",
+     "id": "0000000000000404",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000405",
      "tick": 14400,
      "length": 240,
-     "pitch": 50,
+     "pitch": 28,
      "velocity": 0.95
     },
     {
-     "id": "00000000000003f3",
+     "id": "0000000000000406",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 41,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000407",
      "tick": 15120,
      "length": 240,
-     "pitch": 50,
+     "pitch": 41,
      "velocity": 0.8
     }
    ]
   },
   {
-   "id": "00000000000003fc",
+   "id": "0000000000000410",
    "trackId": "0000000000000007",
    "lengthTicks": 15360,
    "notes": [
     {
-     "id": "00000000000003fd",
+     "id": "0000000000000411",
      "tick": 0,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "00000000000003fe",
-     "tick": 240,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "00000000000003ff",
-     "tick": 480,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000400",
-     "tick": 720,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000401",
-     "tick": 960,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000402",
-     "tick": 1200,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000403",
-     "tick": 1440,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000404",
-     "tick": 1680,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000405",
-     "tick": 1920,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000406",
-     "tick": 2160,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000407",
-     "tick": 2400,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000408",
-     "tick": 2640,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000409",
-     "tick": 2880,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000040a",
-     "tick": 3120,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000040b",
-     "tick": 3360,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000040c",
-     "tick": 3600,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000040d",
-     "tick": 3840,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000040e",
-     "tick": 4080,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "000000000000040f",
-     "tick": 4320,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000410",
-     "tick": 4560,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
-    },
-    {
-     "id": "0000000000000411",
-     "tick": 4800,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000412",
-     "tick": 5040,
-     "length": 240,
-     "pitch": 72,
-     "velocity": 0.55
+     "tick": 0,
+     "length": 3840,
+     "pitch": 49,
+     "velocity": 0.85
     },
     {
      "id": "0000000000000413",
-     "tick": 5280,
+     "tick": 240,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000414",
-     "tick": 5520,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000415",
-     "tick": 5760,
+     "id": "0000000000000414",
+     "tick": 480,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000415",
+     "tick": 720,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000416",
-     "tick": 6000,
+     "tick": 960,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000417",
-     "tick": 6240,
+     "tick": 1200,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000418",
-     "tick": 6480,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000419",
-     "tick": 6720,
+     "id": "0000000000000418",
+     "tick": 1440,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000419",
+     "tick": 1680,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000041a",
-     "tick": 6960,
+     "tick": 1920,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000041b",
-     "tick": 7200,
+     "tick": 2160,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000041c",
-     "tick": 7440,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "000000000000041d",
-     "tick": 7680,
+     "id": "000000000000041c",
+     "tick": 2400,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000041d",
+     "tick": 2640,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000041e",
-     "tick": 7920,
+     "tick": 2880,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000041f",
-     "tick": 8160,
+     "tick": 3120,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000420",
-     "tick": 8400,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000421",
-     "tick": 8640,
+     "id": "0000000000000420",
+     "tick": 3360,
      "length": 240,
-     "pitch": 72,
+     "pitch": 58,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000421",
+     "tick": 3600,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000422",
-     "tick": 8880,
+     "tick": 3840,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000423",
-     "tick": 9120,
+     "tick": 4080,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000424",
-     "tick": 9360,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000425",
-     "tick": 9600,
+     "id": "0000000000000424",
+     "tick": 4320,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000425",
+     "tick": 4560,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000426",
-     "tick": 9840,
+     "tick": 4800,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000427",
-     "tick": 10080,
+     "tick": 5040,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000428",
-     "tick": 10320,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000429",
-     "tick": 10560,
+     "id": "0000000000000428",
+     "tick": 5280,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000429",
+     "tick": 5520,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000042a",
-     "tick": 10800,
+     "tick": 5760,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000042b",
-     "tick": 11040,
+     "tick": 6000,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "000000000000042c",
-     "tick": 11280,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "000000000000042d",
-     "tick": 11520,
+     "id": "000000000000042c",
+     "tick": 6240,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000042d",
+     "tick": 6480,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000042e",
-     "tick": 11760,
+     "tick": 6720,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000042f",
-     "tick": 12000,
+     "tick": 6960,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000430",
-     "tick": 12240,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000431",
-     "tick": 12480,
+     "id": "0000000000000430",
+     "tick": 7200,
      "length": 240,
-     "pitch": 72,
+     "pitch": 58,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000431",
+     "tick": 7440,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000432",
-     "tick": 12720,
+     "tick": 7680,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000433",
-     "tick": 12960,
+     "tick": 7920,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000434",
-     "tick": 13200,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000435",
-     "tick": 13440,
+     "id": "0000000000000434",
+     "tick": 8160,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000435",
+     "tick": 8400,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000436",
-     "tick": 13680,
+     "tick": 8640,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "0000000000000437",
-     "tick": 13920,
+     "tick": 8880,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
-    },
-    {
-     "id": "0000000000000438",
-     "tick": 14160,
-     "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
-     "id": "0000000000000439",
-     "tick": 14400,
+     "id": "0000000000000438",
+     "tick": 9120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000439",
+     "tick": 9360,
+     "length": 240,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000043a",
-     "tick": 14640,
+     "tick": 9600,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     },
     {
      "id": "000000000000043b",
-     "tick": 14880,
+     "tick": 9840,
      "length": 240,
-     "pitch": 72,
-     "velocity": 0.9
+     "pitch": 42,
+     "velocity": 0.55
     },
     {
      "id": "000000000000043c",
+     "tick": 10080,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000043d",
+     "tick": 10320,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000043e",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000043f",
+     "tick": 10800,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000440",
+     "tick": 11040,
+     "length": 240,
+     "pitch": 58,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000441",
+     "tick": 11280,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000442",
+     "tick": 11520,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000443",
+     "tick": 11760,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000444",
+     "tick": 12000,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000445",
+     "tick": 12240,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000446",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000447",
+     "tick": 12720,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000448",
+     "tick": 12960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000449",
+     "tick": 13200,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000044a",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000044b",
+     "tick": 13680,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000044c",
+     "tick": 13920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000044d",
+     "tick": 14160,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000044e",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000044f",
+     "tick": 14640,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000450",
+     "tick": 14880,
+     "length": 240,
+     "pitch": 58,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000451",
      "tick": 15120,
      "length": 240,
-     "pitch": 72,
+     "pitch": 42,
      "velocity": 0.55
     }
    ]
   },
   {
-   "id": "0000000000000445",
+   "id": "000000000000045a",
    "trackId": "0000000000000001",
    "lengthTicks": 3840,
    "notes": [
     {
-     "id": "0000000000000446",
+     "id": "000000000000045b",
      "tick": 0,
      "length": 3780,
      "pitch": 57,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000447",
+     "id": "000000000000045c",
      "tick": 0,
      "length": 3780,
      "pitch": 60,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000448",
+     "id": "000000000000045d",
      "tick": 0,
      "length": 3780,
      "pitch": 65,
      "velocity": 0.9
     },
     {
-     "id": "0000000000000449",
+     "id": "000000000000045e",
      "tick": 0,
      "length": 3780,
      "pitch": 67,
      "velocity": 0.9
     },
     {
-     "id": "000000000000044a",
+     "id": "000000000000045f",
      "tick": 0,
      "length": 3780,
      "pitch": 72,
@@ -7374,12 +7524,12 @@
    ]
   },
   {
-   "id": "000000000000044c",
+   "id": "0000000000000461",
    "trackId": "0000000000000004",
    "lengthTicks": 3840,
    "notes": [
     {
-     "id": "000000000000044d",
+     "id": "0000000000000462",
      "tick": 0,
      "length": 1920,
      "pitch": 41,
@@ -7388,40 +7538,40 @@
    ]
   },
   {
-   "id": "000000000000044f",
+   "id": "0000000000000464",
    "trackId": "0000000000000005",
    "lengthTicks": 3840,
    "notes": [
     {
-     "id": "0000000000000450",
+     "id": "0000000000000465",
      "tick": 0,
      "length": 480,
-     "pitch": 43,
+     "pitch": 36,
      "velocity": 1.0
     }
    ]
   },
   {
-   "id": "0000000000000452",
+   "id": "0000000000000467",
    "trackId": "0000000000000003",
    "lengthTicks": 3840,
    "notes": [
     {
-     "id": "0000000000000453",
+     "id": "0000000000000468",
      "tick": 0,
      "length": 1920,
      "pitch": 77,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000454",
+     "id": "0000000000000469",
      "tick": 0,
      "length": 1920,
      "pitch": 81,
      "velocity": 0.7
     },
     {
-     "id": "0000000000000455",
+     "id": "000000000000046a",
      "tick": 0,
      "length": 1920,
      "pitch": 84,
@@ -7593,442 +7743,442 @@
    "lengthBars": 4
   },
   {
-   "id": "0000000000000130",
+   "id": "0000000000000134",
    "clipId": "0000000000000129",
    "trackId": "0000000000000006",
    "startBar": 8,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000131",
+   "id": "0000000000000135",
    "clipId": "0000000000000129",
    "trackId": "0000000000000006",
    "startBar": 12,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000132",
+   "id": "0000000000000136",
    "clipId": "0000000000000129",
    "trackId": "0000000000000006",
    "startBar": 16,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000133",
+   "id": "0000000000000137",
    "clipId": "0000000000000129",
    "trackId": "0000000000000006",
    "startBar": 20,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000155",
-   "clipId": "0000000000000134",
+   "id": "0000000000000159",
+   "clipId": "0000000000000138",
    "trackId": "0000000000000007",
    "startBar": 8,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000156",
-   "clipId": "0000000000000134",
+   "id": "000000000000015a",
+   "clipId": "0000000000000138",
    "trackId": "0000000000000007",
    "startBar": 12,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000157",
-   "clipId": "0000000000000134",
+   "id": "000000000000015b",
+   "clipId": "0000000000000138",
    "trackId": "0000000000000007",
    "startBar": 16,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000158",
-   "clipId": "0000000000000134",
+   "id": "000000000000015c",
+   "clipId": "0000000000000138",
    "trackId": "0000000000000007",
    "startBar": 20,
    "lengthBars": 4
   },
   {
-   "id": "000000000000016e",
-   "clipId": "0000000000000159",
+   "id": "0000000000000172",
+   "clipId": "000000000000015d",
    "trackId": "0000000000000001",
    "startBar": 24,
    "lengthBars": 4
   },
   {
-   "id": "000000000000016f",
-   "clipId": "0000000000000159",
+   "id": "0000000000000173",
+   "clipId": "000000000000015d",
    "trackId": "0000000000000001",
    "startBar": 28,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000175",
-   "clipId": "0000000000000170",
+   "id": "0000000000000179",
+   "clipId": "0000000000000174",
    "trackId": "0000000000000004",
    "startBar": 24,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000187",
-   "clipId": "0000000000000176",
+   "id": "000000000000018b",
+   "clipId": "000000000000017a",
    "trackId": "0000000000000005",
    "startBar": 24,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000191",
-   "clipId": "0000000000000188",
+   "id": "000000000000019d",
+   "clipId": "000000000000018c",
    "trackId": "0000000000000006",
    "startBar": 24,
    "lengthBars": 4
   },
   {
-   "id": "00000000000001d3",
-   "clipId": "0000000000000192",
+   "id": "00000000000001df",
+   "clipId": "000000000000019e",
    "trackId": "0000000000000007",
    "startBar": 24,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000211",
-   "clipId": "00000000000001d4",
+   "id": "000000000000021d",
+   "clipId": "00000000000001e0",
    "trackId": "0000000000000006",
    "startBar": 28,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000212",
-   "clipId": "00000000000001d4",
+   "id": "000000000000021e",
+   "clipId": "00000000000001e0",
    "trackId": "0000000000000006",
    "startBar": 56,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000215",
-   "clipId": "0000000000000213",
+   "id": "0000000000000221",
+   "clipId": "000000000000021f",
    "trackId": "0000000000000008",
    "startBar": 28,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000216",
-   "clipId": "0000000000000213",
+   "id": "0000000000000222",
+   "clipId": "000000000000021f",
    "trackId": "0000000000000008",
    "startBar": 56,
    "lengthBars": 4
   },
   {
-   "id": "000000000000022c",
-   "clipId": "0000000000000217",
+   "id": "0000000000000238",
+   "clipId": "0000000000000223",
    "trackId": "0000000000000001",
    "startBar": 56,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000256",
-   "clipId": "000000000000022d",
+   "id": "0000000000000262",
+   "clipId": "0000000000000239",
    "trackId": "0000000000000001",
    "startBar": 32,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000257",
-   "clipId": "000000000000022d",
+   "id": "0000000000000263",
+   "clipId": "0000000000000239",
    "trackId": "0000000000000001",
    "startBar": 40,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000258",
-   "clipId": "000000000000022d",
+   "id": "0000000000000264",
+   "clipId": "0000000000000239",
    "trackId": "0000000000000001",
    "startBar": 60,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000282",
-   "clipId": "0000000000000259",
+   "id": "000000000000028e",
+   "clipId": "0000000000000265",
    "trackId": "0000000000000001",
    "startBar": 68,
    "lengthBars": 8
   },
   {
-   "id": "00000000000002af",
-   "clipId": "0000000000000283",
+   "id": "00000000000002bb",
+   "clipId": "000000000000028f",
    "trackId": "0000000000000002",
    "startBar": 32,
    "lengthBars": 8
   },
   {
-   "id": "00000000000002b0",
-   "clipId": "0000000000000283",
+   "id": "00000000000002bc",
+   "clipId": "000000000000028f",
    "trackId": "0000000000000002",
    "startBar": 40,
    "lengthBars": 8
   },
   {
-   "id": "00000000000002b1",
-   "clipId": "0000000000000283",
+   "id": "00000000000002bd",
+   "clipId": "000000000000028f",
    "trackId": "0000000000000002",
    "startBar": 60,
    "lengthBars": 8
   },
   {
-   "id": "00000000000002de",
-   "clipId": "00000000000002b2",
+   "id": "00000000000002ea",
+   "clipId": "00000000000002be",
    "trackId": "0000000000000002",
    "startBar": 68,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000318",
-   "clipId": "00000000000002df",
+   "id": "0000000000000324",
+   "clipId": "00000000000002eb",
    "trackId": "0000000000000003",
    "startBar": 32,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000319",
-   "clipId": "00000000000002df",
+   "id": "0000000000000325",
+   "clipId": "00000000000002eb",
    "trackId": "0000000000000003",
    "startBar": 40,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000346",
-   "clipId": "000000000000031a",
+   "id": "0000000000000352",
+   "clipId": "0000000000000326",
    "trackId": "0000000000000003",
    "startBar": 60,
    "lengthBars": 8
   },
   {
-   "id": "0000000000000373",
-   "clipId": "0000000000000347",
+   "id": "000000000000037f",
+   "clipId": "0000000000000353",
    "trackId": "0000000000000003",
    "startBar": 68,
    "lengthBars": 8
   },
   {
-   "id": "000000000000039d",
-   "clipId": "0000000000000374",
+   "id": "00000000000003a9",
+   "clipId": "0000000000000380",
    "trackId": "0000000000000004",
    "startBar": 32,
    "lengthBars": 8
   },
   {
-   "id": "000000000000039e",
-   "clipId": "0000000000000374",
+   "id": "00000000000003aa",
+   "clipId": "0000000000000380",
    "trackId": "0000000000000004",
    "startBar": 40,
    "lengthBars": 8
   },
   {
-   "id": "000000000000039f",
-   "clipId": "0000000000000374",
+   "id": "00000000000003ab",
+   "clipId": "0000000000000380",
    "trackId": "0000000000000004",
    "startBar": 60,
    "lengthBars": 8
   },
   {
-   "id": "00000000000003c9",
-   "clipId": "00000000000003a0",
+   "id": "00000000000003d5",
+   "clipId": "00000000000003ac",
    "trackId": "0000000000000004",
    "startBar": 68,
    "lengthBars": 8
   },
   {
-   "id": "00000000000003e2",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003ee",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 32,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003e3",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003ef",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 36,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003e4",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003f0",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 40,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003e5",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003f1",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 44,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003e6",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003f2",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 60,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003e7",
-   "clipId": "00000000000003ca",
+   "id": "00000000000003f3",
+   "clipId": "00000000000003d6",
    "trackId": "0000000000000005",
    "startBar": 64,
-   "lengthBars": 4
-  },
-  {
-   "id": "00000000000003e8",
-   "clipId": "00000000000003ca",
-   "trackId": "0000000000000005",
-   "startBar": 68,
-   "lengthBars": 4
-  },
-  {
-   "id": "00000000000003e9",
-   "clipId": "00000000000003ca",
-   "trackId": "0000000000000005",
-   "startBar": 72,
    "lengthBars": 4
   },
   {
    "id": "00000000000003f4",
-   "clipId": "00000000000003ea",
-   "trackId": "0000000000000006",
-   "startBar": 32,
+   "clipId": "00000000000003d6",
+   "trackId": "0000000000000005",
+   "startBar": 68,
    "lengthBars": 4
   },
   {
    "id": "00000000000003f5",
-   "clipId": "00000000000003ea",
+   "clipId": "00000000000003d6",
+   "trackId": "0000000000000005",
+   "startBar": 72,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000408",
+   "clipId": "00000000000003f6",
+   "trackId": "0000000000000006",
+   "startBar": 32,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000409",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 36,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003f6",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040a",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 40,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003f7",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040b",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 44,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003f8",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040c",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 60,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003f9",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040d",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 64,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003fa",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040e",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 68,
    "lengthBars": 4
   },
   {
-   "id": "00000000000003fb",
-   "clipId": "00000000000003ea",
+   "id": "000000000000040f",
+   "clipId": "00000000000003f6",
    "trackId": "0000000000000006",
    "startBar": 72,
    "lengthBars": 4
   },
   {
-   "id": "000000000000043d",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000452",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 32,
    "lengthBars": 4
   },
   {
-   "id": "000000000000043e",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000453",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 36,
    "lengthBars": 4
   },
   {
-   "id": "000000000000043f",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000454",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 40,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000440",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000455",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 44,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000441",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000456",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 60,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000442",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000457",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 64,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000443",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000458",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 68,
    "lengthBars": 4
   },
   {
-   "id": "0000000000000444",
-   "clipId": "00000000000003fc",
+   "id": "0000000000000459",
+   "clipId": "0000000000000410",
    "trackId": "0000000000000007",
    "startBar": 72,
    "lengthBars": 4
   },
   {
-   "id": "000000000000044b",
-   "clipId": "0000000000000445",
+   "id": "0000000000000460",
+   "clipId": "000000000000045a",
    "trackId": "0000000000000001",
    "startBar": 76,
    "lengthBars": 1
   },
   {
-   "id": "000000000000044e",
-   "clipId": "000000000000044c",
+   "id": "0000000000000463",
+   "clipId": "0000000000000461",
    "trackId": "0000000000000004",
    "startBar": 76,
    "lengthBars": 1
   },
   {
-   "id": "0000000000000451",
-   "clipId": "000000000000044f",
+   "id": "0000000000000466",
+   "clipId": "0000000000000464",
    "trackId": "0000000000000005",
    "startBar": 76,
    "lengthBars": 1
   },
   {
-   "id": "0000000000000456",
-   "clipId": "0000000000000452",
+   "id": "000000000000046b",
+   "clipId": "0000000000000467",
    "trackId": "0000000000000003",
    "startBar": 76,
    "lengthBars": 1

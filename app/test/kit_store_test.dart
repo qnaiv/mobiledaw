@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mobiledaw/kits/kit_gate.dart';
 import 'package:mobiledaw/kits/kit_store.dart';
 
 void main() {
@@ -45,5 +46,28 @@ void main() {
       expect(k.files.first.path, 'kit.json');
       expect(k.size, greaterThan(0));
     }
+  });
+
+  test('kits used in a project, and which are missing', () {
+    final json = jsonEncode({
+      'tracks': [
+        {'instrument': {'type': 'synth'}},
+        {'instrument': {'type': 'kit', 'kit': 'future-bass'}},
+        {'instrument': {'type': 'kit', 'kit': 'future-bass'}},
+        {'instrument': {'type': 'kit', 'kit': 'trap'}},
+      ],
+    });
+    expect(kitsInProjectJson(json)..sort(), ['future-bass', 'trap']);
+    expect(kitsInProjectJson('broken'), isEmpty);
+    final store = KitStore(tmp.path);
+    final d = Directory('${tmp.path}/kits/trap')..createSync(recursive: true);
+    File('${d.path}/kit.json').writeAsStringSync(jsonEncode({'name': 'Trap', 'sounds': [{'file': 'a.wav'}]}));
+    expect(missingKits(store, ['future-bass', 'trap']), ['future-bass']);
+  });
+
+  test('bundled demo uses the future-bass kit', () {
+    final f = File('assets/demos/future_bass.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass']);
   });
 }

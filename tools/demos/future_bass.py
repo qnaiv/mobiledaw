@@ -5,7 +5,7 @@
 
 出力はアプリに同梱する app/assets/demos/future_bass.json（既定）。
 音の確認は mdaw_render で wav にして聴く：
-  build/mdaw_render app/assets/demos/future_bass.json /tmp/fb.wav
+  build/mdaw_render app/assets/demos/future_bass.json /tmp/fb.wav   # リポジトリの直下で（kits/ を読む）
 
 150 BPM / F major / 77小節（約2分）
   小節   0– 7  イントロ   ベルのアルペジオ、薄いコード、後半からハイハット
@@ -71,30 +71,34 @@ SOUNDS = {
         fx=dict(saturation=0.2, sidechain=0.8, sidechainReleaseS=0.2),
         mixer=dict(gain=0.24, pan=0),
     ),
-    # 音程が落ちるサイン＋一瞬だけ開くのこぎりでアタック。他のトラックを引っ込める
+    # ドラムは Future Bass キット（kits/future-bass）。キックは他のトラックを引っ込める
     "Kick": dict(
         color="fff28c38",
+        kit="future-bass",
         synth=dict(cutoffHz=40, resonance=0.7, attackS=0.0005, decayS=0.26, sustain=0.0, releaseS=0.04,
                    detuneCents=0, masterGain=1.0, unison=1, width=0, sub=1.0, filterEnv=0.8,
                    filterEnvDecayS=0.025, pitchEnv=30, pitchEnvDecayS=0.03, wave=0, osc=0.5),
-        fx=dict(saturation=0.35, sidechainSource=1),
-        mixer=dict(gain=0.5, pan=0),
+        fx=dict(saturation=0.1, sidechainSource=1),
+        mixer=dict(gain=0.2, pan=0),
     ),
-    # クラップ寄りのスネア（ロールにも使う）
+    # Clap Wide＋Snare Cute Tight を重ねる（ロールは Snare Cute Tight）
     "Clap": dict(
         color="fff2d45a",
+        kit="future-bass",
         synth=dict(cutoffHz=2600, resonance=0.9, attackS=0.0005, decayS=0.15, sustain=0.0, releaseS=0.07,
                    detuneCents=0, masterGain=1.0, unison=1, noise=1.0, filterEnv=0.5, filterEnvDecayS=0.05,
                    pitchEnv=12, pitchEnvDecayS=0.02, wave=1, osc=0.25),
-        fx=dict(lowCutHz=250, saturation=0.5, reverb=0.32, reverbSize=0.45),
-        mixer=dict(gain=1.4, pan=0),
+        fx=dict(lowCutHz=200, saturation=0.1, reverb=0.3, reverbSize=0.45),
+        mixer=dict(gain=0.42, pan=0),
     ),
+    # 閉じたハット・短い開いたハット・サビ頭のシンバル
     "Hats": dict(
         color="ff5ad6c0",
+        kit="future-bass",
         synth=dict(cutoffHz=16000, resonance=0.7, attackS=0.0005, decayS=0.04, sustain=0.0, releaseS=0.03,
                    unison=1, noise=1.0, osc=0, masterGain=1.0),
-        fx=dict(lowCutHz=6500, reverb=0.12, reverbSize=0.3, sidechain=0.3, sidechainReleaseS=0.12),
-        mixer=dict(gain=1.4, pan=0.2),
+        fx=dict(lowCutHz=300, reverb=0.12, reverbSize=0.3, sidechain=0.3, sidechainReleaseS=0.12),
+        mixer=dict(gain=0.45, pan=0.2),
     ),
     # ビルドで盛り上がるノイズ（4小節かけて大きくなる）
     "Riser": dict(
@@ -210,7 +214,12 @@ CHORUS_MELODY_END = CHORUS_MELODY[:-4] + [(28, 1, 77), (29, .5, 76), (29.5, .5, 
 
 # ---- ドラム（1小節 = 16分×16） ------------------------------------------------------
 
-KICK = 43
+# kits/future-bass の番号
+KICK = 36          # Kick Punchy
+CLAP = [28, 41]    # Clap Wide＋Snare Cute Tight
+SNARE = 41         # Snare Cute Tight（ロール）
+HAT_C, HAT_O = 42, 58  # 808 Hihat Closed / Open Short
+CRASH = 49         # 808 Cymbal
 
 
 def jersey_kicks(bars=4):
@@ -236,9 +245,9 @@ def four_floor(bars=4):
 def claps(bars, positions, extra_last=()):
     out = []
     for b in range(bars):
-        out += steps(b, positions, S16, [50], 0.95)
+        out += steps(b, positions, S16, CLAP, 0.95)
         if b == bars - 1:
-            out += steps(b, list(extra_last), S16, [50], 0.8)
+            out += steps(b, list(extra_last), S16, [SNARE], 0.8)
     return out
 
 
@@ -249,17 +258,21 @@ def snare_roll(bars=4):
     for b, d in enumerate(divs):
         step = BAR // d
         for k in range(d):
-            out.append(n(b * BAR + k * step, max(step - 10, 30), 50, 0.45 + 0.5 * (b * d + k) / (bars * d)))
+            out.append(n(b * BAR + k * step, max(step - 10, 30), SNARE, 0.45 + 0.5 * (b * d + k) / (bars * d)))
     return out
 
 
-def hats(bars, sixteenths):
+def hats(bars, sixteenths, crash=False):
     out = []
     for b in range(bars):
         for k in range(16 if sixteenths else 8):
             pos = k if sixteenths else k * 2
             vel = (0.9 if pos % 4 == 2 else 0.55) if sixteenths else (0.85 if k % 2 == 1 else 0.5)
-            out.append(n(b * BAR + pos * S16, S16, 72, vel))
+            # 16分のときは各拍の裏の裏（14）だけ開いたハット
+            pitch = HAT_O if sixteenths and pos == 14 else HAT_C
+            out.append(n(b * BAR + pos * S16, S16, pitch, vel))
+    if crash:
+        out.append(n(0, BAR, CRASH, 0.85))
     return out
 
 
@@ -281,8 +294,11 @@ class Builder:
         mixer.update(sound["mixer"])
         if solo is not None:
             mixer["solo"] = name == solo
+        instrument = dict(type="synth", params=sound["synth"])
+        if "kit" in sound:
+            instrument = dict(type="kit", kit=sound["kit"], params=sound["synth"])
         self.tracks.append(dict(id=tid, name=name, color=sound["color"],
-                                instrument=dict(type="synth", params=sound["synth"]),
+                                instrument=instrument,
                                 fx=sound["fx"], mixer=mixer))
         return tid
 
@@ -338,7 +354,7 @@ def build(solo=None):
     b.clip(BA, 8, bass_line(CHORUS_END, [0, 4, 8, 11, 14], S16 * 2 - 30), [68])
     b.clip(K, 4, jersey_kicks(), [32, 36, 40, 44, 60, 64, 68, 72])
     b.clip(CL, 4, claps(4, [4, 12], extra_last=[15]), [32, 36, 40, 44, 60, 64, 68, 72])
-    b.clip(H, 4, hats(4, True), [32, 36, 40, 44, 60, 64, 68, 72])
+    b.clip(H, 4, hats(4, True, crash=True), [32, 36, 40, 44, 60, 64, 68, 72])
 
     # 終わりの一発
     b.clip(C, 1, [n(0, BAR - 60, p, 0.9) for p in V["Fadd9"][0]], [76])

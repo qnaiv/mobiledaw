@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 
 import '../arrange/song_controller.dart';
+import '../kits/kit_gate.dart';
 import '../ui/theme.dart';
 import 'library.dart';
 
@@ -61,6 +62,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     return '${t.year}/${two(t.month)}/${two(t.day)} $hm';
   }
 
+  /// 開く。使っているキットが足りなければ、ダウンロードするまで開かない
+  Future<void> _open(ProjectEntry e) async {
+    if (e.id != song.projectId && !await ensureKits(context, song, kitsInProjectFile(e.path))) return;
+    if (!mounted) return;
+    song.openProject(e.id);
+    Navigator.pop(context);
+  }
+
   Future<void> _new() async {
     final title = await askSongTitle(context, title: '新しい曲', initial: '無題の曲', ok: '作る');
     if (title == null || !mounted) return;
@@ -107,7 +116,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     library.delete(e.id);
     if (wasOpen) {
       // 開いていた曲を消したら、残っている一番新しい曲か新しい曲を開く
-      final rest = library.list();
+      final rest = [for (final r in library.list()) if (missingKits(song.kits, kitsInProjectFile(r.path)).isEmpty) r];
       if (rest.isEmpty) {
         song.newSong();
       } else {
@@ -149,10 +158,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                     title: Text(e.title, maxLines: 1, overflow: TextOverflow.ellipsis),
                     subtitle: Text(isOpen ? '開いている曲 · ${_when(e.updated)}' : _when(e.updated),
                         style: const TextStyle(fontSize: 12, color: DawColors.muted)),
-                    onTap: () {
-                      song.openProject(e.id);
-                      Navigator.pop(context);
-                    },
+                    onTap: () => _open(e),
                     trailing: PopupMenuButton<String>(
                       onSelected: (v) {
                         switch (v) {

@@ -11,6 +11,7 @@ import '../ui/theme.dart';
 import '../update/update_banner.dart';
 import 'demo_song.dart';
 import '../export/export_sheet.dart';
+import '../kits/kit_gate.dart';
 import '../kits/kits_screen.dart';
 import '../project/projects_screen.dart';
 import '../sound/sound_sheet.dart';
@@ -45,6 +46,15 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
       _playing.value = song.engine.isPlaying;
     })
       ..start();
+    // 起動時に開いた曲のキットがなければ、ダウンロードするか聞く（やめたら新しい曲にする）
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkKitsOfOpenSong());
+  }
+
+  Future<void> _checkKitsOfOpenSong() async {
+    if (!mounted) return;
+    final ids = {for (final t in song.project.tracks) if (t.isKit) t.kitId};
+    if (missingKits(song.kits, ids).isEmpty) return;
+    if (!await ensureKits(context, song, ids)) song.newSong();
   }
 
   @override
@@ -175,7 +185,11 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
       case 'tempo':
         await _editTempo();
       case final String a when a.startsWith('demo:'):
-        await song.loadDemo(DemoSong.values.byName(a.substring(5)));
+        final demo = DemoSong.values.byName(a.substring(5));
+        final kits = await kitsInDemo(demo);
+        if (!mounted) return;
+        if (!await ensureKits(context, song, kits)) return;
+        await song.loadDemo(demo);
       case 'soundcheck':
         widget.onOpenSoundCheck();
     }
