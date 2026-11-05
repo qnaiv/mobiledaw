@@ -379,6 +379,223 @@
    ]
   },
   {
+   "id": "future-bass-pro",
+   "name": "Future Bass Pro",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "CC0-1.0（自作合成＋TR-808 実機録音（CC0）の加工・レイヤー）",
+   "description": "レイヤーで仕上げた本格フューチャーベース用ワンショット集。キックはクリック＋胴＋サブの3層でキーDにチューニング、スネアは胴＋ノイズ＋薄いクラップのドライ仕上げ。ライザー／リバースシンバル／インパクト／ダウンリフター入り。note 配置は Future Bass キット互換",
+   "sounds": 40,
+   "size": 5931513,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 2973,
+     "sha256": "332afa4318a4254967c25669ab1c398746379d36d3065d99146adb44c71978c7"
+    },
+    {
+     "path": "kick_soft.wav",
+     "size": 86444,
+     "sha256": "4d228d87552a504bfc354ae2082c1e7e4b8486dfc1315996c1ff7b83e7830342"
+    },
+    {
+     "path": "sub_tail.wav",
+     "size": 172844,
+     "sha256": "52b00d3aef9576d539780f6ea301f5003dd25e9bcd0bbe18912aa028bce69d08"
+    },
+    {
+     "path": "clap_tight.wav",
+     "size": 32684,
+     "sha256": "b900ed4939284f6f570145868a66312304ba1a1a4656a92e5ebdb1ae19bf0d2a"
+    },
+    {
+     "path": "clap_wide.wav",
+     "size": 73004,
+     "sha256": "54343ee2583aac5b13b756c15b715815e99d3851b134caee1a6132980c53c6bc"
+    },
+    {
+     "path": "snare_ghost.wav",
+     "size": 38444,
+     "sha256": "6f489d0debcb9460656c3424a1e10552ae0bd25b7d8e5994b60172372699afb6"
+    },
+    {
+     "path": "snare_pop.wav",
+     "size": 34604,
+     "sha256": "05e764e2816ea843337648658902c6eda63f0878821f7d02a3e2a7907a3c1461"
+    },
+    {
+     "path": "kick_subdeep.wav",
+     "size": 153644,
+     "sha256": "8e34e49c34cb50930a7a65c0ae67e1dd8fe5c52e73ab499614dc7d89bc9eee7e"
+    },
+    {
+     "path": "kick_punch.wav",
+     "size": 76844,
+     "sha256": "f49d495fb38ffbe01849a3c2892b7e7db53ab1a3004337583eddcd4213792544"
+    },
+    {
+     "path": "kick_main.wav",
+     "size": 105644,
+     "sha256": "6d583d1f17f6b6a40961a42b0e3dea6394312d1f6801a50e35e76b1bc9152c13"
+    },
+    {
+     "path": "rimshot_pro.wav",
+     "size": 17324,
+     "sha256": "11efc538fba7bd5a5e0a5d20c90e1bbd1f539e8c3a36bdf6d058a1409363f537"
+    },
+    {
+     "path": "snare_main.wav",
+     "size": 46124,
+     "sha256": "52abc0cecd2e7f7889bf18860ad0bd0ea00f9794ff72df8f05bfc1cd80573afc"
+    },
+    {
+     "path": "clap_main.wav",
+     "size": 61484,
+     "sha256": "8f4ec630c492716c6927f82077c221d9151fead458e759e3e19131b7ad5562b7"
+    },
+    {
+     "path": "snare_tight.wav",
+     "size": 30764,
+     "sha256": "94be17b7f7d326b6b49466f07f425661dc750dbc03a9b4965d58d7de6f90232c"
+    },
+    {
+     "path": "snare_bright.wav",
+     "size": 42284,
+     "sha256": "f17e8ef319247eb10fa144314f71f695e911c612d4b2e72089733ae14401b45a"
+    },
+    {
+     "path": "hat_closed.wav",
+     "size": 26924,
+     "sha256": "4f6767bb70af3036e58c9239d148b56ae2849c4348cb23a7b5a8df3d377783d0"
+    },
+    {
+     "path": "snare_snap.wav",
+     "size": 17324,
+     "sha256": "88c1834cf5a2dd956a788dfbaf32aa3fd261ffad4053a13913c3535eecfd8900"
+    },
+    {
+     "path": "hat_closed_short.wav",
+     "size": 13484,
+     "sha256": "7a1373481cf154bb11176bc7036da53248db5d64a297052d83e51d8e677637a3"
+    },
+    {
+     "path": "tom_low.wav",
+     "size": 93656,
+     "sha256": "8c8c787fc3fb51a5e7200adceb14381bcbafa6dc4975be31f4fd0b566abe17dd"
+    },
+    {
+     "path": "hat_open_long.wav",
+     "size": 116292,
+     "sha256": "69b20a7efaab1c4ce5736e70422f1d8be30efffe32e6647bc228b65c9b624ea1"
+    },
+    {
+     "path": "tom_mid.wav",
+     "size": 68840,
+     "sha256": "ac2a07f4ce4b0ec7a7c5abac90ba2e7d003e100eae8db1f5d302281d0da0f216"
+    },
+    {
+     "path": "808_cymbal_pro.wav",
+     "size": 290872,
+     "sha256": "1f4ede41998d1d25a760250080a431f7b536093e8856122592f8f221ce9e0fe2"
+    },
+    {
+     "path": "tom_high.wav",
+     "size": 55516,
+     "sha256": "e0917d4c48d396d12b55940f4d634a0611e49f2a0b939afd078c69fcc9d8fbbd"
+    },
+    {
+     "path": "crash_pro.wav",
+     "size": 460844,
+     "sha256": "4a4511a761eb04fad7d2f5f1298143e20144ff126c00e01b35defdc8ee8e55dc"
+    },
+    {
+     "path": "cymbal_reverse.wav",
+     "size": 297336,
+     "sha256": "38a115903775d8fa8658373f53c5da2543ae6ebb5d60d85e623548d5da5fe7bf"
+    },
+    {
+     "path": "impact_pro.wav",
+     "size": 249644,
+     "sha256": "3b12a39c39b3e549981bb472e2c1df30f8b2c8ba5800f610fe1deb0744ca23c6"
+    },
+    {
+     "path": "cowbell.wav",
+     "size": 67244,
+     "sha256": "97760688f9556a48606d4fca9d7b6d648f6ee9909c59f07eee5b69becd446052"
+    },
+    {
+     "path": "finger_cymbal.wav",
+     "size": 230444,
+     "sha256": "449a0230817bdb99792ec08e90f78c2257cf0fd42f533e46b09ad5249cac8c4a"
+    },
+    {
+     "path": "hat_open_short.wav",
+     "size": 48028,
+     "sha256": "30bb2a16be860319ce0f9a8a5931d314cdf73ff0be5b47b26d1bad79046cafa0"
+    },
+    {
+     "path": "riser_long.wav",
+     "size": 1189204,
+     "sha256": "e7c5dbbcf6ac8277605f2c740d4d129b95475514e8e9b3f6c73a6f4d77e11554"
+    },
+    {
+     "path": "bubble.wav",
+     "size": 30488,
+     "sha256": "92c7d231cdcdc835aa0201538b7a10912f2e0552832d76da0b062dccfe60f075"
+    },
+    {
+     "path": "riser_short.wav",
+     "size": 594624,
+     "sha256": "e31cafe3628122c6e167837d7bcf7d45e21550eb496c2b73cb6a605f44c550ad"
+    },
+    {
+     "path": "water_drop.wav",
+     "size": 53804,
+     "sha256": "ede75a8b384b47448da1d025338d6e983da1cb68317181bc55bb6b8752a22d72"
+    },
+    {
+     "path": "sparkle_chime.wav",
+     "size": 134436,
+     "sha256": "4fd846e8ff795235a7e1a7cf8db807768916ba25e9d8905a1aafce79920cd880"
+    },
+    {
+     "path": "downlifter.wav",
+     "size": 594624,
+     "sha256": "eba83aeb042db8d9615a6c99b4d9f364c120bed873d84d42fadf383aa4d11e68"
+    },
+    {
+     "path": "hat_closed_soft.wav",
+     "size": 26924,
+     "sha256": "51f050ee1f21ee84b2c423f0c1ef4781f194a71eb35aa45d382a97ac4ed77eb8"
+    },
+    {
+     "path": "hat_pedal.wav",
+     "size": 10604,
+     "sha256": "c4800bb15013ea79e7342488f3114b8a5d9efce7dcaeb8d87c456fe5289da78d"
+    },
+    {
+     "path": "maracas.wav",
+     "size": 25496,
+     "sha256": "830651b4bae4130ce9d623efc632f4dac14b3f124fda02db957864c912dc3f7a"
+    },
+    {
+     "path": "claves.wav",
+     "size": 26416,
+     "sha256": "b6b059c558d0468089f52f801591d86d3694f63229ff47ddb7e92032283d26ea"
+    },
+    {
+     "path": "shaker.wav",
+     "size": 41292,
+     "sha256": "0ebfcf39d2e63bd1e5095d7ff044e77ca44e2a55a619ffb605b2eee39c9e9923"
+    },
+    {
+     "path": "bass_808_d.wav",
+     "size": 192044,
+     "sha256": "35bcf5111f7133cef96e9ac6650c88df92d84f9f8876b1426f6a4a178acbb6c6"
+    }
+   ]
+  },
+  {
    "id": "house",
    "name": "House",
    "version": 1,
