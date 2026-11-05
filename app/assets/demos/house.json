@@ -34,8 +34,8 @@
      "filterEnvDecayS": 0.15,
      "wave": 1,
      "osc": 1,
-     "wtTable": 2,
-     "wtPos": 0.35,
+     "wtTable": 1,
+     "wtPos": 0.75,
      "wtWarp": 1,
      "wtWarpAmount": 0.25
     }
@@ -120,8 +120,8 @@
      "filterEnvDecayS": 0.2,
      "wave": 0,
      "osc": 1,
-     "wtTable": 1,
-     "wtPos": 0.8,
+     "wtTable": 3,
+     "wtPos": 0.5,
      "wtWarp": 1,
      "wtWarpAmount": 0.3
     }
