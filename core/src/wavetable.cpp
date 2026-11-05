@@ -79,6 +79,37 @@ float harmonicAmp(int table, float frame, int h, float& phase) noexcept {
             const float density = 0.15f + frame * 0.6f;
             return r < density ? 0.8f / hf : 0.0f;
         }
+        case 5: { // Spectral Saw：太いソー系。frame でスペクトルの傾き（暗い→明るい）が変わる
+            // 高次倍音を frame 依存の肩で落とす。frame=0 は太く暗く、frame=1 は素のソー近くまで開く
+            const float shoulder = 3.0f + frame * 61.0f; // 肩の倍音番号 3〜64
+            const float d = hf / shoulder;
+            float a = 0.85f / hf / (1.0f + d * d);
+            if (h == 1)
+                a += 0.35f; // 基音を厚く
+            return a;
+        }
+        case 6: { // Pulse Morph：パルス幅（デューティ比）が frame で 0.5→0.08 に細くなる
+            // 矩形パルスの係数 sin(π・h・d)/h。符号の反転もそのまま使う（位相 0 の実係数）
+            const float duty = 0.5f - frame * 0.42f;
+            return 1.3f * std::sin(3.14159265f * hf * duty) / hf;
+        }
+        case 7: { // Choir：声の合唱っぽい倍音。ゆるいフォルマントの山＋倍音ごとの小さなばらつき
+            uint32_t hash = static_cast<uint32_t>(h) * 2654435761u;
+            hash ^= hash >> 13;
+            const float jr = static_cast<float>(hash & 0xffff) / 65536.0f;       // 振幅のばらつき用
+            phase = static_cast<float>((hash >> 16) & 0xffff) / 65536.0f * 0.5f; // 位相も少しばらす
+            // frame で山全体が上がる（暗い「ウー」→ 明るい「アー」）
+            const float shift = 0.75f + frame * 0.8f;
+            float a = 0.2f / hf; // 薄い土台
+            const float centers[3] = {4.0f, 9.0f, 20.0f};
+            const float widths[3] = {2.2f, 4.5f, 8.0f};
+            const float heights[3] = {1.0f, 0.6f, 0.35f};
+            for (int i = 0; i < 3; ++i) {
+                const float d = (hf - centers[i] * shift) / widths[i];
+                a += std::exp(-d * d) * heights[i];
+            }
+            return a * (0.85f + 0.3f * jr); // 合唱の「人数感」
+        }
         default:
             return 0.0f;
     }

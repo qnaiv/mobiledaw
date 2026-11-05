@@ -4,7 +4,7 @@
 // ・外部素材は使わない。フレームは倍音プロファイルからの加算合成で作る（ライセンスクリーン）
 // ・buildWavetables() は非音声スレッド（Synth::prepare など）で一度だけ呼ぶ。以後は読み取り専用で全ボイス共有
 // ・基本周波数に応じて倍音数の上限が違うバンド（ミップ相当）を選び、高音でもエイリアスが増えないようにする
-// ・メモリは 4テーブル × 5バンド × 32フレーム × 1024サンプル × 4バイト ≒ 2.6 MB
+// ・メモリは 7テーブル × 5バンド × 32フレーム × 1024サンプル × 4バイト ≒ 4.6 MB
 
 namespace mdaw {
 
@@ -13,7 +13,7 @@ namespace wavetable {
 constexpr int kFrameSize = 1024; // 1フレームのサンプル数
 constexpr int kFrames = 32;      // テーブル内のフレーム数（WT_POS で線形補間）
 constexpr int kBands = 5;        // 帯域制限バンド。倍音数の上限は 128, 64, 32, 16, 8
-constexpr int kTables = 4;       // WT_TABLE の 1〜4（0 は従来オシレーター）
+constexpr int kTables = 7;       // WT_TABLE の 1〜7（0 は従来オシレーター）
 
 // テーブルを作る（冪等。2回目以降は何もしない）。音声スレッドからは呼ばないこと
 void buildWavetables();

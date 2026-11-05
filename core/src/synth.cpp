@@ -30,10 +30,12 @@ const SynthParamSpec kSynthParamSpecs[] = {
     {{MDAW_PARAM_PITCH_ENV_DECAY_S, "pitchEnvDecayS", 0.002f, 2.0f, false}, &SynthParams::pitchEnvDecayS},
     {{MDAW_PARAM_WAVE, "wave", 0.0f, 1.0f, true}, &SynthParams::wave},
     {{MDAW_PARAM_OSC, "osc", 0.0f, 1.0f, false}, &SynthParams::osc},
-    {{MDAW_PARAM_WT_TABLE, "wtTable", 0.0f, 4.0f, true}, &SynthParams::wtTable},
+    {{MDAW_PARAM_WT_TABLE, "wtTable", 0.0f, 7.0f, true}, &SynthParams::wtTable},
     {{MDAW_PARAM_WT_POS, "wtPos", 0.0f, 1.0f, false}, &SynthParams::wtPos},
     {{MDAW_PARAM_WT_WARP, "wtWarp", 0.0f, 3.0f, true}, &SynthParams::wtWarp},
     {{MDAW_PARAM_WT_WARP_AMOUNT, "wtWarpAmount", 0.0f, 1.0f, false}, &SynthParams::wtWarpAmount},
+    {{MDAW_PARAM_WT_LFO_RATE, "wtLfoRate", 0.01f, 30.0f, false}, &SynthParams::wtLfoRate},
+    {{MDAW_PARAM_WT_LFO_AMOUNT, "wtLfoAmount", 0.0f, 1.0f, false}, &SynthParams::wtLfoAmount},
 };
 const int kNumSynthParamSpecs = static_cast<int>(std::size(kSynthParamSpecs));
 
@@ -134,8 +136,10 @@ void Voice::start(int note, float velocity, const SynthParams& params, uint64_t 
     gain_ = std::pow(std::clamp(velocity, 0.0f, 1.0f), 1.5f) * 0.25f;
     filterEnv_ = 1.0f;
     pitchEnv_ = 1.0f;
-    if (!wasActive)
+    if (!wasActive) {
         wtPos_ = params.wtPos;
+        lfoPhase_ = 0.0f; // LFO は発音ごとに位相 0 から（同じ設定なら同じ音になる決定的な動き）
+    }
     if (!wasActive) {
         // ユニゾンの位相はばらばらに始める（揃うと薄く、頭が強く鳴る）
         uint32_t r = seed | 1u;
@@ -181,6 +185,7 @@ void Voice::layoutUnison() noexcept {
         const float x = n == 1 ? 0.0f : -1.0f + 2.0f * static_cast<float>(i) / static_cast<float>(n - 1);
         const float side = std::abs(x);
         detune_[i] = x * p_.detuneCents * 0.5f / 100.0f;
+        wtSpread_[i] = x * 0.03f; // 新テーブル（5〜）でだけ使う WT_POS のばらけ（中心 ±0.03）
         gains[i] = n == 1 ? 1.0f : (1.0f - side) + p_.blend * side;
         // 対になる2本（±同じずらし）は左右に分け、隣の対とは向きを入れ替える
         const int pair = i < n / 2 ? i : n - 1 - i;
@@ -232,6 +237,16 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
             pitchEnv_ *= pitchEnvCoef_;
         }
         wtPos_ += (p_.wtPos - wtPos_) * 0.35f; // WT_POS はブロック単位でなめらかに追従（ジッパー対策）
+        // WT_POS 用 LFO：±amount/2 で揺らす。amount=0 では wtPosEff == wtPos_ で従来と完全一致
+        float wtPosEff = wtPos_;
+        if (useWt && p_.wtLfoAmount > 0.0f) {
+            wtPosEff = std::clamp(wtPos_ + fastSin(lfoPhase_) * (p_.wtLfoAmount * 0.5f), 0.0f, 1.0f);
+            lfoPhase_ += p_.wtLfoRate * static_cast<float>(kControlBlock) / static_cast<float>(sampleRate_);
+            if (lfoPhase_ >= 1.0f)
+                lfoPhase_ -= std::floor(lfoPhase_);
+        }
+        // 新テーブル（5〜）はユニゾンの各声で WT_POS を少しずらして厚みを出す（旧テーブルは従来どおり）
+        const bool wtSpread = useWt && wtTable >= 5;
         const float cutoff = cutoffHz_ * std::exp2(p_.filterEnv * 7.0f * filterEnv_);
         filterL_.set(cutoff, p_.resonance, sampleRate_);
         filterR_.set(cutoff, p_.resonance, sampleRate_);
@@ -245,7 +260,8 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
                 float v;
                 if (useWt) {
                     const float wp = wtWarp > 0 ? warpPhase(ph, wtWarp, p_.wtWarpAmount) : ph;
-                    v = wavetable::sampleWavetable(wtTable, wtPos_, wp, dt);
+                    const float upos = wtSpread ? std::clamp(wtPosEff + wtSpread_[u], 0.0f, 1.0f) : wtPosEff;
+                    v = wavetable::sampleWavetable(wtTable, upos, wp, dt);
                 } else if (square) {
                     v = ph < 0.5f ? 1.0f : -1.0f;
                     v += polyBlep(ph, dt);

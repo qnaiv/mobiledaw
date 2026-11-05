@@ -33,6 +33,8 @@ struct SynthParams {
     float wtPos = 0.0f;       // ウェーブテーブルのフレーム位置 0〜1
     float wtWarp = 0.0f;      // 位相ワープ 0=なし、1=bend、2=squeeze、3=sync
     float wtWarpAmount = 0.0f;
+    float wtLfoRate = 1.0f;   // WT_POS を揺らす LFO の速さ（Hz）
+    float wtLfoAmount = 0.0f; // LFO の深さ 0〜1（0 = 従来と完全一致）
 };
 
 struct ParamSpec {
@@ -113,6 +115,8 @@ private:
 
     float cutoffHz_ = 6000.0f;
     float wtPos_ = 0.0f; // 平滑化した WT_POS（control block 単位で追従）
+    float lfoPhase_ = 0.0f;                 // WT_POS 用 LFO の位相 0〜1（発音ごとに 0 から。決定的）
+    float wtSpread_[kMaxUnison] = {};       // 新テーブル（5〜）用：サブボイスごとの WT_POS のずらし
     float filterEnv_ = 0.0f, filterEnvCoef_ = 0.0f;
     float pitchEnv_ = 0.0f, pitchEnvCoef_ = 0.0f;
     float gain_ = 0.0f;
