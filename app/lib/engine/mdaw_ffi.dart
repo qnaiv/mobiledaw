@@ -252,6 +252,8 @@ class MdawEngine {
       int Function(_EnginePtr, int, int, int, Pointer<Uint64>)>('mdaw_create_clip');
   late final _placeClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32),
       int Function(_EnginePtr, int, int)>('mdaw_place_clip');
+  late final _cloneClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32, Pointer<Uint64>),
+      int Function(_EnginePtr, int, int, Pointer<Uint64>)>('mdaw_clone_clip');
   late final _removePlacement = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64), int Function(_EnginePtr, int)>(
       'mdaw_remove_placement');
   late final _setClipLength = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32),
@@ -421,6 +423,18 @@ class MdawEngine {
 
   /// 同じクリップをもう一つ置く（複製）。戻り値は placementId
   int placeClip(int clipId, int startBar) => _placeClip(_handle, clipId, startBar);
+
+  /// クリップを別パターンとして複製する（中身をコピーした新しいクリップを作って置く）。
+  /// 戻り値は (新しい clipId, placementId)。失敗したら (0, 0)
+  (int, int) cloneClip(int clipId, int startBar) {
+    final out = calloc<Uint64>();
+    try {
+      final clip = _cloneClip(_handle, clipId, startBar, out);
+      return (clip, out.value);
+    } finally {
+      calloc.free(out);
+    }
+  }
   bool removePlacement(int placementId) => _removePlacement(_handle, placementId) != 0;
   /// クリップの長さ（小節）。複製もすべて同じ長さに。縮めてはみ出したノートは消える
   bool setClipLength(int clipId, int lengthBars) => _setClipLength(_handle, clipId, lengthBars) != 0;

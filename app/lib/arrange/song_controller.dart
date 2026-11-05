@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
 import '../piano_roll/automation_params.dart';
+import '../piano_roll/note_clipboard.dart';
 import '../music/voicing.dart';
 import '../kits/kit_store.dart';
 import '../project/library.dart';
@@ -275,6 +276,43 @@ class SongController extends ChangeNotifier {
         }));
   }
 
+  // ---- ノートのコピペ（ピアノロールの範囲選択から） ---------------------------------
+
+  NoteClipboard? _noteClipboard;
+
+  /// コピーしたノートがあるか（貼り付けボタンの有効・無効に使う）
+  bool get hasNoteClipboard => _noteClipboard?.isNotEmpty ?? false;
+
+  /// コピーしたノートの数
+  int get noteClipboardCount => _noteClipboard?.notes.length ?? 0;
+
+  /// クリップの選んだノートをコピーする（相対位置で覚えるので、別のクリップにも貼れる）。
+  /// 対象が無ければ false
+  bool copyNotes(int clipId, List<int> noteIds) {
+    final clip = project.clip(clipId);
+    if (clip == null || noteIds.isEmpty) return false;
+    final copied = copyNotesOf(clip.notes.where((n) => noteIds.contains(n.id)));
+    if (copied == null) return false;
+    _noteClipboard = copied;
+    notifyListeners(); // 貼り付けボタンが押せるようになる
+    return true;
+  }
+
+  /// コピーしたノートを [anchorTick]・[anchorPitch]（コピーの原点の置き先）へ貼る（1つの Undo）。
+  /// クリップの終わりを超える分は [pasteNoteSpecs] のルールで落とす。貼れたノートの ID を返す
+  List<int> pasteNotes(int clipId, {required int anchorTick, required int anchorPitch}) {
+    final clip = project.clip(clipId);
+    final clipboard = _noteClipboard;
+    if (clip == null || clipboard == null || clipboard.isEmpty) return const [];
+    final specs = pasteNoteSpecs(clipboard,
+        anchorTick: anchorTick, anchorPitch: anchorPitch, clipLengthTicks: clip.lengthTicks);
+    if (specs.isEmpty) return const [];
+    return _edit(() => engine.editGroup(() => [
+          for (final n in specs)
+            engine.addNote(clipId, tick: n.tick, length: n.length, pitch: n.pitch, velocity: n.velocity),
+        ].where((id) => id != 0).toList()));
+  }
+
   /// 指定したものだけ変える（他は今の値のまま）
   bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
     final t = project.track(trackId);
@@ -347,6 +385,16 @@ class SongController extends ChangeNotifier {
     final bar = nextFreeBar(project, pl.trackId, pl.endBar, pl.lengthBars);
     final id = _edit(() => engine.placeClip(pl.clipId, bar));
     if (id != 0) select(id);
+  }
+
+  /// 選んでいるクリップを別パターンとして複製する（中身のコピーをすぐ下の空いている所へ置く）。
+  /// 置き場所のルールは [duplicateSelected] と同じ。複製側を編集しても元のパターンには影響しない
+  void duplicateSelectedAsNewPattern() {
+    final pl = selected;
+    if (pl == null) return;
+    final bar = nextFreeBar(project, pl.trackId, pl.endBar, pl.lengthBars);
+    final (_, placement) = _edit(() => engine.cloneClip(pl.clipId, bar));
+    if (placement != 0) select(placement);
   }
 
   /// 上下に動かす。ほかのクリップと重なるなら動かない（false）

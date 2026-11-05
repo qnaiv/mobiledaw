@@ -130,6 +130,140 @@ List<BorrowedChord> borrowedChords(Scale scale) {
   return out;
 }
 
+/// 次のコードの候補（雰囲気のグループ分け）。コードモードで1個ずつ置くときのサジェスト用
+class NextChordGroup {
+  const NextChordGroup(this.mood, this.chords);
+
+  /// グループの見出し（王道・安定／切ない／おしゃれ／ドラマチック）
+  final String mood;
+
+  /// 候補（1〜3個）
+  final List<Chord> chords;
+}
+
+/// コードの構成音（音名の集合、0〜11）
+Set<int> _pcSetOf(Chord c) => {
+      for (final i in c.intervals) (c.root + i) % 12,
+      for (final e in c.extensions) (c.root + e) % 12,
+    };
+
+String _chordKey(Chord c) => '${c.root}|${c.intervals.join(',')}|${c.extensions.join(',')}';
+
+/// [previous] の次に自然に続くコードを、雰囲気ごとに数個ずつ返す（コードモードの単発サジェスト）。
+/// 候補プールはそのスケールのダイアトニック＋借用コード＋ダイアトニックの7th違いで、
+/// 直前と同じコードは出さない。グループ間で重複したら前のグループを優先する。
+/// 並びはボイスリーディングの滑らかさ（共通音の多さと各音の移動量）で決める
+List<NextChordGroup> nextChordSuggestions(Chord previous, Scale scale) {
+  final diatonic = scaleChords(scale);
+  final borrowed = borrowedChords(scale);
+  final prevPcs = _pcSetOf(previous);
+
+  bool isPrevious(Chord c) {
+    final pcs = _pcSetOf(c);
+    return pcs.length == prevPcs.length && pcs.containsAll(prevPcs);
+  }
+
+  bool isMinor(Chord c) => c.intervals.length > 1 && c.intervals[1] == 3;
+  bool isDiminished(Chord c) => c.intervals.length > 2 && c.intervals[1] == 3 && c.intervals[2] == 6;
+
+  // 滑らかさ（小さいほど滑らか）。共通音は1つあたり 2 引いて優遇する
+  int vlCost(Chord c) {
+    final pcs = _pcSetOf(c);
+    var cost = 0;
+    for (final pc in pcs) {
+      var best = 6;
+      for (final q in prevPcs) {
+        final d = (pc - q).abs();
+        best = math.min(best, math.min(d, 12 - d));
+      }
+      cost += best;
+    }
+    return cost - pcs.intersection(prevPcs).length * 2;
+  }
+
+  List<Chord> smooth(Iterable<Chord> pool) {
+    final list = pool.toList();
+    list.sort((a, b) {
+      final byCost = vlCost(a).compareTo(vlCost(b));
+      return byCost != 0 ? byCost : a.root.compareTo(b.root);
+    });
+    return list;
+  }
+
+  // 7th違い（三和音にそのコードの7度を足した形）
+  Chord seventhOf(Chord c) => Chord(
+        degree: c.degree,
+        root: c.root,
+        intervals: c.intervals,
+        seventh: c.seventh,
+        mood: c.mood,
+        extensions: [c.seventh],
+        roman: c.roman,
+      );
+
+  final prevPos = previous.degree >= 0 && previous.degree < diatonic.length
+      ? (diatonic[previous.degree].root == previous.root ? previous.degree : -1)
+      : -1;
+
+  final groups = <NextChordGroup>[];
+  final used = <String>{};
+  void addGroup(String mood, List<Chord> candidates, int max) {
+    final picked = <Chord>[];
+    for (final c in candidates) {
+      if (picked.length >= max) break;
+      if (isPrevious(c)) continue;
+      if (!used.add(_chordKey(c))) continue;
+      picked.add(c);
+    }
+    if (picked.isNotEmpty) groups.add(NextChordGroup(mood, picked));
+  }
+
+  // 王道・安定：既存の「次に合うコード」の並びをそのまま使う。直前が借用コードなら主音と属和音へ
+  if (prevPos >= 0) {
+    addGroup('王道・安定', [for (final pos in suggestNextForScale(scale, prevPos)) diatonic[pos]], 3);
+  } else {
+    final tonic = diatonic.where((c) => c.root == scale.root);
+    final dominant = diatonic.where((c) => c.root == (scale.root + 7) % 12 && !isMinor(c));
+    addGroup('王道・安定', [...tonic, ...dominant], 3);
+  }
+
+  // 切ない：短和音を、雰囲気が「切ない」ものを先に、滑らかな順で
+  final minorPool = smooth([
+    ...diatonic.where(isMinor),
+    for (final b in borrowed) if (isMinor(b.chord)) b.chord,
+  ]);
+  minorPool.sort((a, b) {
+    final byMood = (b.mood == '切ない' ? 1 : 0).compareTo(a.mood == '切ない' ? 1 : 0);
+    return byMood != 0 ? byMood : vlCost(a).compareTo(vlCost(b));
+  });
+  addGroup('切ない', minorPool, 2);
+
+  // おしゃれ：7thを足した形と、拡張のある借用コードを滑らかな順で
+  addGroup(
+      'おしゃれ',
+      smooth([
+        for (final c in diatonic) if (!c.extensions.any((e) => e % 12 == c.seventh % 12)) seventhOf(c),
+        for (final b in borrowed) if (b.chord.extensions.isNotEmpty) b.chord,
+      ]),
+      3);
+
+  // ドラマチック：減和音・属和音（7th含む）・緊張感のある借用（二次ドミナント、♭II、ハーモニック由来）
+  const dramaticOrigins = {'ハーモニック', 'フリジアン', 'V/V', 'V/vi'};
+  addGroup(
+      'ドラマチック',
+      smooth([
+        ...diatonic.where(isDiminished),
+        ...diatonic.where((c) => c.root == (scale.root + 7) % 12 && !isMinor(c) && !isDiminished(c)),
+        for (final c in diatonic)
+          if (c.root == (scale.root + 7) % 12 && !isMinor(c)) seventhOf(c),
+        for (final b in borrowed)
+          if (dramaticOrigins.contains(b.origin) || b.chord.roman.startsWith('♭II')) b.chord,
+      ]),
+      2);
+
+  return groups;
+}
+
 /// 進行のコードを、なめらかにつながる高さで並べる（1つ目は [center] のあたり、2つ目からは前のコードに寄せる）
 List<List<int>> voiceProgression(List<Chord> chords, {int center = 60}) {
   final out = <List<int>>[];
