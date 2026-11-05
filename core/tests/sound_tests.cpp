@@ -292,7 +292,7 @@ TEST(engine_master_never_clips) {
 TEST(synth_wavetable_params_clamp_and_roundtrip) {
     SynthParams p;
     CHECK(setSynthParam(p, MDAW_PARAM_WT_TABLE, 9.0f));
-    CHECK(p.wtTable == 4.0f);
+    CHECK(p.wtTable == 7.0f);
     CHECK(setSynthParam(p, MDAW_PARAM_WT_TABLE, 2.4f));
     CHECK(p.wtTable == 2.0f);
     CHECK(setSynthParam(p, MDAW_PARAM_WT_POS, 1.5f));
@@ -408,6 +408,133 @@ TEST(synth_wavetable_sounds_and_pos_changes_timbre) {
         wdiff += d * d;
     }
     CHECK(static_cast<float>(std::sqrt(wdiff / 8000.0)) > 0.2f * rms(plain.l, 4000, 12000));
+}
+
+TEST(synth_wavetable_new_tables_sound) {
+    auto renderWith = [](float table, float pos, int note) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.cutoffHz = 18000.0f;
+        p.wtTable = table;
+        p.wtPos = pos;
+        s.setParams(p);
+        s.noteOn(note, 1.0f);
+        return renderSynth(s, 12000);
+    };
+    for (int table = 5; table <= 7; ++table) {
+        const auto out = renderWith(static_cast<float>(table), 0.5f, 57);
+        const float r = rms(out.l, 4000, 12000);
+        const float pk = peakAbs(out.l, 4000, 12000);
+        std::printf("  新テーブル %d: RMS %.4f / 最大 %.3f\n", table, r, pk);
+        CHECK(r > 0.01f); // 無音でない
+        CHECK(pk < 0.6f); // 1ボイスではクリップしない
+        const auto high = renderWith(static_cast<float>(table), 0.5f, 108);
+        CHECK(std::isfinite(rms(high.l)));
+        CHECK(peakAbs(high.l) < 0.6f);
+        // ユニゾンの WT_POS ばらけ（新テーブル用）があっても壊れない
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.cutoffHz = 18000.0f;
+        p.wtTable = static_cast<float>(table);
+        p.wtPos = 0.5f;
+        p.unison = 9.0f;
+        p.detuneCents = 40.0f;
+        p.width = 0.8f;
+        s.setParams(p);
+        s.noteOn(57, 1.0f);
+        const auto uni = renderSynth(s, 12000);
+        CHECK(std::isfinite(rms(uni.l)));
+        CHECK(peakAbs(uni.l) < 1.0f);
+    }
+    // パルスモーフ（6）は位置で波形が大きく変わる（矩形 → 細いパルス）
+    const auto a = renderWith(6.0f, 0.0f, 57);
+    const auto b = renderWith(6.0f, 1.0f, 57);
+    double diff = 0.0;
+    for (size_t i = 4000; i < a.l.size(); ++i) {
+        const double d = static_cast<double>(a.l[i]) - b.l[i];
+        diff += d * d;
+    }
+    const float diffRms = static_cast<float>(std::sqrt(diff / 8000.0));
+    std::printf("  パルスモーフ 位置0→1 の差の RMS %.4f（元の RMS %.4f）\n", diffRms, rms(a.l, 4000, 12000));
+    CHECK(diffRms > 0.3f * rms(a.l, 4000, 12000));
+}
+
+TEST(synth_wavetable_lfo_params_clamp_and_roundtrip) {
+    SynthParams p;
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_LFO_RATE, 100.0f));
+    CHECK(p.wtLfoRate == 30.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_LFO_RATE, 0.001f));
+    CHECK(p.wtLfoRate == 0.01f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_LFO_RATE, 2.5f));
+    CHECK(p.wtLfoRate == 2.5f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_LFO_AMOUNT, 1.5f));
+    CHECK(p.wtLfoAmount == 1.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_LFO_AMOUNT, -0.5f));
+    CHECK(p.wtLfoAmount == 0.0f);
+
+    Project proj;
+    Track t;
+    t.id = 7;
+    t.name = "WT-LFO";
+    t.synth.wtTable = 5.0f;
+    t.synth.wtPos = 0.4f;
+    t.synth.wtLfoRate = 3.25f;
+    t.synth.wtLfoAmount = 0.6f;
+    proj.tracks.push_back(t);
+    Project back;
+    std::string error;
+    CHECK(projectFromJson(projectToJson(proj), back, error));
+    CHECK(back.tracks.size() == 1);
+    CHECK(back.tracks[0].synth == t.synth);
+
+    // 古いファイル（wtLfo〜 の項目がない）は既定値で読める
+    Project oldProj;
+    CHECK(projectFromJson(R"({"format":"mobiledaw-project","version":1,"tempo":120,
+        "tracks":[{"id":"0000000000000001","name":"A","color":"ffffffff",
+        "instrument":{"type":"synth","params":{"wtTable":2}}}]})",
+                          oldProj, error));
+    CHECK(oldProj.tracks.size() == 1);
+    CHECK(oldProj.tracks[0].synth.wtLfoRate == SynthParams{}.wtLfoRate);
+    CHECK(oldProj.tracks[0].synth.wtLfoAmount == 0.0f);
+}
+
+TEST(synth_wavetable_lfo_moves_pos) {
+    auto renderWith = [](float rate, float amount) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.cutoffHz = 18000.0f;
+        p.wtTable = 2.0f; // 倍音テーブルは位置の変化が音に大きく出る
+        p.wtPos = 0.5f;
+        p.wtLfoRate = rate;
+        p.wtLfoAmount = amount;
+        s.setParams(p);
+        s.noteOn(57, 1.0f);
+        return renderSynth(s, 24000);
+    };
+    // amount=0 では LFO の速さを変えても従来と1サンプルも違わない
+    const auto off = renderWith(1.0f, 0.0f);
+    const auto offFast = renderWith(17.0f, 0.0f);
+    CHECK(off.l == offFast.l);
+    CHECK(off.r == offFast.r);
+    // amount>0 では波形が時間で変化する（LFO なしとの差が大きい）し、決定的（2回とも同じ）
+    const auto on = renderWith(2.5f, 0.8f);
+    const auto onAgain = renderWith(2.5f, 0.8f);
+    CHECK(on.l == onAgain.l);
+    double diff = 0.0;
+    for (size_t i = 4000; i < off.l.size(); ++i) {
+        const double d = static_cast<double>(off.l[i]) - on.l[i];
+        diff += d * d;
+    }
+    const float diffRms = static_cast<float>(std::sqrt(diff / 20000.0));
+    std::printf("  LFO あり/なし の差の RMS %.4f（元の RMS %.4f）\n", diffRms, rms(off.l, 4000, 24000));
+    CHECK(diffRms > 0.25f * rms(off.l, 4000, 24000));
+    CHECK(peakAbs(on.l) < 0.6f);
 }
 
 
