@@ -1,4 +1,6 @@
-// メニュー「デモ曲」で入る曲。同梱のプロジェクトファイル（assets/demos/）を新しい曲として一覧に入れる。
+// メニュー「デモ曲」で入る曲。同梱のプロジェクトファイル（assets/demos/）を一覧に入れて開く。
+// 取り込み先の ID はデモごとに固定（demoProjectId）なので、開くたびに一覧へ増えず、
+// 一度取り込んだデモへの編集はそのまま残る。
 // ・kawaii フューチャーベース：150 BPM・F major・77小節（約2分）、8トラック。サビは Jersey Club のキック。
 //   ファイルは tools/demos/future_bass.py で作り、build/mdaw_render で wav にして音を確かめる。
 //   ドラムは Future Bass キット（kits/future-bass）を使う
@@ -13,6 +15,9 @@
 //   ファイルは tools/demos/rnb.py で作る。R&B 専用キットは無いので、生ドラムの
 //   Acoustic Live キット（kits/acoustic-live）を使う（スティックとライドがスローな曲に合うため）
 enum DemoSong { futureBass, kawaii2, house, lofi, rnb }
+
+/// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
+String demoProjectId(DemoSong d) => 'demo-${d.name}';
 
 String demoLabel(DemoSong d) => switch (d) {
       DemoSong.futureBass => 'kawaii フューチャーベース（約2分）',

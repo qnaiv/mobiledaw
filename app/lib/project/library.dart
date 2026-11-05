@@ -22,6 +22,16 @@ class ProjectLibrary {
 
   String pathFor(String id) => '${root.path}/$id.qdaw/project.json';
 
+  /// [id] の曲ファイルが無ければ [contents] で作る。既にあれば中身には触らない。
+  /// 戻り値は「既にあったかどうか」（デモ曲の取り込みで使う）
+  bool createIfMissing(String id, String contents) {
+    final file = File(pathFor(id));
+    if (file.existsSync()) return true;
+    file.parent.createSync(recursive: true);
+    file.writeAsStringSync(contents);
+    return false;
+  }
+
   /// project.json のパスから ID を取り出す（一覧の外のパスなら null）
   String? idOf(String path) {
     final dir = File(path).parent;

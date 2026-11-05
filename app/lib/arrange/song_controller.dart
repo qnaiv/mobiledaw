@@ -276,21 +276,22 @@ class SongController extends ChangeNotifier {
         gain: gain ?? m.gain, pan: pan ?? m.pan, mute: mute ?? m.mute, solo: solo ?? m.solo));
   }
 
-  /// 確かめ用のデモ曲を、新しい曲として一覧に入れて開く
+  /// デモ曲を開く。取り込み先はデモごとに固定の ID なので、開くたびに一覧へ増えない。
+  /// 既に取り込んであれば（編集してあっても）それを開き、無ければ同梱 JSON を書き出して開く
   Future<void> loadDemo(DemoSong demo) async {
     saveNow();
     engine.stopPlayback();
     engine.clearLoop();
-    final path = library.pathFor(library.newId());
-    final json = await rootBundle.loadString(demoAsset(demo));
+    final id = demoProjectId(demo);
+    final path = library.pathFor(id);
     try {
-      final file = File(path);
-      file.parent.createSync(recursive: true);
-      file.writeAsStringSync(json);
+      final existed = library.createIfMissing(id, await rootBundle.loadString(demoAsset(demo)));
       engine.loadProject(path);
       _projectPath = path;
-      if (engine.setProjectTitle(demoTitle(demo))) saveNow(force: true);
-      engine.loadProject(path); // 履歴を空に
+      if (!existed) {
+        if (engine.setProjectTitle(demoTitle(demo))) saveNow(force: true);
+        engine.loadProject(path); // 履歴を空に
+      }
     } on Object catch (e) {
       saveError = 'デモ曲を読めませんでした：$e';
     }
