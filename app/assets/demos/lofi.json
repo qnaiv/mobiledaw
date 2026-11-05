@@ -1,0 +1,2096 @@
+{
+ "format": "mobiledaw-project",
+ "version": 1,
+ "tempo": 84.0,
+ "timeSig": [
+  4,
+  4
+ ],
+ "key": {
+  "root": 2,
+  "scale": "minor"
+ },
+ "tracks": [
+  {
+   "id": "0000000000000001",
+   "name": "Chords",
+   "color": "ff9a7cf2",
+   "instrument": {
+    "type": "synth",
+    "params": {
+     "cutoffHz": 1700,
+     "resonance": 0.7,
+     "attackS": 0.012,
+     "decayS": 0.6,
+     "sustain": 0.75,
+     "releaseS": 0.4,
+     "detuneCents": 9,
+     "masterGain": 0.62,
+     "unison": 2,
+     "width": 0.55,
+     "blend": 0.95,
+     "drive": 0.06,
+     "filterEnv": 0.12,
+     "filterEnvDecayS": 0.4,
+     "wave": 1,
+     "osc": 1
+    }
+   },
+   "fx": {
+    "lowCutHz": 120,
+    "saturation": 0.18,
+    "chorus": 0.4,
+    "ott": 0.15,
+    "reverb": 0.42,
+    "reverbSize": 0.75
+   },
+   "mixer": {
+    "gain": 0.52,
+    "pan": -0.05,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000002",
+   "name": "Lead",
+   "color": "ffe879c6",
+   "instrument": {
+    "type": "synth",
+    "params": {
+     "cutoffHz": 2400,
+     "resonance": 0.8,
+     "attackS": 0.01,
+     "decayS": 0.5,
+     "sustain": 0.7,
+     "releaseS": 0.35,
+     "detuneCents": 5,
+     "masterGain": 0.55,
+     "unison": 2,
+     "width": 0.25,
+     "blend": 0.9,
+     "drive": 0.05,
+     "filterEnv": 0.1,
+     "filterEnvDecayS": 0.3,
+     "wave": 0,
+     "osc": 1
+    }
+   },
+   "fx": {
+    "lowCutHz": 200,
+    "saturation": 0.12,
+    "chorus": 0.15,
+    "ott": 0.15,
+    "delay": 0.3,
+    "delayFeedback": 0.3,
+    "reverb": 0.4,
+    "reverbSize": 0.7
+   },
+   "mixer": {
+    "gain": 0.4,
+    "pan": 0.12,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000003",
+   "name": "Bass",
+   "color": "ff5aa9f2",
+   "instrument": {
+    "type": "synth",
+    "params": {
+     "cutoffHz": 420,
+     "resonance": 0.8,
+     "attackS": 0.006,
+     "decayS": 0.4,
+     "sustain": 0.8,
+     "releaseS": 0.12,
+     "detuneCents": 4,
+     "masterGain": 0.8,
+     "unison": 1,
+     "width": 0.0,
+     "blend": 1.0,
+     "sub": 0.85,
+     "drive": 0.12,
+     "filterEnv": 0.15,
+     "filterEnvDecayS": 0.12,
+     "wave": 1,
+     "osc": 0.55
+    }
+   },
+   "fx": {
+    "saturation": 0.15
+   },
+   "mixer": {
+    "gain": 0.3,
+    "pan": 0,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000004",
+   "name": "Vinyl",
+   "color": "ffb0b6c0",
+   "instrument": {
+    "type": "synth",
+    "params": {
+     "cutoffHz": 750,
+     "resonance": 0.6,
+     "attackS": 0.05,
+     "decayS": 1.0,
+     "sustain": 1.0,
+     "releaseS": 0.2,
+     "unison": 1,
+     "noise": 1.0,
+     "osc": 0,
+     "masterGain": 0.16
+    }
+   },
+   "fx": {
+    "lowCutHz": 60
+   },
+   "mixer": {
+    "gain": 0.5,
+    "pan": 0,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000005",
+   "name": "Kick",
+   "color": "fff28c38",
+   "instrument": {
+    "type": "kit",
+    "kit": "lofi-boombap",
+    "params": {
+     "cutoffHz": 40,
+     "resonance": 0.7,
+     "attackS": 0.0005,
+     "decayS": 0.26,
+     "sustain": 0.0,
+     "releaseS": 0.04,
+     "detuneCents": 0,
+     "masterGain": 1.0,
+     "unison": 1,
+     "width": 0,
+     "sub": 1.0,
+     "filterEnv": 0.8,
+     "filterEnvDecayS": 0.025,
+     "pitchEnv": 24,
+     "pitchEnvDecayS": 0.03,
+     "wave": 0,
+     "osc": 0.5
+    }
+   },
+   "fx": {
+    "saturation": 0.12,
+    "sidechainSource": 1
+   },
+   "mixer": {
+    "gain": 0.3,
+    "pan": 0,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000006",
+   "name": "Snare",
+   "color": "fff2d45a",
+   "instrument": {
+    "type": "kit",
+    "kit": "lofi-boombap",
+    "params": {
+     "cutoffHz": 2400,
+     "resonance": 0.9,
+     "attackS": 0.0005,
+     "decayS": 0.16,
+     "sustain": 0.0,
+     "releaseS": 0.08,
+     "detuneCents": 0,
+     "masterGain": 1.0,
+     "unison": 1,
+     "noise": 1.0,
+     "filterEnv": 0.4,
+     "filterEnvDecayS": 0.05,
+     "wave": 1,
+     "osc": 0.2
+    }
+   },
+   "fx": {
+    "lowCutHz": 150,
+    "saturation": 0.12
+   },
+   "mixer": {
+    "gain": 0.3,
+    "pan": 0,
+    "mute": false,
+    "solo": false
+   }
+  },
+  {
+   "id": "0000000000000007",
+   "name": "Hats",
+   "color": "ff5ad6c0",
+   "instrument": {
+    "type": "kit",
+    "kit": "lofi-boombap",
+    "params": {
+     "cutoffHz": 9000,
+     "resonance": 0.7,
+     "attackS": 0.0005,
+     "decayS": 0.05,
+     "sustain": 0.0,
+     "releaseS": 0.04,
+     "unison": 1,
+     "noise": 1.0,
+     "osc": 0,
+     "masterGain": 1.0
+    }
+   },
+   "fx": {
+    "lowCutHz": 250
+   },
+   "mixer": {
+    "gain": 0.36,
+    "pan": 0.1,
+    "mute": false,
+    "solo": false
+   }
+  }
+ ],
+ "clips": [
+  {
+   "id": "0000000000000008",
+   "trackId": "0000000000000001",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "0000000000000009",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 53,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000000a",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 57,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000000b",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 60,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000000c",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 64,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000000d",
+     "tick": 2400,
+     "length": 1160,
+     "pitch": 53,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000000e",
+     "tick": 2400,
+     "length": 1160,
+     "pitch": 57,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000000f",
+     "tick": 2400,
+     "length": 1160,
+     "pitch": 60,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000010",
+     "tick": 2400,
+     "length": 1160,
+     "pitch": 64,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000011",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 58,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000012",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 62,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000013",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 65,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000014",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 69,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000015",
+     "tick": 6240,
+     "length": 1160,
+     "pitch": 58,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000016",
+     "tick": 6240,
+     "length": 1160,
+     "pitch": 62,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000017",
+     "tick": 6240,
+     "length": 1160,
+     "pitch": 65,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000018",
+     "tick": 6240,
+     "length": 1160,
+     "pitch": 69,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000019",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 53,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000001a",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 57,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000001b",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 60,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000001c",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 64,
+     "velocity": 0.62
+    },
+    {
+     "id": "000000000000001d",
+     "tick": 10080,
+     "length": 1160,
+     "pitch": 53,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000001e",
+     "tick": 10080,
+     "length": 1160,
+     "pitch": 57,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000001f",
+     "tick": 10080,
+     "length": 1160,
+     "pitch": 60,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000020",
+     "tick": 10080,
+     "length": 1160,
+     "pitch": 64,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000021",
+     "tick": 11520,
+     "length": 1880,
+     "pitch": 57,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000022",
+     "tick": 11520,
+     "length": 1880,
+     "pitch": 61,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000023",
+     "tick": 11520,
+     "length": 1880,
+     "pitch": 64,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000024",
+     "tick": 11520,
+     "length": 1880,
+     "pitch": 67,
+     "velocity": 0.62
+    },
+    {
+     "id": "0000000000000025",
+     "tick": 13920,
+     "length": 1160,
+     "pitch": 57,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000026",
+     "tick": 13920,
+     "length": 1160,
+     "pitch": 61,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000027",
+     "tick": 13920,
+     "length": 1160,
+     "pitch": 64,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000028",
+     "tick": 13920,
+     "length": 1160,
+     "pitch": 67,
+     "velocity": 0.55
+    }
+   ]
+  },
+  {
+   "id": "000000000000002f",
+   "trackId": "0000000000000003",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "0000000000000030",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 38,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000031",
+     "tick": 2470,
+     "length": 920,
+     "pitch": 45,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000032",
+     "tick": 3430,
+     "length": 440,
+     "pitch": 38,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000033",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 34,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000034",
+     "tick": 6310,
+     "length": 920,
+     "pitch": 41,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000035",
+     "tick": 7270,
+     "length": 440,
+     "pitch": 34,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000036",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 41,
+     "velocity": 0.9
+    },
+    {
+     "id": "0000000000000037",
+     "tick": 10150,
+     "length": 920,
+     "pitch": 48,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000038",
+     "tick": 11110,
+     "length": 440,
+     "pitch": 41,
+     "velocity": 0.7
+    },
+    {
+     "id": "0000000000000039",
+     "tick": 11520,
+     "length": 1880,
+     "pitch": 45,
+     "velocity": 0.9
+    },
+    {
+     "id": "000000000000003a",
+     "tick": 13990,
+     "length": 920,
+     "pitch": 52,
+     "velocity": 0.75
+    },
+    {
+     "id": "000000000000003b",
+     "tick": 14950,
+     "length": 410,
+     "pitch": 45,
+     "velocity": 0.7
+    }
+   ]
+  },
+  {
+   "id": "0000000000000042",
+   "trackId": "0000000000000004",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "0000000000000043",
+     "tick": 0,
+     "length": 15260,
+     "pitch": 60,
+     "velocity": 0.9
+    }
+   ]
+  },
+  {
+   "id": "000000000000004a",
+   "trackId": "0000000000000005",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "000000000000004b",
+     "tick": 0,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "000000000000004c",
+     "tick": 1750,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "000000000000004d",
+     "tick": 2400,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "000000000000004e",
+     "tick": 3840,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "000000000000004f",
+     "tick": 5590,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000050",
+     "tick": 6240,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000051",
+     "tick": 7680,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000052",
+     "tick": 9430,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000053",
+     "tick": 10080,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000054",
+     "tick": 11520,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000055",
+     "tick": 13270,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000056",
+     "tick": 13920,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    },
+    {
+     "id": "0000000000000057",
+     "tick": 14880,
+     "length": 460,
+     "pitch": 36,
+     "velocity": 1.0
+    }
+   ]
+  },
+  {
+   "id": "000000000000005e",
+   "trackId": "0000000000000006",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "000000000000005f",
+     "tick": 960,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000060",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000061",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000062",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000063",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000064",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000065",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    },
+    {
+     "id": "0000000000000066",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 38,
+     "velocity": 0.95
+    }
+   ]
+  },
+  {
+   "id": "000000000000006d",
+   "trackId": "0000000000000007",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "000000000000006e",
+     "tick": 0,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000006f",
+     "tick": 550,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000070",
+     "tick": 960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000071",
+     "tick": 1510,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000072",
+     "tick": 1920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000073",
+     "tick": 2470,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000074",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000075",
+     "tick": 3430,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000076",
+     "tick": 3840,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000077",
+     "tick": 4390,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000078",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000079",
+     "tick": 5350,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000007a",
+     "tick": 5760,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000007b",
+     "tick": 6310,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000007c",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000007d",
+     "tick": 7270,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000007e",
+     "tick": 7680,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000007f",
+     "tick": 8230,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000080",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000081",
+     "tick": 9190,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000082",
+     "tick": 9600,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000083",
+     "tick": 10150,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000084",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000085",
+     "tick": 11110,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000086",
+     "tick": 11520,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000087",
+     "tick": 12070,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000088",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000089",
+     "tick": 13030,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000008a",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000008b",
+     "tick": 13990,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000008c",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000008d",
+     "tick": 14950,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000008e",
+     "tick": 14950,
+     "length": 410,
+     "pitch": 46,
+     "velocity": 0.7
+    }
+   ]
+  },
+  {
+   "id": "0000000000000091",
+   "trackId": "0000000000000007",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "0000000000000092",
+     "tick": 0,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000093",
+     "tick": 0,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "0000000000000094",
+     "tick": 0,
+     "length": 3840,
+     "pitch": 49,
+     "velocity": 0.75
+    },
+    {
+     "id": "0000000000000095",
+     "tick": 550,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000096",
+     "tick": 960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "0000000000000097",
+     "tick": 960,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "0000000000000098",
+     "tick": 1510,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000099",
+     "tick": 1920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000009a",
+     "tick": 1920,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "000000000000009b",
+     "tick": 2470,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000009c",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "000000000000009d",
+     "tick": 2880,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "000000000000009e",
+     "tick": 3430,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000009f",
+     "tick": 3840,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000a0",
+     "tick": 3840,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000a1",
+     "tick": 4390,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000a2",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000a3",
+     "tick": 4800,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000a4",
+     "tick": 5350,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000a5",
+     "tick": 5760,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000a6",
+     "tick": 5760,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000a7",
+     "tick": 6310,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000a8",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000a9",
+     "tick": 6720,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000aa",
+     "tick": 7270,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ab",
+     "tick": 7680,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000ac",
+     "tick": 7680,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000ad",
+     "tick": 8230,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ae",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000af",
+     "tick": 8640,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000b0",
+     "tick": 9190,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000b1",
+     "tick": 9600,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000b2",
+     "tick": 9600,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000b3",
+     "tick": 10150,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000b4",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000b5",
+     "tick": 10560,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000b6",
+     "tick": 11110,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000b7",
+     "tick": 11520,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000b8",
+     "tick": 11520,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000b9",
+     "tick": 12070,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ba",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000bb",
+     "tick": 12480,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000bc",
+     "tick": 13030,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000bd",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000be",
+     "tick": 13440,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000bf",
+     "tick": 13990,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000c0",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000c1",
+     "tick": 14400,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000c2",
+     "tick": 14950,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000c3",
+     "tick": 14950,
+     "length": 410,
+     "pitch": 46,
+     "velocity": 0.7
+    }
+   ]
+  },
+  {
+   "id": "00000000000000c5",
+   "trackId": "0000000000000007",
+   "lengthTicks": 15360,
+   "notes": [
+    {
+     "id": "00000000000000c6",
+     "tick": 0,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000c7",
+     "tick": 0,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000c8",
+     "tick": 550,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000c9",
+     "tick": 960,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000ca",
+     "tick": 960,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000cb",
+     "tick": 1510,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000cc",
+     "tick": 1920,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000cd",
+     "tick": 1920,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000ce",
+     "tick": 2470,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000cf",
+     "tick": 2880,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000d0",
+     "tick": 2880,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000d1",
+     "tick": 3430,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000d2",
+     "tick": 3840,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000d3",
+     "tick": 3840,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000d4",
+     "tick": 4390,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000d5",
+     "tick": 4800,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000d6",
+     "tick": 4800,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000d7",
+     "tick": 5350,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000d8",
+     "tick": 5760,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000d9",
+     "tick": 5760,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000da",
+     "tick": 6310,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000db",
+     "tick": 6720,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000dc",
+     "tick": 6720,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000dd",
+     "tick": 7270,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000de",
+     "tick": 7680,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000df",
+     "tick": 7680,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000e0",
+     "tick": 8230,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000e1",
+     "tick": 8640,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000e2",
+     "tick": 8640,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000e3",
+     "tick": 9190,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000e4",
+     "tick": 9600,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000e5",
+     "tick": 9600,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000e6",
+     "tick": 10150,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000e7",
+     "tick": 10560,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000e8",
+     "tick": 10560,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000e9",
+     "tick": 11110,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ea",
+     "tick": 11520,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000eb",
+     "tick": 11520,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000ec",
+     "tick": 12070,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ed",
+     "tick": 12480,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000ee",
+     "tick": 12480,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000ef",
+     "tick": 13030,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000f0",
+     "tick": 13440,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000f1",
+     "tick": 13440,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000f2",
+     "tick": 13990,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000f3",
+     "tick": 14400,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.55
+    },
+    {
+     "id": "00000000000000f4",
+     "tick": 14400,
+     "length": 480,
+     "pitch": 51,
+     "velocity": 0.5
+    },
+    {
+     "id": "00000000000000f5",
+     "tick": 14950,
+     "length": 240,
+     "pitch": 42,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000f6",
+     "tick": 14950,
+     "length": 410,
+     "pitch": 46,
+     "velocity": 0.7
+    }
+   ]
+  },
+  {
+   "id": "00000000000000fa",
+   "trackId": "0000000000000002",
+   "lengthTicks": 30720,
+   "notes": [
+    {
+     "id": "00000000000000fb",
+     "tick": 0,
+     "length": 1880,
+     "pitch": 69,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000fc",
+     "tick": 2880,
+     "length": 920,
+     "pitch": 65,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000fd",
+     "tick": 3840,
+     "length": 1880,
+     "pitch": 67,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000fe",
+     "tick": 5760,
+     "length": 920,
+     "pitch": 65,
+     "velocity": 0.8
+    },
+    {
+     "id": "00000000000000ff",
+     "tick": 6720,
+     "length": 920,
+     "pitch": 62,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000100",
+     "tick": 7680,
+     "length": 1880,
+     "pitch": 64,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000101",
+     "tick": 10560,
+     "length": 920,
+     "pitch": 60,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000102",
+     "tick": 11520,
+     "length": 2840,
+     "pitch": 62,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000103",
+     "tick": 15360,
+     "length": 1880,
+     "pitch": 69,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000104",
+     "tick": 18240,
+     "length": 920,
+     "pitch": 72,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000105",
+     "tick": 19200,
+     "length": 1880,
+     "pitch": 70,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000106",
+     "tick": 21120,
+     "length": 920,
+     "pitch": 69,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000107",
+     "tick": 22080,
+     "length": 920,
+     "pitch": 67,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000108",
+     "tick": 23040,
+     "length": 1880,
+     "pitch": 65,
+     "velocity": 0.8
+    },
+    {
+     "id": "0000000000000109",
+     "tick": 25920,
+     "length": 920,
+     "pitch": 64,
+     "velocity": 0.8
+    },
+    {
+     "id": "000000000000010a",
+     "tick": 26880,
+     "length": 3800,
+     "pitch": 62,
+     "velocity": 0.8
+    }
+   ]
+  }
+ ],
+ "placements": [
+  {
+   "id": "0000000000000029",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000002a",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000002b",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000002c",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000002d",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000002e",
+   "clipId": "0000000000000008",
+   "trackId": "0000000000000001",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000003c",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000003d",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000003e",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000003f",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000040",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000041",
+   "clipId": "000000000000002f",
+   "trackId": "0000000000000003",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000044",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000045",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000046",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000047",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000048",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000049",
+   "clipId": "0000000000000042",
+   "trackId": "0000000000000004",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000058",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000059",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000005a",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000005b",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000005c",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000005d",
+   "clipId": "000000000000004a",
+   "trackId": "0000000000000005",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000067",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000068",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000069",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000006a",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000006b",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000006c",
+   "clipId": "000000000000005e",
+   "trackId": "0000000000000006",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000008f",
+   "clipId": "000000000000006d",
+   "trackId": "0000000000000007",
+   "startBar": 0,
+   "lengthBars": 4
+  },
+  {
+   "id": "0000000000000090",
+   "clipId": "000000000000006d",
+   "trackId": "0000000000000007",
+   "startBar": 4,
+   "lengthBars": 4
+  },
+  {
+   "id": "00000000000000c4",
+   "clipId": "0000000000000091",
+   "trackId": "0000000000000007",
+   "startBar": 8,
+   "lengthBars": 4
+  },
+  {
+   "id": "00000000000000f7",
+   "clipId": "00000000000000c5",
+   "trackId": "0000000000000007",
+   "startBar": 12,
+   "lengthBars": 4
+  },
+  {
+   "id": "00000000000000f8",
+   "clipId": "00000000000000c5",
+   "trackId": "0000000000000007",
+   "startBar": 16,
+   "lengthBars": 4
+  },
+  {
+   "id": "00000000000000f9",
+   "clipId": "00000000000000c5",
+   "trackId": "0000000000000007",
+   "startBar": 20,
+   "lengthBars": 4
+  },
+  {
+   "id": "000000000000010b",
+   "clipId": "00000000000000fa",
+   "trackId": "0000000000000002",
+   "startBar": 8,
+   "lengthBars": 8
+  },
+  {
+   "id": "000000000000010c",
+   "clipId": "00000000000000fa",
+   "trackId": "0000000000000002",
+   "startBar": 16,
+   "lengthBars": 8
+  }
+ ]
+}
