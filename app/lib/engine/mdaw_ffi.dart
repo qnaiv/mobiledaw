@@ -268,6 +268,8 @@ class MdawEngine {
       int Function(_EnginePtr, int, Pointer<Uint64>, int, int)>('mdaw_resize_notes');
   late final _setTempo = _lib
       .lookupFunction<Int32 Function(_EnginePtr, Double), int Function(_EnginePtr, double)>('mdaw_set_tempo');
+  late final _setKey = _lib.lookupFunction<Int32 Function(_EnginePtr, Int32, Pointer<Utf8>),
+      int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_set_key');
   late final _setClipAutomation = _lib.lookupFunction<
       Int32 Function(_EnginePtr, Uint64, Int32, Pointer<Int64>, Pointer<Float>, Int32),
       int Function(_EnginePtr, int, int, Pointer<Int64>, Pointer<Float>, int)>('mdaw_set_clip_automation');
@@ -450,6 +452,16 @@ class MdawEngine {
   }
 
   bool setTempo(double bpm) => _setTempo(_handle, bpm) != 0;
+
+  /// 曲のキー（Undo できる）。[scale] は保存名（"major" / "dorian" など）。同じ・不正なら false
+  bool setKey(int root, String scale) {
+    final p = scale.toNativeUtf8();
+    try {
+      return _setKey(_handle, root, p) != 0;
+    } finally {
+      malloc.free(p);
+    }
+  }
 
   /// クリップのオートメーション：[paramId] のレーンを丸ごと差し替える（Undo できる）。
   /// [points] は (tick, 値) の組（tick はクリップ先頭から）。空ならレーンを消す。変わらなければ false

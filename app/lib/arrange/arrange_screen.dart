@@ -249,7 +249,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = song.project;
-    final key = '${noteName(p.keyRoot)} ${p.scale}';
+    final key = '${noteName(p.keyRoot)} ${scaleKindOf(p.scale).label}';
     final error = song.saveError;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),

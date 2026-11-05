@@ -257,6 +257,9 @@ class SongController extends ChangeNotifier {
 
   bool setTempo(double bpm) => _edit(() => engine.setTempo(bpm));
 
+  /// 曲のキーとスケールを変える（Undo できる）
+  bool setKey(int root, String scale) => _edit(() => engine.setKey(root, scale));
+
   void undo() => _edit(engine.undo);
   void redo() => _edit(engine.redo);
 
