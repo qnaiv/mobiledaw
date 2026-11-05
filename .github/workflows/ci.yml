@@ -58,10 +58,34 @@ jobs:
         run: scripts/bootstrap_app.sh
       - name: Analyze
         working-directory: app
-        run: flutter analyze
+        run: |
+          code=0
+          flutter analyze > "$RUNNER_TEMP/analyze.log" 2>&1 || code=$?
+          cat "$RUNNER_TEMP/analyze.log"
+          if [ "$code" -ne 0 ]; then
+            {
+              echo '## flutter analyze'
+              echo '```'
+              cat "$RUNNER_TEMP/analyze.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$code"
       - name: Dart tests
         working-directory: app
-        run: flutter test
+        run: |
+          code=0
+          flutter test > "$RUNNER_TEMP/test.log" 2>&1 || code=$?
+          cat "$RUNNER_TEMP/test.log"
+          if [ "$code" -ne 0 ]; then
+            {
+              echo '## flutter test'
+              echo '```'
+              tail -n 200 "$RUNNER_TEMP/test.log"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$code"
       # 署名鍵をシークレットから取り出す。毎回同じ鍵で署名するので、端末では上書きでインストールできる。
       # シークレットが無い（フォークなど）ときはデバッグ鍵で署名し、リリースは作らない。
       - name: Prepare signing key
@@ -74,39 +98,3 @@ jobs:
           if [ -z "$KEYSTORE_BASE64" ]; then
             echo "署名鍵のシークレットが無いので、デバッグ鍵で署名します"
             exit 0
-          fi
-          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
-          {
-            echo "MDAW_KEYSTORE_PATH=$RUNNER_TEMP/release.jks"
-            echo "MDAW_KEYSTORE_PASSWORD=$KEYSTORE_PASSWORD"
-            echo "MDAW_KEY_ALIAS=$KEY_ALIAS"
-            echo "MDAW_KEY_PASSWORD=$KEY_PASSWORD"
-            echo "MDAW_SIGNED=1"
-          } >> "$GITHUB_ENV"
-      # ビルド番号は Actions の実行番号（増え続ける）。アプリはこれで新しい版かどうかを判定する
-      - name: Build APK
-        working-directory: app
-        run: >
-          flutter build apk --release --target-platform android-arm64
-          --build-number ${{ github.run_number }}
-          --dart-define=MDAW_BUILD=${{ github.run_number }}
-      - name: Publish release for in-app update
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && env.MDAW_SIGNED == '1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          tag="build-${{ github.run_number }}"
-          cp app/build/app/outputs/flutter-apk/app-release.apk "$RUNNER_TEMP/mobiledaw.apk"
-          git log -1 --format=%B "${{ github.sha }}" | grep -v -e '^Co-Authored-By:' -e '^Claude-Session:' > "$RUNNER_TEMP/notes.md"
-          gh release create "$tag" "$RUNNER_TEMP/mobiledaw.apk" \
-            --repo "${{ github.repository }}" --target "${{ github.sha }}" \
-            --title "build ${{ github.run_number }}" --notes-file "$RUNNER_TEMP/notes.md"
-          # 古いリリースは新しい10件だけ残す
-          gh release list --repo "${{ github.repository }}" --limit 100 --json tagName -q '.[].tagName' \
-            | grep '^build-' | sort -t- -k2 -n -r | tail -n +11 \
-            | xargs -r -I{} gh release delete {} --repo "${{ github.repository }}" --yes --cleanup-tag
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mobiledaw-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
