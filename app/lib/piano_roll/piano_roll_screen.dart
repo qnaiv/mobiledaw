@@ -103,8 +103,13 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   int? _borrowedSel; // 選んでいる借用コード（借用一覧の中の番号。無ければ null）
   bool _seventh = false; // 7thを足す
   int _chordLenIndex = 0; // 置く長さ（_chordLengths の何番目か）
-  int? _suggestFrom; // 直前に置いたコード（おすすめの元）
-  List<int> _suggest = const []; // 次に合うコード（合う順）
+  List<int> _suggest = const []; // 次に合うコード（合う順。ボタンの順位バッジ用）
+  Chord? _prevChord; // 直前に置いたコード本体（雰囲気別サジェストの元）
+  List<NextChordGroup> _nextGroups = const []; // 直前のコードから自然に続く候補（雰囲気ごと）
+  Chord? _pickedChord; // サジェストから選んだコード（次にタップで置くもの。通常の選択より優先）
+
+  // ノートの貼り付け待ち（コピー後に「貼り付け」を押すと、次にタップした場所へ貼る）
+  bool _pasteReady = false;
   final Set<int> _selection = {};
   _Drag? _drag;
   bool _centered = false; // 開いたときに一度だけノートのある音域へスクロールする
@@ -279,16 +284,37 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
             child: Text(
               _autoMode
                   ? 'タップで点を追加 · ドラッグで移動 · 長押しで削除'
-                  : ids.isEmpty
-                      ? (_chordMode
-                          ? 'コードを選んでタップで置く · ノートをタップで選ぶ · 2本指で縮尺'
-                          : 'タップで置く · タップで選ぶ · 長押しで移動 · 何もない所を長押しで範囲選択')
-                      : '選んだノート ${ids.length} 個 · つまみで長さ、掴むか長押しで移動 · ゴミ箱で削除',
+                  : _pasteReady
+                      ? '貼る場所をタップ（コピーした ${song.noteClipboardCount} 個のノート）· もう一度押すとやめる'
+                      : ids.isEmpty
+                          ? (_chordMode
+                              ? 'コードを選んでタップで置く · ノートをタップで選ぶ · 2本指で縮尺'
+                              : 'タップで置く · タップで選ぶ · 長押しで移動 · 何もない所を長押しで範囲選択')
+                          : '選んだノート ${ids.length} 個 · つまみで長さ · 掴んで移動 · 右のボタンでコピー／削除',
               maxLines: 2,
               style: const TextStyle(fontSize: 11, color: DawColors.muted),
             ),
           ),
+          if (!_autoMode && song.hasNoteClipboard)
+            IconButton(
+              tooltip: _pasteReady ? '貼り付けをやめる' : 'コピーしたノートを貼り付け（タップした場所へ）',
+              onPressed: () => setState(() {
+                _pasteReady = !_pasteReady;
+                if (_pasteReady) _chordMode = false; // 貼り付けのタップとコード配置が混ざらないように
+              }),
+              style: _pasteReady
+                  ? IconButton.styleFrom(backgroundColor: DawColors.accent, foregroundColor: DawColors.background)
+                  : null,
+              icon: const Icon(Icons.content_paste, size: 20),
+            ),
           if (!_autoMode && ids.isNotEmpty) ...[
+            IconButton(
+              tooltip: '選んだノートをコピー',
+              onPressed: () {
+                if (song.copyNotes(clip.id, ids)) HapticFeedback.selectionClick();
+              },
+              icon: const Icon(Icons.content_copy, size: 20),
+            ),
             IconButton(
               tooltip: '選択をやめる',
               onPressed: () => setState(_selection.clear),
@@ -350,6 +376,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     if (on == _autoMode) return;
     setState(() {
       _autoMode = on;
+      _pasteReady = false;
       _drag = null;
       _autoSel = null;
       _autoDragIndex = null;
@@ -518,15 +545,34 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     setState(() {
       _chordDegree = degree;
       _borrowedSel = null;
+      _pickedChord = null;
     });
     final chord = _chords(scale)[degree];
     song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
   }
 
   void _selectBorrowed(Scale scale, int index) {
-    setState(() => _borrowedSel = index);
+    setState(() {
+      _borrowedSel = index;
+      _pickedChord = null;
+    });
     final chord = borrowedChords(scale)[index].chord;
     song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
+  }
+
+  /// サジェストの候補を選ぶ（次にロールをタップしたときに置くコードにする）
+  void _selectSuggestion(Chord chord) {
+    setState(() => _pickedChord = chord);
+    song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60));
+  }
+
+  /// サジェストの候補かどうか・選んでいる候補か（チップの見た目用）
+  bool _isPicked(Chord c) {
+    final p = _pickedChord;
+    return p != null &&
+        p.root == c.root &&
+        listEquals(p.intervals, c.intervals) &&
+        listEquals(p.extensions, c.extensions);
   }
 
   /// ボタンのコードを、[nearPitch] に一番近い根音から積んだ音。どこに置いてもボタン名どおりのコード
@@ -542,9 +588,16 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   void _placeChord(ClipData clip, int tick, int nearPitch, {int? degree}) {
     final scale = scaleOf(song.project);
-    // degree はドラッグのデータ（借用は 1000 + 番号）。無ければ今選んでいるコード
-    final data = degree ?? (_borrowedSel != null ? 1000 + _borrowedSel! : _chordDegree);
-    final chord = _resolveChord(scale, data);
+    // degree はドラッグのデータ（借用は 1000 + 番号）。無ければサジェストで選んだコード、
+    // それも無ければ今選んでいるコード
+    final Chord chord;
+    if (degree != null) {
+      chord = _resolveChord(scale, degree);
+    } else if (_pickedChord != null) {
+      chord = _pickedChord!;
+    } else {
+      chord = _resolveChord(scale, _borrowedSel != null ? 1000 + _borrowedSel! : _chordDegree);
+    }
     final pitches = _chordPitches(chord, nearPitch);
     final length = math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - tick);
     final ids = song.addChord(clip.id, tick: tick, length: length, pitches: pitches);
@@ -553,15 +606,16 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       _selection
         ..clear()
         ..addAll(ids);
-      if (data >= 1000) {
-        // 借用コードを置いたら、おすすめ（ダイアトニックの流れ）は消す
-        _suggestFrom = null;
-        _suggest = const [];
-      } else {
-        // おすすめは印を出すだけ。選んでいるコードは変えない（置くコードが勝手に変わらないように）
-        _suggestFrom = chord.degree;
+      // 置いたコードから自然に続く候補（雰囲気ごと）を出す。借用コードを置いたときも出す
+      _prevChord = chord;
+      _nextGroups = nextChordSuggestions(chord, scale);
+      if (chord.degree >= 0 && chord.degree < _chords(scale).length) {
+        // ボタンの順位バッジ（ダイアトニックの流れ）は従来どおり
         _suggest = suggestNextForScale(scale, chord.degree);
         _chordDegree = chord.degree;
+      } else {
+        // 借用コードを置いたら、順位バッジは消す（グループ別サジェストは上に出ている）
+        _suggest = const [];
       }
       _dropAt = null;
     });
@@ -761,7 +815,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   Widget _chordPanel(Scale scale, ClipData clip) {
     final chords = _chords(scale);
     final borrowed = borrowedChords(scale);
-    final from = _suggestFrom;
     final length = _chordLengths[_chordLenIndex];
     String label(Chord c) => _seventh ? c.seventhName : c.name;
     return Padding(
@@ -773,10 +826,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
             children: [
               Expanded(
                 child: Text(
-                  from == null
-                      ? 'コードをロールへドラッグして置く（選んでからタップでも置ける）'
-                      : '${label(chords[from])} のあとに：'
-                          '${[for (var i = 0; i < _suggest.length; i++) '${i + 1} ${label(chords[_suggest[i]])}'].join('  ')}',
+                  _nextGroups.isNotEmpty && _prevChord != null
+                      ? '${label(_prevChord!)} のあとにおすすめ（下の候補をタップで選ぶ）'
+                      : 'コードをロールへドラッグして置く（選んでからタップでも置ける）',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 12, color: DawColors.muted),
@@ -793,6 +845,42 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ),
             ],
           ),
+          // 直前のコードから自然に続く候補（雰囲気ごと。タップで選んで、ロールをタップで置く）
+          if (_nextGroups.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(
+                height: 46,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      for (final group in _nextGroups) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(left: 8, right: 2),
+                          child: Text(group.mood,
+                              style: const TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF5AD6C0))),
+                        ),
+                        for (final c in group.chords)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+                            child: _SuggestChip(
+                              name: c.name,
+                              sub: c.extensions.isNotEmpty
+                                  ? '${c.roman} · 7th'
+                                  : (c.roman.isNotEmpty ? c.roman : c.mood),
+                              selected: _isPicked(c),
+                              borrowed: c.degree < 0,
+                              onTap: () => _selectSuggestion(c),
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
           // ダイアトニック（4つずつ並べる。最後の段の空きに 7th ボタン）
           for (var r = 0; r < chords.length; r += 4)
             Padding(
@@ -804,7 +892,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                       data: c.degree,
                       name: label(c),
                       sub: c.roman.isEmpty ? c.mood : '${c.roman} · ${c.mood}',
-                      selected: _borrowedSel == null && c.degree == _chordDegree,
+                      selected: _pickedChord == null && _borrowedSel == null && c.degree == _chordDegree,
                       rank: _suggest.indexOf(c.degree) + 1,
                       onSelect: () => _selectChord(scale, c.degree),
                     ),
@@ -840,7 +928,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     data: 1000 + i,
                     name: label(borrowed[i].chord),
                     sub: '${borrowed[i].chord.roman} · ${borrowed[i].origin}',
-                    selected: _borrowedSel == i,
+                    selected: _pickedChord == null && _borrowedSel == i,
                     rank: 0,
                     borrowed: true,
                     onSelect: () => _selectBorrowed(scale, i),
@@ -893,8 +981,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                     highlighted: _chordMode,
                     onTap: () => setState(() {
                       _chordMode = !_chordMode;
-                      _suggestFrom = null;
+                      _pasteReady = false;
                       _suggest = const [];
+                      _prevChord = null;
+                      _nextGroups = const [];
+                      _pickedChord = null;
                     }),
                   ),
           ),
@@ -1407,6 +1498,28 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   void _onTap(ClipData clip, RollGeometry g, Offset at) {
+    // 貼り付け待ち：タップしたマス（tick・音程）にコピーの原点を合わせて貼る。
+    // 貼り付けは続けてできる（やめるときは「貼り付け」ボタンをもう一度押す）
+    if (_pasteReady && song.hasNoteClipboard) {
+      final col = g.colAt(at.dx);
+      if (col != null && at.dy < g.height) {
+        final ids = song.pasteNotes(clip.id, anchorTick: g.tickAt(at.dy), anchorPitch: g.columns[col]);
+        if (ids.isEmpty) {
+          HapticFeedback.heavyImpact(); // はみ出して1つも貼れなかった
+        } else {
+          setState(() => _selection
+            ..clear()
+            ..addAll(ids));
+          final fresh = song.clip(clip.id);
+          final pasted = fresh?.notes.where((n) => ids.contains(n.id)).toList() ?? const [];
+          if (pasted.isNotEmpty) {
+            final first = pasted.map((n) => n.tick).reduce(math.min);
+            song.auditionChord({for (final n in pasted) if (n.tick == first) n.pitch}.toList());
+          }
+        }
+      }
+      return;
+    }
     final hit = noteAt(clip, g, at.dx, at.dy);
     if (hit != null) {
       setState(() {
@@ -2142,6 +2255,53 @@ class _ChordDropPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ChordDropPainter old) =>
       old.tick != tick || old.length != length || !listEquals(old.pitches, pitches) || old.hOffset != hOffset || old.vOffset != vOffset;
+}
+
+/// サジェスト帯の候補チップ（横スクロールに載せるので幅は中身なり）。見分けは _ChordButton と揃える
+class _SuggestChip extends StatelessWidget {
+  const _SuggestChip({
+    required this.name,
+    required this.sub,
+    required this.selected,
+    required this.borrowed,
+    required this.onTap,
+  });
+
+  final String name;
+  final String sub;
+  final bool selected;
+  final bool borrowed; // 借用コード（金色で見分ける）
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final fg = selected ? DawColors.background : DawColors.text;
+    return Material(
+      color: selected ? (borrowed ? _ChordButton._gold : DawColors.text) : (borrowed ? _ChordButton._goldBg : DawColors.background),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: borrowed ? _ChordButton._goldLine : DawColors.line),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(name, maxLines: 1, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: fg)),
+              Text(sub,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: 9, color: selected ? DawColors.background : (borrowed ? _ChordButton._gold : DawColors.muted))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ChordButton extends StatelessWidget {
