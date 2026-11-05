@@ -15,8 +15,9 @@
         24–31  グルーヴ2  リードのフックが乗る。最後はキックとコードで終わる
 進行は通して Am7 → Fmaj7 → Cmaj7 → G（vi–IV–I–V、フューチャーベースのデモとは別）
 ドラムは House キット（kits/house）を使う
-キーズとリードはウェーブテーブル（wtTable）使用：キーズ＝倍音テーブルを bend で軽く曲げ、
-リード＝基本テーブル（矩形とのこぎりの間）を bend。ベースとドラムは従来オシレーターのまま
+キーズとリードはウェーブテーブル（wtTable）使用：キーズ＝基本テーブルの位置0.75
+（矩形とのこぎりの間で厚く）、リード＝フォルマントの位置0.5（母音「I」あたりで固定。
+掃引用の LFO/エンベロープはまだ無い）。ベースとドラムは従来オシレーターのまま
 """
 import json
 import sys
@@ -26,13 +27,13 @@ from future_bass import Builder, n, steps, PPQ, BAR, S16
 # ---- 音色（mdaw.h の MDAW_PARAM_* / MDAW_FX_* の保存名） -------------------------
 
 SOUNDS = {
-    # オフビートで刻むキーズ（ウェーブテーブルの倍音テーブル。位置0.35の山＋bendで丸く）
+    # オフビートで刻むキーズ（ウェーブテーブルの基本テーブル、位置0.75＝矩形とのこぎりの間で厚く。bend 0.25）
     "Keys": dict(
         color="ff5ad6c0",
         synth=dict(cutoffHz=2600, resonance=0.8, attackS=0.003, decayS=0.3, sustain=0.5, releaseS=0.12,
                    detuneCents=10, masterGain=0.6, unison=3, width=0.6, blend=0.9, drive=0.05,
                    filterEnv=0.35, filterEnvDecayS=0.15, wave=1, osc=1,
-                   wtTable=2, wtPos=0.35, wtWarp=1, wtWarpAmount=0.25),
+                   wtTable=1, wtPos=0.75, wtWarp=1, wtWarpAmount=0.25),
         fx=dict(lowCutHz=250, saturation=0.1, chorus=0.2, ott=0.3, delay=0.2, delayFeedback=0.25,
                 reverb=0.25, reverbSize=0.6, sidechain=0.55, sidechainReleaseS=0.18),
         mixer=dict(gain=0.5, pan=0),
@@ -46,13 +47,13 @@ SOUNDS = {
         fx=dict(saturation=0.2, sidechain=0.5, sidechainReleaseS=0.15),
         mixer=dict(gain=0.3, pan=0),
     ),
-    # 後半のフック（ウェーブテーブルの基本テーブル、矩形とのこぎりの間。ディレイで流す）
+    # 後半のフック（ウェーブテーブルのフォルマント、位置0.5＝母音「I」あたりで固定。bend 0.3、ディレイで流す）
     "Lead": dict(
         color="ffe879c6",
         synth=dict(cutoffHz=5200, resonance=0.9, attackS=0.004, decayS=0.3, sustain=0.6, releaseS=0.15,
                    detuneCents=12, masterGain=0.55, unison=3, width=0.5, blend=0.85, drive=0.08,
                    filterEnv=0.25, filterEnvDecayS=0.2, wave=0, osc=1,
-                   wtTable=1, wtPos=0.8, wtWarp=1, wtWarpAmount=0.3),
+                   wtTable=3, wtPos=0.5, wtWarp=1, wtWarpAmount=0.3),
         fx=dict(lowCutHz=300, saturation=0.1, ott=0.3, delay=0.35, delayFeedback=0.35, reverb=0.3,
                 reverbSize=0.65, sidechain=0.4, sidechainReleaseS=0.18),
         mixer=dict(gain=0.4, pan=0.08),
