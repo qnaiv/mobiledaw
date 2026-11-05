@@ -70,4 +70,22 @@ void main() {
     if (!f.existsSync()) return;
     expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass']);
   });
+
+  test('bundled house demo uses the house kit', () {
+    final f = File('assets/demos/house.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['house']);
+  });
+
+  test('bundled lofi demo uses the lofi-boombap kit', () {
+    final f = File('assets/demos/lofi.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['lofi-boombap']);
+  });
+
+  test('bundled rnb demo uses the acoustic-live kit', () {
+    final f = File('assets/demos/rnb.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['acoustic-live']);
+  });
 }

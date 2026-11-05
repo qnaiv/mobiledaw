@@ -152,7 +152,7 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text('デモ曲：${demoLabel(demo)}'),
-                subtitle: const Text('新しい曲として一覧に入ります（ドラムは Future Bass キット）'),
+                subtitle: Text('新しい曲として一覧に入ります（ドラムは ${demoKitName(demo)}）'),
                 onTap: () => Navigator.pop(context, 'demo:${demo.name}'),
               ),
             ListTile(
