@@ -20,7 +20,6 @@ Future<List<int>?> showProgressionSheet(
   required SongController song,
   required ClipData clip,
   required Scale scale,
-  required bool minor,
   int markerTick = 0,
   PlacementData? placement,
 }) {
@@ -30,7 +29,7 @@ Future<List<int>?> showProgressionSheet(
     backgroundColor: DawColors.background,
     showDragHandle: true,
     builder: (context) =>
-        _ProgressionSheet(song: song, clip: clip, scale: scale, minor: minor, markerTick: markerTick, placement: placement),
+        _ProgressionSheet(song: song, clip: clip, scale: scale, markerTick: markerTick, placement: placement),
   );
 }
 
@@ -61,17 +60,11 @@ enum _Place { head, afterLast, marker }
 
 class _ProgressionSheet extends StatefulWidget {
   const _ProgressionSheet(
-      {required this.song,
-      required this.clip,
-      required this.scale,
-      required this.minor,
-      required this.markerTick,
-      this.placement});
+      {required this.song, required this.clip, required this.scale, required this.markerTick, this.placement});
 
   final SongController song;
   final ClipData clip;
   final Scale scale;
-  final bool minor;
   final int markerTick;
   final PlacementData? placement; // このクリップの置き場所（前後のパターンを探すため）
 
@@ -81,7 +74,8 @@ class _ProgressionSheet extends StatefulWidget {
 
 class _ProgressionSheetState extends State<_ProgressionSheet> {
   final _gen = ProgressionGenerator();
-  late final int _majorRoot = majorRootOf(widget.scale, minor: widget.minor);
+  late final _frame = genFrameOf(widget.scale); // 進行生成の物差し（長調の主音と短調扱いか）
+  int get _majorRoot => _frame.majorRoot;
   late final List<PlacedChord> _placed = placedChords(widget.clip);
 
   String? _styleId; // null ならおまかせ（案ごとにスタイルもランダム）
@@ -204,7 +198,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
     return _gen.generate(
       style: style ?? base?.style,
       bars: _bars,
-      minorKey: widget.minor,
+      minorKey: _frame.minorKey,
       context: _context,
       keepRhythmOf: base?.chords,
       locked: locked,
@@ -305,7 +299,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Text('進行をえらぶ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                Text('${noteName(widget.scale.root)} ${widget.minor ? 'minor' : 'major'} に合わせて移調ずみ · 押すたびに違う案',
+                Text('${noteName(widget.scale.root)} ${widget.scale.kind.label} に合わせて移調ずみ · 押すたびに違う案',
                     style: const TextStyle(fontSize: 12, color: DawColors.muted)),
                 const SizedBox(height: 10),
                 _label('スタイル'),
@@ -503,7 +497,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
           ? () => setState(() => _locked.contains(index) ? _locked.remove(index) : _locked.add(index))
           : null,
       child: Container(
-        height: 40,
+        height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: locked ? DawColors.accent : DawColors.background,
@@ -514,9 +508,19 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
           fit: BoxFit.scaleDown,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(chordName(c, _majorRoot),
-                style: TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w700, color: locked ? DawColors.background : DawColors.text)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(chordName(c, _majorRoot),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: locked ? DawColors.background : DawColors.text)),
+                Text(c.roman,
+                    style: TextStyle(
+                        fontSize: 9, color: locked ? DawColors.background : DawColors.muted)),
+              ],
+            ),
           ),
         ),
       ),

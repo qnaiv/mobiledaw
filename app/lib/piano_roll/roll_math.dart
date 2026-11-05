@@ -7,8 +7,7 @@ import '../model/project.dart';
 import '../music/scale.dart';
 
 /// プロジェクトのキーとスケール
-Scale scaleOf(ProjectData p) =>
-    Scale(p.keyRoot, p.scale == 'major' ? Scale.majorIntervals : Scale.minorIntervals);
+Scale scaleOf(ProjectData p) => Scale.of(p.keyRoot, scaleKindOf(p.scale));
 
 /// 並べる音（MIDI 0〜127）。スケール外を畳むならスケール音だけ、全音表示なら全部
 List<int> rollColumns(Scale scale, {required bool chromatic}) =>

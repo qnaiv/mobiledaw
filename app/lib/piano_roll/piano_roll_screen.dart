@@ -9,12 +9,14 @@ import '../arrange/song_controller.dart';
 import '../arrange/timeline_math.dart';
 import '../model/project.dart';
 import '../music/chords.dart';
+import '../music/progressions.dart';
 import '../music/voicing.dart';
 import '../music/scale.dart';
 import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
 import 'automation_sheet.dart';
 import 'chord_tools.dart';
+import 'key_scale_sheet.dart';
 import 'progression_sheet.dart';
 import 'roll_math.dart';
 
@@ -89,6 +91,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   // コード入力モード
   bool _chordMode = false;
   int _chordDegree = 0; // 選んでいるコード（キーの中の番号）
+  int? _borrowedSel; // 選んでいる借用コード（借用一覧の中の番号。無ければ null）
   bool _seventh = false; // 7thを足す
   int _chordLenIndex = 0; // 置く長さ（_chordLengths の何番目か）
   int? _suggestFrom; // 直前に置いたコード（おすすめの元）
@@ -186,7 +189,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   // ---- ヘッダーと道具 -----------------------------------------------------------
 
   Widget _header(TrackData? track, String label, PlacementData pl, Scale scale, ClipData clip) {
-    final key = '${noteName(scale.root)} ${song.project.scale}';
+    final key = '${noteName(scale.root)} ${scale.kind.label}';
     final bars = (clip.lengthTicks / song.project.ticksPerBar).ceil();
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -223,6 +226,24 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ],
             ),
           ),
+          // キーとスケール（タップで選択シート）
+          Material(
+            color: const Color(0xFF123A3F),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(999),
+              side: const BorderSide(color: Color(0xFF1F5A61)),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: () => showKeyScaleSheet(context, song: song),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Text('$key ▾',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF5AD6C0))),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
           _RoundIcon(
             icon: Icons.show_chart,
             label: 'オートメーション',
@@ -321,7 +342,11 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   // ---- コード入力 -------------------------------------------------------------
 
-  List<Chord> _chords(Scale scale) => diatonicChords(scale, minor: song.project.scale != 'major');
+  List<Chord> _chords(Scale scale) => scaleChords(scale);
+
+  /// ドラッグのデータ（ダイアトニックは番号そのまま、借用コードは 1000 + 番号）からコードを引く
+  Chord _resolveChord(Scale scale, int data) =>
+      data >= 1000 ? borrowedChords(scale)[data - 1000].chord : _chords(scale)[data];
 
   /// 置く長さの選択肢（tick と表示名）
   List<(int, String)> get _chordLengths {
@@ -330,8 +355,17 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   void _selectChord(Scale scale, int degree) {
-    setState(() => _chordDegree = degree);
+    setState(() {
+      _chordDegree = degree;
+      _borrowedSel = null;
+    });
     final chord = _chords(scale)[degree];
+    song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
+  }
+
+  void _selectBorrowed(Scale scale, int index) {
+    setState(() => _borrowedSel = index);
+    final chord = borrowedChords(scale)[index].chord;
     song.auditionChord(chord.pitchesNear(_centerPitch() ?? 60, withSeventh: _seventh));
   }
 
@@ -348,19 +382,27 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   void _placeChord(ClipData clip, int tick, int nearPitch, {int? degree}) {
     final scale = scaleOf(song.project);
-    final chord = _chords(scale)[degree ?? _chordDegree];
+    // degree はドラッグのデータ（借用は 1000 + 番号）。無ければ今選んでいるコード
+    final data = degree ?? (_borrowedSel != null ? 1000 + _borrowedSel! : _chordDegree);
+    final chord = _resolveChord(scale, data);
     final pitches = _chordPitches(chord, nearPitch);
     final length = math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - tick);
     final ids = song.addChord(clip.id, tick: tick, length: length, pitches: pitches);
     song.auditionChord(pitches);
-    final next = suggestNext(chord.degree, minor: song.project.scale != 'major');
     setState(() {
       _selection
         ..clear()
         ..addAll(ids);
-      _suggestFrom = chord.degree;
-      _suggest = next; // おすすめは印を出すだけ。選んでいるコードは変えない（置くコードが勝手に変わらないように）
-      _chordDegree = chord.degree;
+      if (data >= 1000) {
+        // 借用コードを置いたら、おすすめ（ダイアトニックの流れ）は消す
+        _suggestFrom = null;
+        _suggest = const [];
+      } else {
+        // おすすめは印を出すだけ。選んでいるコードは変えない（置くコードが勝手に変わらないように）
+        _suggestFrom = chord.degree;
+        _suggest = suggestNextForScale(scale, chord.degree);
+        _chordDegree = chord.degree;
+      }
       _dropAt = null;
     });
   }
@@ -383,7 +425,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       if (_dropAt != null) setState(() => _dropAt = null);
       return;
     }
-    final chord = _chords(scaleOf(song.project))[degree];
+    final chord = _resolveChord(scaleOf(song.project), degree);
     final next = (
       tick: t.$1,
       length: math.min(_chordLengths[_chordLenIndex].$1, clip.lengthTicks - t.$1),
@@ -504,7 +546,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       song: song,
       clip: clip,
       scale: scale,
-      minor: song.project.scale != 'major',
       markerTick: _startInClip,
       placement: _placement,
     );
@@ -517,8 +558,49 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   /// 鍵盤の代わりに並ぶコードのボタン。置いた直後は次に合うコードが光る
+  /// コードのボタン（ドラッグでロールへ置ける）。[data] がドラッグで運ぶ値
+  Widget _dragChordButton({
+    required int data,
+    required String name,
+    required String sub,
+    required bool selected,
+    required int rank,
+    required VoidCallback onSelect,
+    bool borrowed = false,
+  }) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: Draggable<int>(
+          data: data,
+          // 指の位置＝置く位置。見た目のチップは指に隠れないよう少し上に
+          dragAnchorStrategy: pointerDragAnchorStrategy,
+          onDragStarted: onSelect,
+          onDragEnd: (_) => setState(() => _dropAt = null),
+          feedback: Transform.translate(
+            offset: const Offset(-36, -64),
+            child: _ChordDragChip(name: name),
+          ),
+          childWhenDragging: Opacity(
+            opacity: 0.5,
+            child: _ChordButton(name: name, mood: sub, selected: true, rank: 0, borrowed: borrowed, onTap: () {}),
+          ),
+          child: _ChordButton(
+            name: name,
+            mood: sub,
+            selected: selected,
+            rank: rank,
+            borrowed: borrowed,
+            onTap: onSelect,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _chordPanel(Scale scale, ClipData clip) {
     final chords = _chords(scale);
+    final borrowed = borrowedChords(scale);
     final from = _suggestFrom;
     final length = _chordLengths[_chordLenIndex];
     String label(Chord c) => _seventh ? c.seventhName : c.name;
@@ -551,40 +633,22 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ),
             ],
           ),
-          for (final row in [chords.sublist(0, 4), chords.sublist(4)])
+          // ダイアトニック（4つずつ並べる。最後の段の空きに 7th ボタン）
+          for (var r = 0; r < chords.length; r += 4)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Row(
                 children: [
-                  for (final c in row)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3),
-                        child: Draggable<int>(
-                          data: c.degree,
-                          // 指の位置＝置く位置。見た目のチップは指に隠れないよう少し上に
-                          dragAnchorStrategy: pointerDragAnchorStrategy,
-                          onDragStarted: () => _selectChord(scale, c.degree),
-                          onDragEnd: (_) => setState(() => _dropAt = null),
-                          feedback: Transform.translate(
-                            offset: const Offset(-36, -64),
-                            child: _ChordDragChip(name: label(c)),
-                          ),
-                          childWhenDragging: Opacity(
-                            opacity: 0.5,
-                            child: _ChordButton(name: label(c), mood: c.mood, selected: true, rank: 0, onTap: () {}),
-                          ),
-                          child: _ChordButton(
-                            name: label(c),
-                            mood: c.mood,
-                            selected: c.degree == _chordDegree,
-                            rank: _suggest.indexOf(c.degree) + 1,
-                            onTap: () => _selectChord(scale, c.degree),
-                          ),
-                        ),
-                      ),
+                  for (final c in chords.skip(r).take(4))
+                    _dragChordButton(
+                      data: c.degree,
+                      name: label(c),
+                      sub: c.roman.isEmpty ? c.mood : '${c.roman} · ${c.mood}',
+                      selected: _borrowedSel == null && c.degree == _chordDegree,
+                      rank: _suggest.indexOf(c.degree) + 1,
+                      onSelect: () => _selectChord(scale, c.degree),
                     ),
-                  if (row.length < 4)
+                  if (r + 4 >= chords.length) ...[
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -597,9 +661,34 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                         ),
                       ),
                     ),
+                    for (var i = chords.length - r + 1; i < 4; i++) const Expanded(child: SizedBox()),
+                  ],
                 ],
               ),
             ),
+          // 借用コード（キー外だけど定番の味付け。置き方は通常のコードと同じ）
+          const Padding(
+            padding: EdgeInsets.only(top: 10, left: 2),
+            child: Text('借用コード', style: TextStyle(fontSize: 11, color: Color(0xFFF2D45A))),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Row(
+              children: [
+                for (var i = 0; i < borrowed.length; i++)
+                  _dragChordButton(
+                    data: 1000 + i,
+                    name: label(borrowed[i].chord),
+                    sub: '${borrowed[i].chord.roman} · ${borrowed[i].origin}',
+                    selected: _borrowedSel == i,
+                    rank: 0,
+                    borrowed: true,
+                    onSelect: () => _selectBorrowed(scale, i),
+                  ),
+                for (var i = borrowed.length; i < 4; i++) const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -788,6 +877,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                               clip: clip,
                               g: g,
                               scale: scale,
+                              chromatic: _chromatic,
                               ticksPerBar: song.project.ticksPerBar,
                               noteColor: color,
                               selection: Set.of(_selection),
@@ -1202,6 +1292,7 @@ class _RollPainter extends CustomPainter {
     required this.clip,
     required this.g,
     required this.scale,
+    required this.chromatic,
     required this.ticksPerBar,
     required this.noteColor,
     required this.selection,
@@ -1214,6 +1305,7 @@ class _RollPainter extends CustomPainter {
   final ClipData clip;
   final RollGeometry g;
   final Scale scale;
+  final bool chromatic; // 全音表示か（スケール内外の色分けはこのときだけ）
   final int ticksPerBar;
   final Color noteColor;
   final Set<int> selection;
@@ -1224,7 +1316,7 @@ class _RollPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ルート音（C など）とスケール外（全音表示のとき）の列に色をつける。オクターブの境目に線
+    // 列の色分け。ルート音は目印の色と線、全音表示のときはスケール内を淡く色付け・スケール外を暗くする
     for (var c = 0; c < g.columns.length; c++) {
       final p = g.columns[c];
       final isRoot = p % 12 == scale.root;
@@ -1233,6 +1325,8 @@ class _RollPainter extends CustomPainter {
         canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, 1, g.height), Paint()..color = const Color(0xFF3A3E46));
       } else if (!scale.contains(p)) {
         canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, g.colWidth, g.height), Paint()..color = const Color(0xFF121315));
+      } else if (chromatic) {
+        canvas.drawRect(Rect.fromLTWH(g.colX(c), 0, g.colWidth, g.height), Paint()..color = const Color(0xFF182420));
       }
     }
 
@@ -1536,6 +1630,7 @@ class _ChordButton extends StatelessWidget {
     required this.selected,
     required this.rank,
     required this.onTap,
+    this.borrowed = false,
   });
 
   final String name;
@@ -1543,6 +1638,11 @@ class _ChordButton extends StatelessWidget {
   final bool selected;
   final int rank; // 次のおすすめの順位（0 ならおすすめではない）
   final VoidCallback onTap;
+  final bool borrowed; // 借用コード（金色で見分ける）
+
+  static const _gold = Color(0xFFF2D45A);
+  static const _goldLine = Color(0xFF8A6D1F);
+  static const _goldBg = Color(0xFF221D10);
 
   @override
   Widget build(BuildContext context) {
@@ -1552,11 +1652,11 @@ class _ChordButton extends StatelessWidget {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: selected ? DawColors.text : DawColors.panel,
+          color: selected ? (borrowed ? _gold : DawColors.text) : (borrowed ? _goldBg : DawColors.panel),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
             side: BorderSide(
-              color: recommended ? DawColors.accent : DawColors.line,
+              color: recommended ? DawColors.accent : (borrowed ? _goldLine : DawColors.line),
               width: recommended ? 2 : 1,
             ),
           ),
@@ -1572,7 +1672,9 @@ class _ChordButton extends StatelessWidget {
                   Text(name, maxLines: 1, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: fg)),
                   Text(mood,
                       maxLines: 1,
-                      style: TextStyle(fontSize: 10, color: selected ? DawColors.background : DawColors.muted)),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 10, color: selected ? DawColors.background : (borrowed ? _gold : DawColors.muted))),
                 ],
               ),
             ),
@@ -1587,6 +1689,17 @@ class _ChordButton extends StatelessWidget {
               decoration: BoxDecoration(color: DawColors.accent, borderRadius: BorderRadius.circular(8)),
               child: Text('$rank',
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: DawColors.background)),
+            ),
+          ),
+        if (borrowed)
+          Positioned(
+            top: -6,
+            left: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(color: _goldLine, borderRadius: BorderRadius.circular(8)),
+              child: const Text('借用',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFFFFE9A3))),
             ),
           ),
       ],
