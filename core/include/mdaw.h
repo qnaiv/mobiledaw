@@ -51,7 +51,11 @@ enum {
     MDAW_PARAM_PITCH_ENV_DECAY_S = 17,
     MDAW_PARAM_WAVE = 18,          /* 0 = のこぎり、1 = 矩形 */
     MDAW_PARAM_OSC = 19,           /* のこぎり／矩形の音量 0〜1（0 にするとサブとノイズだけ：ハイハットなど） */
-    MDAW_PARAM_COUNT = 20,
+    MDAW_PARAM_WT_TABLE = 20,      /* ウェーブテーブル 0 = 従来オシレーター、1 = Basic Shapes、2 = Harmonic、3 = Formant、4 = Digital */
+    MDAW_PARAM_WT_POS = 21,        /* テーブル内のフレーム位置 0〜1 */
+    MDAW_PARAM_WT_WARP = 22,       /* 位相ワープ 0 = なし、1 = bend、2 = squeeze、3 = sync */
+    MDAW_PARAM_WT_WARP_AMOUNT = 23, /* ワープの量 0〜1 */
+    MDAW_PARAM_COUNT = 24,
 
     /* トラックのエフェクト（mdaw_set_track_param のみ） */
     MDAW_FX_FIRST = 32,

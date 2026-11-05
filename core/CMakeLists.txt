@@ -63,6 +63,7 @@ endif()
 set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/engine.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/synth.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/wavetable.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/fx.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/model.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/commands.cpp

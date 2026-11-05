@@ -5,6 +5,7 @@
 #include <iterator>
 
 #include "mdaw.h"
+#include "wavetable.h"
 
 namespace mdaw {
 
@@ -29,6 +30,10 @@ const SynthParamSpec kSynthParamSpecs[] = {
     {{MDAW_PARAM_PITCH_ENV_DECAY_S, "pitchEnvDecayS", 0.002f, 2.0f, false}, &SynthParams::pitchEnvDecayS},
     {{MDAW_PARAM_WAVE, "wave", 0.0f, 1.0f, true}, &SynthParams::wave},
     {{MDAW_PARAM_OSC, "osc", 0.0f, 1.0f, false}, &SynthParams::osc},
+    {{MDAW_PARAM_WT_TABLE, "wtTable", 0.0f, 4.0f, true}, &SynthParams::wtTable},
+    {{MDAW_PARAM_WT_POS, "wtPos", 0.0f, 1.0f, false}, &SynthParams::wtPos},
+    {{MDAW_PARAM_WT_WARP, "wtWarp", 0.0f, 3.0f, true}, &SynthParams::wtWarp},
+    {{MDAW_PARAM_WT_WARP_AMOUNT, "wtWarpAmount", 0.0f, 1.0f, false}, &SynthParams::wtWarpAmount},
 };
 const int kNumSynthParamSpecs = static_cast<int>(std::size(kSynthParamSpecs));
 
@@ -129,6 +134,8 @@ void Voice::start(int note, float velocity, const SynthParams& params, uint64_t 
     gain_ = std::pow(std::clamp(velocity, 0.0f, 1.0f), 1.5f) * 0.25f;
     filterEnv_ = 1.0f;
     pitchEnv_ = 1.0f;
+    if (!wasActive)
+        wtPos_ = params.wtPos;
     if (!wasActive) {
         // ユニゾンの位相はばらばらに始める（揃うと薄く、頭が強く鳴る）
         uint32_t r = seed | 1u;
@@ -206,6 +213,9 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
     if (!isActive())
         return;
     const bool square = p_.wave >= 0.5f;
+    const bool useWt = p_.wtTable >= 0.5f;
+    const int wtTable = std::clamp(static_cast<int>(std::lround(p_.wtTable)), 1, wavetable::kTables);
+    const int wtWarp = std::clamp(static_cast<int>(std::lround(p_.wtWarp)), 0, 3);
     const float noiseLevel = p_.noise * 0.6f;
     const float subLevel = p_.sub * 0.9f;
     const float driveGain = 1.0f + p_.drive * 9.0f;
@@ -221,6 +231,7 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
             updateIncrements(p_.pitchEnv * pitchEnv_);
             pitchEnv_ *= pitchEnvCoef_;
         }
+        wtPos_ += (p_.wtPos - wtPos_) * 0.35f; // WT_POS はブロック単位でなめらかに追従（ジッパー対策）
         const float cutoff = cutoffHz_ * std::exp2(p_.filterEnv * 7.0f * filterEnv_);
         filterL_.set(cutoff, p_.resonance, sampleRate_);
         filterR_.set(cutoff, p_.resonance, sampleRate_);
@@ -232,7 +243,10 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
                 const float ph = phase_[u];
                 const float dt = inc_[u];
                 float v;
-                if (square) {
+                if (useWt) {
+                    const float wp = wtWarp > 0 ? warpPhase(ph, wtWarp, p_.wtWarpAmount) : ph;
+                    v = wavetable::sampleWavetable(wtTable, wtPos_, wp, dt);
+                } else if (square) {
                     v = ph < 0.5f ? 1.0f : -1.0f;
                     v += polyBlep(ph, dt);
                     float ph2 = ph + 0.5f;
@@ -285,6 +299,7 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
 
 //==============================================================================
 void Synth::prepare(double sampleRate, int /*maxBlock*/) {
+    wavetable::buildWavetables(); // 音声スレッドが止まっている間に一度だけ作る（以後は読み取り専用）
     sampleRate_ = sampleRate;
     for (auto& v : voices_) {
         v.prepare(sampleRate);

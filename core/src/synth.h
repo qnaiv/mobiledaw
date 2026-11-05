@@ -29,6 +29,10 @@ struct SynthParams {
     float pitchEnvDecayS = 0.05f;
     float wave = 0.0f;
     float osc = 1.0f;
+    float wtTable = 0.0f;     // 0 = 従来オシレーター（旧プロジェクトの音は不変）
+    float wtPos = 0.0f;       // ウェーブテーブルのフレーム位置 0〜1
+    float wtWarp = 0.0f;      // 位相ワープ 0=なし、1=bend、2=squeeze、3=sync
+    float wtWarpAmount = 0.0f;
 };
 
 struct ParamSpec {
@@ -108,6 +112,7 @@ private:
     uint32_t noise_ = 1;
 
     float cutoffHz_ = 6000.0f;
+    float wtPos_ = 0.0f; // 平滑化した WT_POS（control block 単位で追従）
     float filterEnv_ = 0.0f, filterEnvCoef_ = 0.0f;
     float pitchEnv_ = 0.0f, pitchEnvCoef_ = 0.0f;
     float gain_ = 0.0f;
