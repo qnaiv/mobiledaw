@@ -233,6 +233,12 @@ int32_t mdaw_resize_notes(mdaw_engine* e, mdaw_id clip, const mdaw_id* ids, int3
 
 int32_t mdaw_set_tempo(mdaw_engine* e, double bpm) { return run(e, std::make_unique<mdaw::SetTempo>(bpm)); }
 
+int32_t mdaw_set_key(mdaw_engine* e, int32_t root, const char* scale) {
+    if (scale == nullptr)
+        return 0;
+    return run(e, std::make_unique<mdaw::SetKey>(root, std::string(scale)));
+}
+
 int32_t mdaw_set_clip_automation(mdaw_engine* e, mdaw_id clip, int32_t param, const int64_t* ticks, const float* values,
                                  int32_t count) {
     if (e == nullptr || count < 0 || (count > 0 && (ticks == nullptr || values == nullptr)))

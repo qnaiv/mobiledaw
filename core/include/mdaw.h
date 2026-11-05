@@ -152,6 +152,9 @@ MDAW_API int32_t mdaw_move_notes(mdaw_engine* engine, mdaw_id clip_id, const mda
 MDAW_API int32_t mdaw_resize_notes(mdaw_engine* engine, mdaw_id clip_id, const mdaw_id* note_ids, int32_t count,
                                    int64_t delta_ticks);
 MDAW_API int32_t mdaw_set_tempo(mdaw_engine* engine, double bpm);
+/* 曲のキー（Undo できる）。root は 0=C … 11=B、scale は保存名（"major" / "minor" / "dorian" など。
+   コアはスケール名の中身を解釈せず、そのまま保持して保存する） */
+MDAW_API int32_t mdaw_set_key(mdaw_engine* engine, int32_t root, const char* scale);
 /* クリップのオートメーション：param_id のレーンを丸ごと差し替える（Undo できる）。
    ticks はクリップ先頭からの相対位置（昇順でなくてもよい。コアが整える）、values はパラメータの実値。
    count が 0 ならレーンを消す。変わらなければ 0 */

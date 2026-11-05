@@ -430,6 +430,24 @@ bool SetTempo::apply(Project& p) {
 void SetTempo::revert(Project& p) { p.tempo = old_; }
 
 //==============================================================================
+bool SetKey::apply(Project& p) {
+    if (root_ < 0 || root_ > 11 || scale_.empty() || scale_.size() > 32)
+        return false;
+    if (root_ == p.keyRoot && scale_ == p.scale)
+        return false;
+    oldRoot_ = p.keyRoot;
+    oldScale_ = p.scale;
+    p.keyRoot = root_;
+    p.scale = scale_;
+    return true;
+}
+
+void SetKey::revert(Project& p) {
+    p.keyRoot = oldRoot_;
+    p.scale = oldScale_;
+}
+
+//==============================================================================
 namespace {
 // シンセの音色とエフェクトを同じ ID の並びで読み書きする
 bool getTrackParam(const Track& t, int id, float& out) {

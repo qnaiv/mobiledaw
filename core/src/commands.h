@@ -285,6 +285,21 @@ private:
     double old_ = 120.0;
 };
 
+// 曲のキー（ルート音とスケールの保存名）。スケール名はコアでは中身を見ず、そのまま保持する
+class SetKey final : public Command {
+public:
+    SetKey(int root, std::string scale) : root_(root), scale_(std::move(scale)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetKey"; }
+
+private:
+    int root_;
+    std::string scale_;
+    int oldRoot_ = 0;
+    std::string oldScale_;
+};
+
 // シンセのパラメータ（マクロを離した時に「開始値→終了値」の1コマンドにする）
 class SetTrackSynthParam final : public Command {
 public:
