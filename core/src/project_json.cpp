@@ -1,5 +1,6 @@
 #include "project_json.h"
 
+#include "automation.h"
 #include "kit.h"
 
 #include <cinttypes>
@@ -97,9 +98,18 @@ std::string projectToJson(const Project& p) {
         put(o, "name", juce::String::fromUTF8(t.name.c_str()));
         put(o, "color", juce::String::toHexString(static_cast<juce::int64>(t.color)).paddedLeft('0', 8));
         auto instrument = object();
-        put(instrument, "type", t.kitId.empty() ? "synth" : "kit");
+        put(instrument, "type", t.isSampler() ? "sampler" : (t.kitId.empty() ? "synth" : "kit"));
         if (!t.kitId.empty())
             put(instrument, "kit", juce::String(t.kitId));
+        if (t.isSampler()) {
+            auto sampler = object();
+            put(sampler, "kit", juce::String(t.sampler.kitId));
+            put(sampler, "sound", juce::String::fromUTF8(t.sampler.soundName.c_str()));
+            put(sampler, "rootNote", t.sampler.rootNote);
+            put(sampler, "gain", t.sampler.gain);
+            put(sampler, "start", t.sampler.start);
+            put(instrument, "sampler", sampler);
+        }
         put(instrument, "params", synthToVar(t.synth)); // キットにしてもシンセの設定は残す
         put(o, "instrument", instrument);
         put(o, "fx", fxToVar(t.fx));
@@ -130,6 +140,30 @@ std::string projectToJson(const Project& p) {
             notes.add(no);
         }
         put(o, "notes", notes);
+        // オートメーションは、レーンがあるクリップにだけ書く（無いファイルは今までと完全に同じ）
+        if (!c.automation.empty()) {
+            juce::Array<var> lanes;
+            for (const auto& lane : c.automation) {
+                if (lane.points.empty())
+                    continue;
+                const char* key = automationParamKey(lane.paramId);
+                if (key == nullptr)
+                    continue;
+                auto lo = object();
+                put(lo, "param", juce::String(key));
+                juce::Array<var> points;
+                for (const auto& pt : lane.points) {
+                    juce::Array<var> pair;
+                    pair.add(static_cast<juce::int64>(pt.tick));
+                    pair.add(pt.value);
+                    points.add(pair);
+                }
+                put(lo, "points", points);
+                lanes.add(lo);
+            }
+            if (!lanes.isEmpty())
+                put(o, "automation", lanes);
+        }
         clips.add(o);
     }
     put(root, "clips", clips);
@@ -193,10 +227,22 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
             t.name = get(o, "name").toString().toStdString();
             t.color = static_cast<uint32_t>(get(o, "color").toString().getHexValue64());
             t.synth = synthFromVar(get(get(o, "instrument"), "params"));
-            if (get(get(o, "instrument"), "type").toString() == "kit") {
+            {
                 const auto kit = get(get(o, "instrument"), "kit").toString().toStdString();
                 if (isValidKitId(kit))
                     t.kitId = kit;
+            }
+            if (get(get(o, "instrument"), "type").toString() == "sampler") {
+                // サンプラーの設定。欠けている項目は既定値（古い・壊れたファイルでも鳴らさないだけ）
+                const auto s = get(get(o, "instrument"), "sampler");
+                const auto kit = get(s, "kit").toString().toStdString();
+                if (isValidKitId(kit)) {
+                    t.sampler.kitId = kit;
+                    t.sampler.soundName = get(s, "sound").toString().toStdString();
+                    t.sampler.rootNote = static_cast<int>(std::clamp<int64_t>(integer(s, "rootNote", 60), 0, 127));
+                    t.sampler.gain = static_cast<float>(std::clamp(num(s, "gain", 1.0), 0.0, 2.0));
+                    t.sampler.start = static_cast<float>(std::clamp(num(s, "start", 0.0), 0.0, 1.0));
+                }
             }
             t.fx = fxFromVar(get(o, "fx"));
             const auto m = get(o, "mixer");
@@ -229,6 +275,31 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
                         || n.pitch > 127)
                         continue; // 壊れたノートは捨てる
                     c.notes.push_back(n);
+                }
+            }
+            if (const auto* lanes = get(o, "automation").getArray()) {
+                for (const auto& lo : *lanes) {
+                    int paramId = 0;
+                    if (!automationParamFromKey(get(lo, "param").toString().toRawUTF8(), paramId))
+                        continue; // 知らないパラメータのレーンは捨てる
+                    if (c.findAutomation(paramId) != nullptr)
+                        continue; // 同じパラメータは最初のレーンだけ
+                    AutomationLane lane;
+                    lane.paramId = paramId;
+                    if (const auto* points = get(lo, "points").getArray()) {
+                        for (const auto& pv : *points) {
+                            const auto* pair = pv.getArray();
+                            if (pair == nullptr || pair->size() != 2)
+                                continue;
+                            AutomationPoint pt;
+                            pt.tick = static_cast<int64_t>(static_cast<juce::int64>((*pair)[0]));
+                            pt.value = static_cast<float>(static_cast<double>((*pair)[1]));
+                            lane.points.push_back(pt);
+                        }
+                    }
+                    normalizeAutomationLane(lane, c.lengthTicks);
+                    if (!lane.points.empty())
+                        c.automation.push_back(std::move(lane));
                 }
             }
             c.sortNotes();

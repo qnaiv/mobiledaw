@@ -19,6 +19,15 @@ void PlaybackSnapshot::soundingAt(double tick, NoteSet* perSlot, int numSlots) c
     }
 }
 
+bool PlaybackSnapshot::nextAutomationTick(double tick, double& out) const noexcept {
+    const auto it = std::upper_bound(automationTicks.begin(), automationTicks.end(), tick,
+                                     [](double t, int64_t v) { return t < static_cast<double>(v); });
+    if (it == automationTicks.end())
+        return false;
+    out = static_cast<double>(*it);
+    return true;
+}
+
 size_t PlaybackSnapshot::firstEventAfter(double tick) const noexcept {
     auto it = std::upper_bound(events.begin(), events.end(), tick,
                                [](double t, const SeqEvent& e) { return t < static_cast<double>(e.tick); });
@@ -44,6 +53,19 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const Ki
         st.fx = t.fx;
         if (!t.kitId.empty() && kits)
             st.kit = kits(t.kitId);
+        if (t.isSampler() && kits) {
+            // 素材キットを読み、音の名前を添字に解決する（見つからなければ鳴らない）
+            st.samplerKit = kits(t.sampler.kitId);
+            st.sampler = t.sampler;
+            if (st.samplerKit != nullptr) {
+                for (size_t s = 0; s < st.samplerKit->sounds.size(); ++s) {
+                    if (st.samplerKit->sounds[s].name == t.sampler.soundName) {
+                        st.samplerSound = static_cast<int>(s);
+                        break;
+                    }
+                }
+            }
+        }
         st.gain = std::clamp(t.mixer.gain, 0.0f, 2.0f);
         st.pan = std::clamp(t.mixer.pan, -1.0f, 1.0f);
         st.audible = !t.mixer.mute && (!anySolo || t.mixer.solo);
@@ -66,6 +88,32 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const Ki
         const int64_t end = start + static_cast<int64_t>(pl.lengthBars) * snap->ticksPerBar;
         // 配置の長さに合わせてクリップを繰り返す
         for (int64_t rep = start; rep < end; rep += clip->lengthTicks) {
+            // オートメーションも同じ繰り返しで絶対 tick へ展開する（スロット×パラメータで1本にまとめる）
+            for (const auto& lane : clip->automation) {
+                if (lane.points.empty())
+                    continue;
+                SnapshotAutoLane* target = nullptr;
+                for (auto& l : snap->automation) {
+                    if (l.slot == static_cast<uint8_t>(slot) && l.paramId == lane.paramId) {
+                        target = &l;
+                        break;
+                    }
+                }
+                if (target == nullptr) {
+                    snap->automation.push_back(SnapshotAutoLane{});
+                    target = &snap->automation.back();
+                    target->slot = static_cast<uint8_t>(slot);
+                    target->paramId = lane.paramId;
+                }
+                for (const auto& pt : lane.points) {
+                    if (pt.tick < 0 || pt.tick > clip->lengthTicks)
+                        continue;
+                    const int64_t at = rep + pt.tick;
+                    if (at > end)
+                        continue; // 配置の終わりより後ろは鳴らない（終わりちょうどは含める）
+                    target->points.push_back(AutomationPoint{at, pt.value});
+                }
+            }
             for (const auto& n : clip->notes) {
                 if (n.tick < 0 || n.tick >= clip->lengthTicks || n.length <= 0 || n.pitch < 0 || n.pitch > 127)
                     continue;
@@ -97,6 +145,18 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const Ki
             return a.slot < b.slot;
         return a.pitch < b.pitch;
     });
+
+    // 展開したオートメーションを tick 順に整え、区切り位置の索引を作る。
+    // 繰り返しの境界で同じ tick に2点できたら、後から来た繰り返しの点が勝つ（automationValueAt の仕様）。
+    for (auto& lane : snap->automation) {
+        std::stable_sort(lane.points.begin(), lane.points.end(),
+                         [](const AutomationPoint& a, const AutomationPoint& b) { return a.tick < b.tick; });
+        for (const auto& pt : lane.points)
+            snap->automationTicks.push_back(pt.tick);
+    }
+    auto& ticks = snap->automationTicks;
+    std::sort(ticks.begin(), ticks.end());
+    ticks.erase(std::unique(ticks.begin(), ticks.end()), ticks.end());
     return snap;
 }
 

@@ -132,6 +132,17 @@ int32_t mdaw_set_track_kit(mdaw_engine* e, mdaw_id track, const char* kit) {
     return run(e, std::make_unique<mdaw::SetTrackKit>(track, kit ? kit : ""));
 }
 
+int32_t mdaw_set_track_sampler(mdaw_engine* e, mdaw_id track, const char* kit, const char* sound, int32_t root_note,
+                               float gain, float start) {
+    mdaw::SamplerSettings settings;
+    settings.kitId = kit ? kit : "";
+    settings.soundName = sound ? sound : "";
+    settings.rootNote = root_note;
+    settings.gain = gain;
+    settings.start = start;
+    return run(e, std::make_unique<mdaw::SetTrackSampler>(track, std::move(settings)));
+}
+
 const char* mdaw_kit_error(mdaw_engine* e, const char* kit) {
     if (e == nullptr || kit == nullptr)
         return "";
@@ -221,6 +232,18 @@ int32_t mdaw_resize_notes(mdaw_engine* e, mdaw_id clip, const mdaw_id* ids, int3
 }
 
 int32_t mdaw_set_tempo(mdaw_engine* e, double bpm) { return run(e, std::make_unique<mdaw::SetTempo>(bpm)); }
+
+int32_t mdaw_set_clip_automation(mdaw_engine* e, mdaw_id clip, int32_t param, const int64_t* ticks, const float* values,
+                                 int32_t count) {
+    if (e == nullptr || count < 0 || (count > 0 && (ticks == nullptr || values == nullptr)))
+        return 0;
+    mdaw::AutomationLane lane;
+    lane.paramId = param;
+    lane.points.reserve(static_cast<size_t>(count));
+    for (int32_t i = 0; i < count; ++i)
+        lane.points.push_back(mdaw::AutomationPoint{ticks[i], values[i]});
+    return run(e, std::make_unique<mdaw::SetClipAutomation>(clip, std::move(lane)));
+}
 
 int32_t mdaw_set_track_param(mdaw_engine* e, mdaw_id track, int32_t param, float value) {
     return run(e, std::make_unique<mdaw::SetTrackSynthParam>(track, param, value));

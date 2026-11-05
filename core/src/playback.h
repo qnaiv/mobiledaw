@@ -35,10 +35,22 @@ struct SnapshotTrack {
     Id id = kNoId;
     SynthParams synth;
     KitPtr kit;     // ドラムキットのトラックなら読み込んだキット（無ければ鳴らない）
+    KitPtr samplerKit;          // サンプラーの素材キット（サンプラーのトラックのみ）
+    int samplerSound = -1;      // samplerKit->sounds の添字（名前から解決。解決できなければ -1 = 鳴らない）
+    SamplerSettings sampler;    // サンプラーの設定（rootNote / gain / start を使う）
     FxParams fx;
     float gain = 0.8f;
     float pan = 0.0f;
     bool audible = true; // ミュート・ソロを反映した結果
+};
+
+// クリップのオートメーションを、配置と繰り返しに合わせて曲頭からの絶対 tick へ展開したもの
+struct SnapshotAutoLane {
+    uint8_t slot = 0;
+    int paramId = 0;
+    std::vector<AutomationPoint> points; // 絶対 tick 昇順
+
+    bool valueAt(double tick, float& out) const noexcept { return automationValueAt(points, tick, out); }
 };
 
 struct PlaybackSnapshot {
@@ -49,6 +61,11 @@ struct PlaybackSnapshot {
     int64_t loopEndTicks = kPpq * 4; // ループの終わり（曲が空なら1小節）
     std::vector<SnapshotTrack> tracks; // 最大 kMaxSlots
     std::vector<SeqEvent> events;      // tick 順。同じ tick ではオフが先
+    std::vector<SnapshotAutoLane> automation; // スロット×パラメータごと（無ければ空＝従来動作）
+    std::vector<int64_t> automationTicks;     // 全レーンのポイント位置（昇順・重複なし）。エンジンの区切り用
+
+    // tick より後ろで最初のオートメーションのポイント位置。無ければ false
+    bool nextAutomationTick(double tick, double& out) const noexcept;
 
     // tick 時点で鳴っているべき音を slot ごとの 128bit で返す（音声スレッドから呼んでよい）
     struct NoteSet {

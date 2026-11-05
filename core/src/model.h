@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "automation.h"
 #include "fx.h"
 #include "synth.h"
 
@@ -35,9 +36,12 @@ struct Clip {
     Id trackId = kNoId;
     int64_t lengthTicks = kPpq * 4; // 既定は4/4で1小節
     std::vector<Note> notes;        // 常に tick → pitch の順に並べておく
+    std::vector<AutomationLane> automation; // パラメータごとのレーン（無いパラメータは載せない）
 
     Note* findNote(Id noteId);
     void sortNotes();
+    AutomationLane* findAutomation(int paramId);
+    const AutomationLane* findAutomation(int paramId) const;
 };
 
 struct Placement {
@@ -55,14 +59,35 @@ struct Mixer {
     bool solo = false;
 };
 
+// サンプラー楽器の設定（4つ目の楽器）。素材はインストール済みキットの音を1つ借りる。
+// kitId が空ならサンプラーではない。シンセ／キットの設定は別に残してあるので、
+// サンプラーをやめれば（kitId を空にすれば）元の楽器にそのまま戻る。
+struct SamplerSettings {
+    std::string kitId;     // 素材の出どころのキット（kits/<id>）
+    std::string soundName; // キット内の音の名前（kit.json の name。読み込み時に添字へ解決する）
+    int rootNote = 60;     // 基準音程 0〜127（この音程で原音の速さで鳴る）
+    float gain = 1.0f;     // 0〜2
+    float start = 0.0f;    // 再生開始位置 0〜1（サンプルの長さに対する割合）
+
+    bool operator==(const SamplerSettings& o) const noexcept {
+        return kitId == o.kitId && soundName == o.soundName && rootNote == o.rootNote && gain == o.gain
+               && start == o.start;
+    }
+    bool operator!=(const SamplerSettings& o) const noexcept { return !(*this == o); }
+};
+
 struct Track {
     Id id = kNoId;
     std::string name;
     uint32_t color = 0xFFC8F25A; // ARGB
-    SynthParams synth;           // 今はシンセのみ。音色エンジンの切り替え（サンプラーなど）は M3 以降
+    SynthParams synth;           // シンセの設定（他の楽器にしても残す）
     std::string kitId;           // 空ならシンセ、入っていればそのドラムキット（kits/<id>）を鳴らす
+    SamplerSettings sampler;     // サンプラー設定。kitId が入っていればキットより優先（楽器 = サンプラー）
     FxParams fx;                 // トラックのエフェクト（音色を替えても残る）
     Mixer mixer;
+
+    // このトラックの楽器がサンプラーか
+    bool isSampler() const noexcept { return !sampler.kitId.empty(); }
 };
 
 struct Project {

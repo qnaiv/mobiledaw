@@ -20,6 +20,20 @@ Note* Clip::findNote(Id noteId) {
     return nullptr;
 }
 
+AutomationLane* Clip::findAutomation(int paramId) {
+    for (auto& lane : automation)
+        if (lane.paramId == paramId)
+            return &lane;
+    return nullptr;
+}
+
+const AutomationLane* Clip::findAutomation(int paramId) const {
+    for (const auto& lane : automation)
+        if (lane.paramId == paramId)
+            return &lane;
+    return nullptr;
+}
+
 void Clip::sortNotes() {
     std::stable_sort(notes.begin(), notes.end(), [](const Note& a, const Note& b) {
         return a.tick != b.tick ? a.tick < b.tick : a.pitch < b.pitch;
