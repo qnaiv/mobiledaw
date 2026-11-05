@@ -124,6 +124,24 @@ private:
     Placement placement_;
 };
 
+// クリップを別パターンとして複製する：中身（ノート・オートメーション）を複製した
+// 新しいクリップを作って指定小節に置く。複製側を編集しても元のクリップには影響しない
+class CloneClip final : public Command {
+public:
+    CloneClip(Id clipId, int startBar) : clipId_(clipId), startBar_(startBar) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "CloneClip"; }
+    Id clipId() const noexcept { return clone_.id; }
+    Id placementId() const noexcept { return placement_.id; }
+
+private:
+    Id clipId_;
+    int startBar_;
+    Clip clone_;
+    Placement placement_;
+};
+
 // 配置を外す。どこからも参照されなくなったクリップも一緒に消す（Undo で戻る）
 class RemovePlacement final : public Command {
 public:

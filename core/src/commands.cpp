@@ -205,6 +205,34 @@ bool PlaceClip::apply(Project& p) {
 void PlaceClip::revert(Project& p) { eraseById(p.placements, placement_.id); }
 
 //==============================================================================
+bool CloneClip::apply(Project& p) {
+    const auto* src = p.findClip(clipId_);
+    if (src == nullptr || startBar_ < 0)
+        return false;
+    const auto perBar = p.ticksPerBar();
+    const int bars = static_cast<int>((src->lengthTicks + perBar - 1) / perBar);
+    if (overlaps(p, src->trackId, startBar_, bars))
+        return false;
+    if (clone_.id == kNoId) {
+        // ノートもオートメーションも vector のコピーでディープコピーになる。
+        // ノートの ID は新しいクリップのものとして振り直す（Redo では同じ ID に戻る）
+        clone_ = *src;
+        clone_.id = newId();
+        for (auto& n : clone_.notes)
+            n.id = newId();
+        placement_ = {newId(), clone_.id, src->trackId, startBar_, bars};
+    }
+    p.clips.push_back(clone_);
+    p.placements.push_back(placement_);
+    return true;
+}
+
+void CloneClip::revert(Project& p) {
+    eraseById(p.placements, placement_.id);
+    eraseById(p.clips, clone_.id);
+}
+
+//==============================================================================
 bool RemovePlacement::apply(Project& p) {
     auto it = std::find_if(p.placements.begin(), p.placements.end(),
                            [&](const Placement& pl) { return pl.id == placementId_; });

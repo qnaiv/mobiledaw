@@ -136,6 +136,71 @@ TEST(model_place_clip_duplicates_by_reference) {
     CHECK(!f.history.execute(std::make_unique<PlaceClip>(f.clip, 1)));
 }
 
+TEST(model_clone_clip_is_an_independent_pattern) {
+    Fixture f;
+    auto ids = f.addNotes({note(0, 60), note(kPpq, 64)});
+    AutomationLane lane;
+    lane.paramId = MDAW_PARAM_CUTOFF_HZ;
+    lane.points = {{0, 800.0f}, {kPpq * 2, 4000.0f}};
+    CHECK(f.history.execute(std::make_unique<SetClipAutomation>(f.clip, lane)));
+
+    // 元の配置（0小節目）とは重ならない場所にしか複製できない
+    CHECK(!f.history.execute(std::make_unique<CloneClip>(f.clip, 0)));
+    CHECK(!f.history.execute(std::make_unique<CloneClip>(kNoId, 1)));
+
+    auto clone = std::make_unique<CloneClip>(f.clip, 1);
+    auto* rawClone = clone.get();
+    CHECK(f.history.execute(std::move(clone)));
+    const auto cloneId = rawClone->clipId();
+    CHECK(cloneId != kNoId && cloneId != f.clip);
+    CHECK(rawClone->placementId() != kNoId);
+    CHECK(f.project.clips.size() == 2); // PlaceClip と違って実体も2つ
+    CHECK(f.project.placements.size() == 2);
+
+    auto* copy = f.project.findClip(cloneId);
+    CHECK(copy != nullptr);
+    if (copy == nullptr)
+        return;
+    // ノートは中身が同じで ID は振り直されている
+    CHECK(copy->notes.size() == 2);
+    CHECK(copy->notes[0].pitch == 60 && copy->notes[1].pitch == 64);
+    CHECK(copy->notes[0].tick == 0 && copy->notes[1].tick == kPpq);
+    for (const auto& n : copy->notes)
+        CHECK(n.id != ids[0] && n.id != ids[1]);
+    // オートメーションも複製される
+    CHECK(copy->automation.size() == 1);
+    CHECK(copy->automation[0].paramId == MDAW_PARAM_CUTOFF_HZ);
+    CHECK(copy->automation[0].points.size() == 2);
+    CHECK(copy->automation[0].points[1].value == 4000.0f);
+
+    // 元を編集しても複製は変わらない
+    CHECK(f.history.execute(std::make_unique<DeleteNotes>(f.clip, std::vector<Id>{ids[0]})));
+    CHECK(f.theClip().notes.size() == 1);
+    CHECK(copy->notes.size() == 2);
+    // 複製を編集しても元は変わらない
+    CHECK(f.history.execute(std::make_unique<DeleteNotes>(cloneId, std::vector<Id>{copy->notes[0].id})));
+    CHECK(copy->notes.size() == 1);
+    CHECK(f.theClip().notes.size() == 1);
+    // オートメーションも独立（元のレーンを消しても複製に残る）
+    AutomationLane empty;
+    empty.paramId = MDAW_PARAM_CUTOFF_HZ;
+    CHECK(f.history.execute(std::make_unique<SetClipAutomation>(f.clip, empty)));
+    CHECK(f.theClip().automation.empty());
+    CHECK(copy->automation.size() == 1);
+
+    // Undo を遡ると複製そのものが無かったことになり、Redo で同じ ID で戻る
+    CHECK(f.history.undo()); // SetClipAutomation（消去）
+    CHECK(f.history.undo()); // DeleteNotes（複製側）
+    CHECK(f.history.undo()); // DeleteNotes（元側）
+    CHECK(f.history.undo()); // CloneClip
+    CHECK(f.project.clips.size() == 1);
+    CHECK(f.project.placements.size() == 1);
+    CHECK(f.theClip().notes.size() == 2);
+    CHECK(f.history.redo());
+    CHECK(f.project.clips.size() == 2);
+    CHECK(f.project.findClip(cloneId) != nullptr);
+}
+
 TEST(model_remove_last_placement_removes_clip_and_undo_restores) {
     Fixture f;
     f.addNotes({note(0, 60)});

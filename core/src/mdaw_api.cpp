@@ -193,6 +193,16 @@ mdaw_id mdaw_place_clip(mdaw_engine* e, mdaw_id clip, int32_t startBar) {
                     [](const mdaw::PlaceClip& c) { return c.placementId(); });
 }
 
+mdaw_id mdaw_clone_clip(mdaw_engine* e, mdaw_id clip, int32_t startBar, mdaw_id* outPlacement) {
+    if (outPlacement != nullptr)
+        *outPlacement = 0;
+    return runForId(e, std::make_unique<mdaw::CloneClip>(clip, startBar), [&](const mdaw::CloneClip& c) {
+        if (outPlacement != nullptr)
+            *outPlacement = c.placementId();
+        return c.clipId();
+    });
+}
+
 int32_t mdaw_remove_placement(mdaw_engine* e, mdaw_id placement) {
     return run(e, std::make_unique<mdaw::RemovePlacement>(placement));
 }

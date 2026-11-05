@@ -140,6 +140,10 @@ MDAW_API int32_t mdaw_set_track_mixer(mdaw_engine* engine, mdaw_id track_id, flo
 MDAW_API mdaw_id mdaw_create_clip(mdaw_engine* engine, mdaw_id track_id, int32_t start_bar, int32_t length_bars,
                                   mdaw_id* out_placement_id);
 MDAW_API mdaw_id mdaw_place_clip(mdaw_engine* engine, mdaw_id clip_id, int32_t start_bar); /* 複製を置く */
+/* クリップを別パターンとして複製する：中身（ノート・オートメーション）を複製した新しいクリップを作って置く
+   （Undo できる）。戻り値は新しいクリップの ID、out_placement_id に配置の ID が入る（NULL でもよい）。失敗は 0 */
+MDAW_API mdaw_id mdaw_clone_clip(mdaw_engine* engine, mdaw_id clip_id, int32_t start_bar,
+                                 mdaw_id* out_placement_id);
 MDAW_API int32_t mdaw_remove_placement(mdaw_engine* engine, mdaw_id placement_id);
 /* クリップの長さ（小節、1〜64）。その複製もすべて同じ長さになる。縮めてはみ出したノートは消える */
 MDAW_API int32_t mdaw_set_clip_length(mdaw_engine* engine, mdaw_id clip_id, int32_t length_bars);
