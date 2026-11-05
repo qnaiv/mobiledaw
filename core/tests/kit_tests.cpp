@@ -163,6 +163,171 @@ TEST(session_kit_track_plays_and_saves) {
     CHECK(!session.kitError("nothing-here").empty());
 }
 
+// ---- サンプラー楽器 ---------------------------------------------------------
+
+// メモリ上で KitSound を作る（220Hz サイン、44.1kHz、1秒、モノラル。ファイルは使わない）
+KitSound makeToneSound(double hz = 220.0, double seconds = 1.0, double sr = 44100.0) {
+    KitSound s;
+    s.name = "Tone";
+    s.note = 60;
+    s.gain = 1.0f;
+    s.sampleRate = sr;
+    const int n = static_cast<int>(sr * seconds);
+    s.left.resize(static_cast<size_t>(n));
+    for (int i = 0; i < n; ++i)
+        s.left[static_cast<size_t>(i)] = 0.5f * static_cast<float>(std::sin(2.0 * 3.14159265 * hz * i / sr));
+    return s;
+}
+
+// ゼロクロッシングから大まかな周波数を数える
+double estimateHz(const std::vector<float>& v, size_t from, size_t to, double sr) {
+    int crossings = 0;
+    const size_t end = std::min(to, v.size());
+    for (size_t i = from + 1; i < end; ++i)
+        if ((v[i - 1] < 0.0f) != (v[i] < 0.0f))
+            ++crossings;
+    const double seconds = static_cast<double>(end - from) / sr;
+    return seconds > 0.0 ? crossings / 2.0 / seconds : 0.0;
+}
+
+std::vector<float> renderMelodic(MelodicSampler& s, int frames) {
+    std::vector<float> l(static_cast<size_t>(frames), 0.0f), r(static_cast<size_t>(frames), 0.0f);
+    for (int i = 0; i < frames; i += 512)
+        s.render(l.data() + i, r.data() + i, std::min(512, frames - i));
+    return l;
+}
+
+TEST(melodic_sampler_pitches_by_note) {
+    auto sound = makeToneSound();
+    MelodicSampler probe;
+    probe.prepare(48000.0);
+    probe.setSound(&sound, 60, 1.0f, 0.0f);
+    // 速度比：基準音程で素材のレート換算のみ、±12 半音で 2 倍／半分
+    CHECK(std::abs(probe.incrementFor(60) - 44100.0 / 48000.0) < 1e-9);
+    CHECK(std::abs(probe.incrementFor(72) - 2.0 * 44100.0 / 48000.0) < 1e-9);
+    CHECK(std::abs(probe.incrementFor(48) - 0.5 * 44100.0 / 48000.0) < 1e-9);
+
+    auto playFreq = [&](int note) {
+        MelodicSampler s;
+        s.prepare(48000.0);
+        s.setSound(&sound, 60, 1.0f, 0.0f);
+        s.noteOn(note, 1.0f);
+        const auto l = renderMelodic(s, 24000);
+        CHECK(peakOf(l, 0, l.size()) > 0.4f); // 無音でない
+        return estimateHz(l, 1000, 20000, 48000.0);
+    };
+    const double fRoot = playFreq(60);
+    const double fUp = playFreq(72);
+    const double fDown = playFreq(48);
+    std::printf("  基準 %.1f Hz / +12 %.1f Hz / -12 %.1f Hz\n", fRoot, fUp, fDown);
+    CHECK(fRoot > 200.0 && fRoot < 240.0);
+    CHECK(fUp > 400.0 && fUp < 480.0);
+    CHECK(fDown > 100.0 && fDown < 120.0);
+}
+
+TEST(melodic_sampler_noteoff_releases_and_oneshot_ends) {
+    auto sound = makeToneSound();
+    MelodicSampler s;
+    s.prepare(48000.0);
+    s.setSound(&sound, 60, 1.0f, 0.0f);
+
+    // ノートオフでリリース（60ms）→ 無音になりボイスも消える
+    s.noteOn(60, 1.0f);
+    auto l = renderMelodic(s, 4800);
+    CHECK(peakOf(l, 0, l.size()) > 0.4f);
+    CHECK(s.activeVoices() == 1);
+    s.noteOff(60);
+    l = renderMelodic(s, 48000);
+    CHECK(peakOf(l, 9600, 48000) == 0.0f);
+    CHECK(s.activeVoices() == 0);
+
+    // ノートオフしなくても素材が終われば消える（ワンショット。2倍速なので 0.5 秒）
+    s.noteOn(72, 1.0f);
+    l = renderMelodic(s, 48000);
+    CHECK(peakOf(l, 30000, 48000) == 0.0f);
+    CHECK(s.activeVoices() == 0);
+
+    // 開始位置 0.5：後半だけが鳴る
+    MelodicSampler s2;
+    s2.prepare(48000.0);
+    s2.setSound(&sound, 60, 1.0f, 0.5f);
+    s2.noteOn(60, 1.0f);
+    const auto l2 = renderMelodic(s2, 48000);
+    CHECK(peakOf(l2, 0, 12000) > 0.3f);
+    CHECK(peakOf(l2, 30000, 48000) == 0.0f);
+
+    // 素材を差し替えると鳴っている音は止まる
+    MelodicSampler s3;
+    s3.prepare(48000.0);
+    s3.setSound(&sound, 60, 1.0f, 0.0f);
+    s3.noteOn(60, 1.0f);
+    CHECK(s3.activeVoices() == 1);
+    s3.setSound(nullptr, 60, 1.0f, 0.0f);
+    CHECK(s3.activeVoices() == 0);
+}
+
+TEST(session_sampler_track_resolves_plays_and_saves) {
+    TempKit k;
+    Engine engine;
+    engine.prepare(48000.0);
+    Session session(engine);
+    session.setKitsRoot(k.root.getFullPathName().toStdString());
+    const Id track = session.project().tracks.front().id;
+
+    SamplerSettings bad;
+    bad.kitId = "Bad/Id";
+    CHECK(!session.execute(std::make_unique<SetTrackSampler>(track, bad)));
+
+    SamplerSettings settings;
+    settings.kitId = "test-kit";
+    settings.soundName = "Tone";
+    settings.rootNote = 60;
+    CHECK(session.execute(std::make_unique<SetTrackSampler>(track, settings)));
+    CHECK(session.project().tracks.front().isSampler());
+
+    // スナップショットで素材（名前→添字）が解決できている。ドラム側は従来どおり空
+    auto snap = session.snapshot();
+    CHECK(snap->tracks.front().samplerKit != nullptr);
+    CHECK(snap->tracks.front().samplerSound == 0);
+    CHECK(snap->tracks.front().kit == nullptr);
+
+    // 基準音程のノートで鳴る
+    auto create = std::make_unique<CreateClip>(track, 0, 1);
+    auto* raw = create.get();
+    CHECK(session.execute(std::move(create)));
+    Note n;
+    n.tick = 0;
+    n.length = kPpq * 2;
+    n.pitch = 60;
+    n.velocity = 1.0f;
+    CHECK(session.execute(std::make_unique<AddNotes>(raw->clipId(), std::vector<Note>{n})));
+    engine.play();
+    std::vector<float> buf(48000 * 2 * 2, 0.0f);
+    for (int i = 0; i < 96000; i += 256)
+        engine.render(buf.data() + static_cast<size_t>(i) * 2, 256, 2);
+    float early = 0.0f;
+    for (int i = 100; i < 20000; ++i)
+        early = std::max(early, std::abs(buf[static_cast<size_t>(i) * 2]));
+    CHECK(early > 0.1f);
+
+    // 保存・復元でサンプラー設定が往復する
+    const auto json = projectToJson(session.project());
+    CHECK(json.find("\"sampler\"") != std::string::npos);
+    Project back;
+    std::string error;
+    CHECK(projectFromJson(json, back, error));
+    CHECK(back.tracks.front().isSampler());
+    CHECK(back.tracks.front().sampler.soundName == "Tone");
+    CHECK(back.tracks.front().sampler.rootNote == 60);
+
+    // 従来プロジェクト（サンプラー無し）は既定値のまま＝従来動作
+    Project defBack;
+    CHECK(projectFromJson(projectToJson(makeDefaultProject()), defBack, error));
+    CHECK(!defBack.tracks.front().isSampler());
+    CHECK(defBack.tracks.front().sampler.rootNote == 60);
+    CHECK(defBack.tracks.front().sampler.gain == 1.0f);
+}
+
 // リポジトリの kits/ にあるキットが全部読める
 TEST(repository_kits_all_load) {
     const auto kits = juce::File(__FILE__).getParentDirectory().getParentDirectory().getParentDirectory().getChildFile("kits");
