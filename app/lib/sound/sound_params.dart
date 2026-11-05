@@ -78,6 +78,16 @@ const synthParams = <SoundParam>[
   SoundParam(MdawParam.pitchEnv, 'pitchEnv', '音程の落ち込み（キック・ザップ）', 0, 48, 0, unit: 'st'),
   SoundParam(MdawParam.pitchEnvDecayS, 'pitchEnvDecayS', '音程が戻るまでの時間', 0.002, 2, 0.05,
       scale: ParamScale.log, unit: 's'),
+  SoundParam(MdawParam.keyTrack, 'keyTrack', 'キートラッキング（音程にカットオフが連動）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.glideS, 'glideS', 'グライド（音程の滑り）', 0, 0.4, 0, unit: 's'),
+  SoundParam(MdawParam.mono, 'mono', 'モノ（単音でレガートにつなぐ）', 0, 1, 0, scale: ParamScale.toggle),
+  SoundParam(MdawParam.lfoWave, 'lfoWave', 'LFOの波形（0=正弦、1=三角、2=矩形、3=のこぎり）', 0, 3, 0,
+      scale: ParamScale.integer),
+  SoundParam(MdawParam.lfoSync, 'lfoSync', 'LFOをテンポに合わせる', 0, 1, 0, scale: ParamScale.toggle),
+  SoundParam(MdawParam.lfoDiv, 'lfoDiv', 'LFOの周期（同期時：0=1小節、1=4分、2=付点8分、3=8分、4=16分）', 0, 4, 1,
+      scale: ParamScale.integer),
+  SoundParam(MdawParam.lfoCutoff, 'lfoCutoff', 'LFOで明るさを揺らす量', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.lfoPitch, 'lfoPitch', 'LFOで音程を揺らす量（ビブラート）', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.attackS, 'attackS', 'アタック', 0.0005, 10, 0.005, scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.decayS, 'decayS', 'ディケイ', 0.0005, 10, 0.25, scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.sustain, 'sustain', 'サステイン', 0, 1, 0.7, unit: '%'),
@@ -164,10 +174,17 @@ final analogOscParams = pickParams(['unison', 'detuneCents', 'width', 'blend', '
 final unisonParams = pickParams(['unison', 'detuneCents', 'width', 'blend']);
 
 /// フィルター節（両シンセ共通）
-final filterParams = pickParams(['cutoffHz', 'resonance', 'filterEnv', 'filterEnvDecayS']);
+final filterParams = pickParams(['cutoffHz', 'resonance', 'filterEnv', 'filterEnvDecayS', 'keyTrack']);
 
 /// エンベロープ節（両シンセ共通。音量もここ）
 final envParams = pickParams(['attackS', 'decayS', 'sustain', 'releaseS', 'pitchEnv', 'pitchEnvDecayS', 'masterGain']);
+
+/// 演奏節（両シンセ共通）：グライドとモノ／レガート
+final playParams = pickParams(['glideS', 'mono']);
+
+/// LFO 節（両シンセ共通）：波形・テンポ同期・宛先（カットオフ／音程）。
+/// 速さと WT_POS への量は従来どおり wtLfoRate／wtLfoAmount（ウェーブテーブルパネルに表示）
+final lfoParams = pickParams(['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
 
 // tools/demos/future_bass.py の音色（Chords・Lead・Bell・Bass・Kick・Clap・Hats・Riser）＋よく使う形
 const soundPresets = <SoundPreset>[

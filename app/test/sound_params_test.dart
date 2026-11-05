@@ -49,6 +49,32 @@ void main() {
     }
   });
 
+  // エンジン拡張（キートラッキング／グライド／モノ／LFO拡張）：既定値は全て「従来挙動」
+  test('engine expansion params exist with legacy defaults', () {
+    final byKey = {for (final p in allSoundParams) p.key: p};
+    for (final (key, def) in [
+      ('keyTrack', 0.0),
+      ('glideS', 0.0),
+      ('mono', 0.0),
+      ('lfoWave', 0.0),
+      ('lfoSync', 0.0),
+      ('lfoDiv', 1.0),
+      ('lfoCutoff', 0.0),
+      ('lfoPitch', 0.0),
+    ]) {
+      expect(byKey, contains(key));
+      expect(byKey[key]!.def, def, reason: key);
+    }
+    // コア（mdaw.h）と番号がずれていないこと：FX は 40 番台に移っている
+    expect(byKey['lowCutHz']!.id, 40);
+    expect(byKey['sidechainSource']!.id, 50);
+    expect(byKey['lfoPitch']!.id, 33);
+    // 音色画面の節分けに新しい節が入っている
+    expect(filterParams.map((p) => p.key), contains('keyTrack'));
+    expect(playParams.map((p) => p.key), ['glideS', 'mono']);
+    expect(lfoParams.map((p) => p.key), ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
+  });
+
   test('format', () {
     final cutoff = allSoundParams.firstWhere((p) => p.key == 'cutoffHz');
     expect(cutoff.format(12000), '12.0 kHz');

@@ -7,10 +7,10 @@ ClipData _clip(List<AutomationLaneData> lanes) =>
 
 void main() {
   group('automationParamFor', () {
-    test('gain はトラック音量（仮想 ID 48、0〜2）', () {
+    test('gain はトラック音量（仮想 ID 56、0〜2）', () {
       final p = automationParamFor('gain');
       expect(p, isNotNull);
-      expect(p!.id, 48);
+      expect(p!.id, 56);
       expect(p.min, 0);
       expect(p.max, 2);
       expect(p.toUnit(1), 0.5);
@@ -89,7 +89,7 @@ void main() {
       final plan = automationPastePlan(current: dst.automation, clipboard: clipboard);
       final byId = {for (final (id, points) in plan) id: points};
       expect(byId[automationParamFor('reverb')!.id], isEmpty); // 差し替えで消える
-      expect(byId[48], [(0, 0.0), (3840, 1.0)]); // gain はコピー元の値に
+      expect(byId[56], [(0, 0.0), (3840, 1.0)]); // gain はコピー元の値に
       expect(byId[automationParamFor('cutoffHz')!.id], [(0, 800.0)]);
     });
 

@@ -38,22 +38,30 @@ abstract final class MdawParam {
   static const wtWarpAmount = 23;
   static const wtLfoRate = 24;
   static const wtLfoAmount = 25;
+  static const keyTrack = 26;
+  static const glideS = 27;
+  static const mono = 28;
+  static const lfoWave = 29;
+  static const lfoSync = 30;
+  static const lfoDiv = 31;
+  static const lfoCutoff = 32;
+  static const lfoPitch = 33;
 
   // トラックのエフェクト（setTrackParam で同じように変えられる）
-  static const fxLowCutHz = 32;
-  static const fxSaturation = 33;
-  static const fxChorus = 34;
-  static const fxOtt = 35;
-  static const fxDelay = 36;
-  static const fxDelayFeedback = 37;
-  static const fxReverb = 38;
-  static const fxReverbSize = 39;
-  static const fxSidechain = 40;
-  static const fxSidechainReleaseS = 41;
-  static const fxSidechainSource = 42;
+  static const fxLowCutHz = 40;
+  static const fxSaturation = 41;
+  static const fxChorus = 42;
+  static const fxOtt = 43;
+  static const fxDelay = 44;
+  static const fxDelayFeedback = 45;
+  static const fxReverb = 46;
+  static const fxReverbSize = 47;
+  static const fxSidechain = 48;
+  static const fxSidechainReleaseS = 49;
+  static const fxSidechainSource = 50;
 
   // オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。setTrackParam では使わない
-  static const trackGain = 48;
+  static const trackGain = 56;
 }
 
 abstract final class MdawResult {
