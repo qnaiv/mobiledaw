@@ -77,7 +77,7 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _Header(song: song, onMenu: _openMenu),
+                _Header(song: song, onMenu: _openMenu, onMixer: () => showMixerSheet(context, song)),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: UpdateBanner()),
                 Expanded(child: _Timeline(song: song, position: _position)),
                 _SelectionBar(song: song),
@@ -153,7 +153,7 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text('デモ曲：${demoLabel(demo)}'),
-                subtitle: Text('新しい曲として一覧に入ります（ドラムは ${demoKitName(demo)}）'),
+                subtitle: Text('何度開いても一覧では1曲だけ（ドラムは ${demoKitName(demo)}）'),
                 onTap: () => Navigator.pop(context, 'demo:${demo.name}'),
               ),
             ListTile(
@@ -242,10 +242,11 @@ void openPianoRoll(BuildContext context, SongController song, int placementId) {
 // ---- ヘッダー ------------------------------------------------------------------
 
 class _Header extends StatelessWidget {
-  const _Header({required this.song, required this.onMenu});
+  const _Header({required this.song, required this.onMenu, required this.onMixer});
 
   final SongController song;
   final VoidCallback onMenu;
+  final VoidCallback onMixer;
 
   @override
   Widget build(BuildContext context) {
@@ -294,6 +295,8 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          _SquareButton(icon: Icons.tune, label: 'ミキサー', onPressed: onMixer),
+          const SizedBox(width: 8),
           _SquareButton(icon: Icons.menu, label: 'メニュー', onPressed: onMenu),
         ],
       ),
@@ -304,18 +307,29 @@ class _Header extends StatelessWidget {
 // ---- タイムライン ----------------------------------------------------------------
 
 /// 列と行の寸法（描画とタップ判定で共通に使う）
+/// 列幅は [minColWidth] を下回らない。画面に収まるときは今までどおり幅いっぱいに広げ、
+/// 収まらない分は横スクロールで見る（中身の幅が [contentWidth]）。
 class _Grid {
   _Grid({required double width, required this.trackCount})
       : columns = math.max(trackCount, 4),
-        colWidth = (width - labelWidth - gap * math.max(trackCount, 4)) / math.max(trackCount, 4);
+        colWidth = math.max(minColWidth,
+            (width - labelWidth - gap * math.max(trackCount, 4)) / math.max(trackCount, 4)),
+        _viewportWidth = width;
 
   static const double labelWidth = 36;
   static const double gap = 6;
   static const double rowHeight = 40; // 1小節
 
+  /// 列の最小幅（これより細くしない。タップしやすさと名前の読みやすさから 60）
+  static const double minColWidth = 60;
+
   final int trackCount;
   final int columns;
   final double colWidth;
+  final double _viewportWidth;
+
+  /// 中身全体の幅。画面に収まるときは画面幅と一致する
+  double get contentWidth => math.max(_viewportWidth, labelWidth + columns * (colWidth + gap));
 
   double colX(int i) => labelWidth + gap + i * (colWidth + gap);
   double barY(int bar) => bar * rowHeight;
@@ -370,16 +384,21 @@ class _ArrDrag {
 /// ・選んだクリップの真ん中を上下に → 移動
 /// ・クリップを長押ししてなぞる → 複製を置く
 class _TimelineState extends State<_Timeline> {
-  final _scroll = ScrollController();
+  final _scroll = ScrollController(); // 縦
+  final _hscroll = ScrollController(); // 横（ヘッダーとグリッドで共有して連動させる）
   _ArrDrag? _drag;
 
   @override
   void dispose() {
     _scroll.dispose();
+    _hscroll.dispose();
     super.dispose();
   }
 
   double get _offset => _scroll.hasClients ? _scroll.offset : 0;
+
+  // 横は2つのスクロールビューに同じコントローラをつけているので、先頭の位置を読む
+  double get _hOffset => _hscroll.hasClients ? _hscroll.positions.first.pixels : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -391,60 +410,131 @@ class _TimelineState extends State<_Timeline> {
       child: LayoutBuilder(
         builder: (context, box) {
           final grid = _Grid(width: box.maxWidth, trackCount: p.tracks.length);
-          return Column(
+          final contentW = grid.contentWidth;
+          final gridH = math.max(0.0, box.maxHeight - 56 - 8); // ヘッダー 56 + すき間 8
+          return Stack(
             children: [
-              _TrackHeader(song: song, grid: grid),
-              const SizedBox(height: 8),
-              Expanded(
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTapUp: (d) => _onTap(grid, _content(d.localPosition)),
-                  onPanStart: (d) => _onPanStart(grid, _content(d.localPosition)),
-                  onPanUpdate: (d) => _onDragMove(d.delta.dy),
-                  onPanEnd: (d) => _onDragEnd(d.velocity),
-                  onPanCancel: () => setState(() => _drag = null),
-                  onLongPressStart: (d) => _onLongPressStart(grid, _content(d.localPosition)),
-                  onLongPressMoveUpdate: (d) => _onLongPressMove(_content(d.localPosition)),
-                  onLongPressEnd: (_) => _onDragEnd(Velocity.zero),
-                  child: SingleChildScrollView(
-                    controller: _scroll,
-                    physics: const NeverScrollableScrollPhysics(), // スクロールは自前（編集のなぞりと分けるため）
-                    child: SizedBox(
-                      height: rows * _Grid.rowHeight,
-                      width: box.maxWidth,
-                      child: Stack(
-                        children: [
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _GridPainter(
-                                project: p,
-                                grid: grid,
-                                rows: rows,
-                                labels: clipLabels(p),
-                                startBar: song.startTick ~/ p.ticksPerBar,
-                                selectedId: _drag?.kind == _ArrDragKind.scroll || _drag == null
-                                    ? song.selectedPlacementId
-                                    : null,
+              Column(
+                children: [
+                  // ヘッダー。横スクロールはグリッドと連動（同じコントローラ）
+                  SizedBox(
+                    height: 56,
+                    child: SingleChildScrollView(
+                      controller: _hscroll,
+                      scrollDirection: Axis.horizontal,
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: SizedBox(width: contentW, child: _TrackHeader(song: song, grid: grid)),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: gridH,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (d) => _onTap(grid, d.localPosition),
+                      onPanStart: (d) => _onPanStart(grid, d.localPosition),
+                      onPanUpdate: (d) => _onDragMove(d.delta),
+                      onPanEnd: (d) => _onDragEnd(d.velocity),
+                      onPanCancel: () => setState(() => _drag = null),
+                      onLongPressStart: (d) => _onLongPressStart(grid, d.localPosition),
+                      onLongPressMoveUpdate: (d) => _onLongPressMove(_content(d.localPosition)),
+                      onLongPressEnd: (_) => _onDragEnd(Velocity.zero),
+                      child: SingleChildScrollView(
+                        controller: _hscroll,
+                        scrollDirection: Axis.horizontal,
+                        physics: const NeverScrollableScrollPhysics(), // スクロールは自前（編集のなぞりと分けるため）
+                        child: SizedBox(
+                          width: contentW,
+                          height: gridH,
+                          child: SingleChildScrollView(
+                            controller: _scroll,
+                            physics: const NeverScrollableScrollPhysics(),
+                            child: SizedBox(
+                              height: rows * _Grid.rowHeight,
+                              width: contentW,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _GridPainter(
+                                        project: p,
+                                        grid: grid,
+                                        rows: rows,
+                                        labels: clipLabels(p),
+                                        selectedId: _drag?.kind == _ArrDragKind.scroll || _drag == null
+                                            ? song.selectedPlacementId
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _DragPainter(project: p, grid: grid, drag: _drag),
+                                    ),
+                                  ),
+                                  Positioned.fill(
+                                    child: IgnorePointer(
+                                      child: CustomPaint(
+                                        painter: _PlayheadPainter(
+                                          position: widget.position,
+                                          ticksPerBar: p.ticksPerBar,
+                                          loopEndBar: math.max(p.lengthBars, 1),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                          Positioned.fill(
-                            child: CustomPaint(
-                              painter: _DragPainter(project: p, grid: grid, drag: _drag),
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: CustomPaint(
-                                painter: _PlayheadPainter(
-                                  position: widget.position,
-                                  ticksPerBar: p.ticksPerBar,
-                                  loopEndBar: math.max(p.lengthBars, 1),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // 左端の固定列：横スクロールしても「＋」はここに残る
+              Positioned(
+                left: 0,
+                top: 0,
+                width: _Grid.labelWidth,
+                height: 56,
+                child: Container(
+                  color: DawColors.background,
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: 0,
+                        top: 6,
+                        width: _Grid.labelWidth,
+                        height: 44,
+                        child: IconButton(
+                          tooltip: 'トラックを追加',
+                          padding: EdgeInsets.zero,
+                          onPressed: song.canAddTrack ? song.addTrack : null,
+                          icon: const Icon(Icons.add, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // 左端の固定列：小節番号（本体とは別に描く。タップ判定は下のジェスチャ側で受ける）
+              Positioned(
+                left: 0,
+                top: 64,
+                bottom: 0,
+                width: _Grid.labelWidth,
+                child: IgnorePointer(
+                  child: SizedBox.expand(
+                    child: CustomPaint(
+                      painter: _RulerPainter(
+                        rows: rows,
+                        startBar: song.startTick ~/ p.ticksPerBar,
+                        lengthBars: p.lengthBars,
+                        scroll: _scroll,
+                        position: widget.position,
+                        ticksPerBar: p.ticksPerBar,
                       ),
                     ),
                   ),
@@ -457,7 +547,11 @@ class _TimelineState extends State<_Timeline> {
     );
   }
 
-  Offset _content(Offset viewport) => Offset(viewport.dx, viewport.dy + _offset);
+  Offset _content(Offset viewport) => Offset(viewport.dx + _hOffset, viewport.dy + _offset);
+
+  /// 左の小節番号の上かどうか（画面の座標）。ここは横スクロールしても固定で、
+  /// 中身の座標に直す前に判定する
+  bool _onRuler(Offset viewport) => viewport.dx < _Grid.labelWidth + _Grid.gap;
 
   PlacementData? _hitPlacement(_Grid grid, Offset at) {
     final col = grid.colAt(at.dx);
@@ -466,16 +560,18 @@ class _TimelineState extends State<_Timeline> {
     return p.placementAt(p.tracks[col].id, grid.barAt(at.dy));
   }
 
-  void _onTap(_Grid grid, Offset at) {
+  void _onTap(_Grid grid, Offset viewport) {
     final song = widget.song;
     final p = song.project;
-    final col = grid.colAt(at.dx);
-    final bar = grid.barAt(at.dy);
-    if (at.dx < _Grid.labelWidth + _Grid.gap) {
+    if (_onRuler(viewport)) {
       // 左の小節番号：ここから再生する（再生中ならすぐ飛ぶ）
+      final bar = grid.barAt(viewport.dy + _offset);
       if (bar < math.max(p.lengthBars, 1)) song.setStartBar(bar);
       return;
     }
+    final at = _content(viewport);
+    final col = grid.colAt(at.dx);
+    final bar = grid.barAt(at.dy);
     if (col == null) {
       song.select(null);
       return;
@@ -496,7 +592,12 @@ class _TimelineState extends State<_Timeline> {
     }
   }
 
-  void _onPanStart(_Grid grid, Offset at) {
+  void _onPanStart(_Grid grid, Offset viewport) {
+    if (_onRuler(viewport)) {
+      _drag = _ArrDrag(_ArrDragKind.scroll, null, viewport.dy);
+      return;
+    }
+    final at = _content(viewport);
     final sel = widget.song.selected;
     if (sel != null) {
       final col = widget.song.project.tracks.indexWhere((t) => t.id == sel.trackId);
@@ -515,7 +616,9 @@ class _TimelineState extends State<_Timeline> {
     _drag = _ArrDrag(_ArrDragKind.scroll, null, at.dy);
   }
 
-  void _onLongPressStart(_Grid grid, Offset at) {
+  void _onLongPressStart(_Grid grid, Offset viewport) {
+    if (_onRuler(viewport)) return; // 小節番号の長押しは何もしない（複製と間違えないように）
+    final at = _content(viewport);
     final hit = _hitPlacement(grid, at);
     if (hit == null) return;
     HapticFeedback.mediumImpact();
@@ -531,17 +634,20 @@ class _TimelineState extends State<_Timeline> {
     if (d.resultBars != bars) HapticFeedback.selectionClick();
   }
 
-  void _onDragMove(double dy) {
+  void _onDragMove(Offset delta) {
     final d = _drag;
     if (d == null) return;
     if (d.kind == _ArrDragKind.scroll) {
       if (_scroll.hasClients) {
-        _scroll.jumpTo((_scroll.offset - dy).clamp(0, _scroll.position.maxScrollExtent).toDouble());
+        _scroll.jumpTo((_scroll.offset - delta.dy).clamp(0, _scroll.position.maxScrollExtent).toDouble());
+      }
+      if (_hscroll.hasClients) {
+        _hscroll.jumpTo((_hOffset - delta.dx).clamp(0, _hscroll.positions.first.maxScrollExtent).toDouble());
       }
       return;
     }
     final bars = d.resultBars;
-    setState(() => d.currentY += dy);
+    setState(() => d.currentY += delta.dy);
     if (d.resultBars != bars) HapticFeedback.selectionClick(); // 1小節動くごとにコツッと
   }
 
@@ -554,10 +660,14 @@ class _TimelineState extends State<_Timeline> {
     var ok = true;
     switch (d.kind) {
       case _ArrDragKind.scroll:
-        final v = velocity.pixelsPerSecond.dy;
-        if (_scroll.hasClients && v.abs() > 200) {
-          final to = (_scroll.offset - v * 0.3).clamp(0, _scroll.position.maxScrollExtent).toDouble();
+        final v = velocity.pixelsPerSecond;
+        if (_scroll.hasClients && v.dy.abs() > 200) {
+          final to = (_scroll.offset - v.dy * 0.3).clamp(0, _scroll.position.maxScrollExtent).toDouble();
           _scroll.animateTo(to, duration: const Duration(milliseconds: 450), curve: Curves.decelerate);
+        }
+        if (_hscroll.hasClients && v.dx.abs() > 200) {
+          final to = (_hOffset - v.dx * 0.3).clamp(0, _hscroll.positions.first.maxScrollExtent).toDouble();
+          _hscroll.animateTo(to, duration: const Duration(milliseconds: 450), curve: Curves.decelerate);
         }
       case _ArrDragKind.resize:
         if (d.resultBars != pl!.lengthBars) ok = song.resizeClip(pl.clipId, d.resultBars);
@@ -633,22 +743,11 @@ class _TrackHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tracks = song.project.tracks;
+    // 「＋」ボタンは _Timeline 側の固定列にある（横スクロールで流れないように）
     return SizedBox(
       height: 56,
       child: Stack(
         children: [
-          Positioned(
-            left: 0,
-            top: 6,
-            width: _Grid.labelWidth,
-            height: 44,
-            child: IconButton(
-              tooltip: 'トラックを追加',
-              padding: EdgeInsets.zero,
-              onPressed: song.canAddTrack ? song.addTrack : null,
-              icon: const Icon(Icons.add, size: 20),
-            ),
-          ),
           for (var i = 0; i < tracks.length; i++)
             Positioned(
               left: grid.colX(i),
@@ -703,35 +802,37 @@ class _TrackHeader extends StatelessWidget {
   }
 }
 
-class _GridPainter extends CustomPainter {
-  _GridPainter({
-    required this.project,
-    required this.grid,
+/// 左端の小節番号と再生ヘッドの印。本体（横スクロールする側）とは別に描いて、
+/// 横に流しても番号が左に残るようにする。縦スクロールと再生位置に合わせて描き直す
+class _RulerPainter extends CustomPainter {
+  _RulerPainter({
     required this.rows,
-    required this.labels,
-    required this.selectedId,
     required this.startBar,
-  });
+    required this.lengthBars,
+    required this.scroll,
+    required this.position,
+    required this.ticksPerBar,
+  }) : super(repaint: Listenable.merge([scroll, position]));
 
-  final ProjectData project;
-  final _Grid grid;
   final int rows;
-  final Map<int, String> labels;
-  final int? selectedId;
-  final int startBar; // 再生を始める小節（番号を明るく、左に印）
-
-  static const _inset = 3.0; // 行と行のすき間の半分
+  final int startBar; // 再生を始める小節（番号を明るくする）
+  final int lengthBars;
+  final ScrollController scroll; // 縦スクロール（番号の位置を本体と合わせる）
+  final ValueNotifier<int> position;
+  final int ticksPerBar;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final emptyPaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..color = DawColors.line;
-    final tpb = project.ticksPerBar;
-    final songEnd = project.lengthBars;
-
+    // 背景。横に流れるセルが下から見えないように塗る
+    canvas.drawRect(Offset.zero & size, Paint()..color = DawColors.background);
+    final dy = scroll.hasClients ? scroll.offset : 0.0;
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    canvas.translate(0, -dy);
     for (var bar = 0; bar < rows; bar++) {
-      final y = grid.barY(bar);
+      final y = bar * _Grid.rowHeight;
+      if (y + _Grid.rowHeight < dy) continue;
+      if (y > dy + size.height) break;
       // 小節番号。曲の範囲（ループする範囲）は明るく、再生を始める小節は印をつける
       final isStart = bar == startBar && startBar > 0;
       if (isStart) {
@@ -742,11 +843,70 @@ class _GridPainter extends CustomPainter {
       _text(canvas, (bar + 1).toString().padLeft(2, '0'), Offset(4, y + _Grid.rowHeight / 2 - 7),
           color: isStart
               ? DawColors.background
-              : bar < math.max(songEnd, 1)
+              : bar < math.max(lengthBars, 1)
                   ? DawColors.muted
                   : DawColors.line,
           size: 11,
           bold: isStart);
+    }
+    // 再生ヘッドの印（線のほうは本体側の _PlayheadPainter が描く）
+    final y = position.value / ticksPerBar * _Grid.rowHeight;
+    final tri = Path()
+      ..moveTo(_Grid.labelWidth - 10, y - 7)
+      ..lineTo(_Grid.labelWidth, y)
+      ..lineTo(_Grid.labelWidth - 10, y + 7)
+      ..close();
+    canvas.drawPath(tri, Paint()..color = DawColors.text);
+    canvas.restore();
+  }
+
+  void _text(Canvas canvas, String s, Offset at, {required Color color, required double size, bool bold = false}) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: s,
+        style: TextStyle(
+          color: color,
+          fontSize: size,
+          fontWeight: bold ? FontWeight.w700 : FontWeight.w400,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at);
+  }
+
+  @override
+  bool shouldRepaint(_RulerPainter old) =>
+      old.rows != rows || old.startBar != startBar || old.lengthBars != lengthBars || old.ticksPerBar != ticksPerBar;
+}
+
+class _GridPainter extends CustomPainter {
+  _GridPainter({
+    required this.project,
+    required this.grid,
+    required this.rows,
+    required this.labels,
+    required this.selectedId,
+  });
+
+  final ProjectData project;
+  final _Grid grid;
+  final int rows;
+  final Map<int, String> labels;
+  final int? selectedId;
+
+  static const _inset = 3.0; // 行と行のすき間の半分
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final emptyPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..color = DawColors.line;
+    final tpb = project.ticksPerBar;
+
+    for (var bar = 0; bar < rows; bar++) {
+      final y = grid.barY(bar);
 
       for (var i = 0; i < project.tracks.length; i++) {
         final track = project.tracks[i];
@@ -898,8 +1058,7 @@ class _GridPainter extends CustomPainter {
       old.project != project ||
       old.selectedId != selectedId ||
       old.grid.colWidth != grid.colWidth ||
-      old.rows != rows ||
-      old.startBar != startBar;
+      old.rows != rows;
 }
 
 class _PlayheadPainter extends CustomPainter {
@@ -915,12 +1074,7 @@ class _PlayheadPainter extends CustomPainter {
     final y = position.value / ticksPerBar * _Grid.rowHeight;
     final paint = Paint()..color = DawColors.text;
     canvas.drawRect(Rect.fromLTWH(_Grid.labelWidth, y - 1, size.width - _Grid.labelWidth, 2), paint);
-    final tri = Path()
-      ..moveTo(_Grid.labelWidth - 10, y - 7)
-      ..lineTo(_Grid.labelWidth, y)
-      ..lineTo(_Grid.labelWidth - 10, y + 7)
-      ..close();
-    canvas.drawPath(tri, paint);
+    // 三角の印は左端の固定列（_RulerPainter）が描く
     // ループの終わり
     final endY = loopEndBar * _Grid.rowHeight;
     canvas.drawRect(Rect.fromLTWH(_Grid.labelWidth, endY - 1, size.width - _Grid.labelWidth, 2),
