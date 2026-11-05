@@ -71,6 +71,12 @@ void main() {
     expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass']);
   });
 
+  test('bundled kawaii2 demo uses the future-bass kit', () {
+    final f = File('assets/demos/kawaii2.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass']);
+  });
+
   test('bundled house demo uses the house kit', () {
     final f = File('assets/demos/house.json');
     if (!f.existsSync()) return;
