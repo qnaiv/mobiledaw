@@ -15,7 +15,10 @@
 // ・R&B：92 BPM・E♭ major・32小節（約1分23秒）、8トラック。サイドスティックとライドのスローなグルーヴ。
 //   ファイルは tools/demos/rnb.py で作る。R&B 専用キットは無いので、生ドラムの
 //   Acoustic Live キット（kits/acoustic-live）を使う（スティックとライドがスローな曲に合うため）
-enum DemoSong { futureBass, kawaii2, house, lofi, rnb }
+// ・シティソウル：96 BPM・D minor・48小節（2分）、8トラック。Just the Two of Us 系の IVM7 → III7 → vim7 の流れに
+//   書き下ろしのメロディ（短い動機のくり返しとずらし）。ローズ風キーズ・歌うリード（モノ＋グライド）・ビブラフォン。
+//   ファイルは tools/demos/city_soul.py で作る。ドラムは Acoustic Live キット（kits/acoustic-live）
+enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul }
 
 /// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
 String demoProjectId(DemoSong d) => 'demo-${d.name}';
@@ -26,6 +29,7 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.house => 'ハウス（約1分）',
       DemoSong.lofi => 'Lo-fi（約1分）',
       DemoSong.rnb => 'R&B（約1分半）',
+      DemoSong.citySoul => 'シティソウル（2分）',
     };
 
 /// 一覧に入るときの曲名
@@ -35,6 +39,7 @@ String demoTitle(DemoSong d) => switch (d) {
       DemoSong.house => 'デモ：ハウス',
       DemoSong.lofi => 'デモ：Lo-fi',
       DemoSong.rnb => 'デモ：R&B',
+      DemoSong.citySoul => 'デモ：シティソウル',
     };
 
 /// 同梱のプロジェクトファイル
@@ -44,6 +49,7 @@ String demoAsset(DemoSong d) => switch (d) {
       DemoSong.house => 'assets/demos/house.json',
       DemoSong.lofi => 'assets/demos/lofi.json',
       DemoSong.rnb => 'assets/demos/rnb.json',
+      DemoSong.citySoul => 'assets/demos/city_soul.json',
     };
 
 /// メニューに出すキット名
@@ -53,4 +59,5 @@ String demoKitName(DemoSong d) => switch (d) {
       DemoSong.house => 'House キット',
       DemoSong.lofi => 'Lo-fi Boom Bap キット',
       DemoSong.rnb => 'Acoustic Live キット',
+      DemoSong.citySoul => 'Acoustic Live キット',
     };
