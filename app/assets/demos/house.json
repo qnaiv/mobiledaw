@@ -33,7 +33,11 @@
      "filterEnv": 0.35,
      "filterEnvDecayS": 0.15,
      "wave": 1,
-     "osc": 1
+     "osc": 1,
+     "wtTable": 2,
+     "wtPos": 0.35,
+     "wtWarp": 1,
+     "wtWarpAmount": 0.25
     }
    },
    "fx": {
@@ -115,7 +119,11 @@
      "filterEnv": 0.25,
      "filterEnvDecayS": 0.2,
      "wave": 0,
-     "osc": 1
+     "osc": 1,
+     "wtTable": 1,
+     "wtPos": 0.8,
+     "wtWarp": 1,
+     "wtWarpAmount": 0.3
     }
    },
    "fx": {
