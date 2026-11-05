@@ -730,3 +730,14 @@ class ProgressionGenerator {
 
 /// 曲のキーの長調の主音（短調なら平行調：短3度上）
 int majorRootOf(Scale scale, {required bool minor}) => minor ? (scale.root + 3) % 12 : scale.root;
+
+/// そのスケールの曲を、進行生成の物差し（長調のローマ数字）で扱うときの長調の主音と、短調として扱うか。
+/// 生成の物差しは長調／短調の2通りしかないので、新しいスケールは一番近い物差しに寄せる：
+/// ・メジャー／ミクソリディアン／メジャーペンタは、そのまま長調として（主音は同じ）
+/// ・短調系（ナチュラル／ハーモニック／マイナーペンタ）とドリアンは、平行調の長調として（主音は短3度上。
+///   ドリアンの主音は平行調の中で ii ではなく vi になるが、短調の曲として中心が合う方を取る）
+({int majorRoot, bool minorKey}) genFrameOf(Scale scale) {
+  final kind = scale.kind;
+  final minorKey = kind.tonicMinor;
+  return (majorRoot: majorRootOf(scale, minor: minorKey), minorKey: minorKey);
+}

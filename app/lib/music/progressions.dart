@@ -64,6 +64,72 @@ Chord? chordFromRoman(String roman, Scale scale) {
   );
 }
 
+/// 借用コード（キーの外だけど、そのスケールで定番の味付けになるコード）
+class BorrowedChord {
+  const BorrowedChord(this.chord, this.origin);
+
+  final Chord chord;
+
+  /// 由来（「並行マイナーから」など）
+  final String origin;
+}
+
+/// スケールごとの借用コードの定番（度数表記、由来。由来はボタンに出るので短く）
+const _borrowedSpecs = <String, List<(String, String)>>{
+  'major': [
+    ('iv', 'マイナーから'),
+    ('♭VII', 'ミクソから'),
+    ('II7', 'V/V'),
+    ('III7', 'V/vi'),
+  ],
+  'minor': [
+    ('V7', 'ハーモニック'),
+    ('IV', 'ドリアンから'),
+    ('II7', 'V/V'),
+    ('♭II', 'フリジアン'),
+  ],
+  'dorian': [
+    ('V7', 'ハーモニック'),
+    ('I7', 'ドミナント化'),
+    ('iv', 'マイナーから'),
+  ],
+  'mixolydian': [
+    ('♭III', 'マイナーから'),
+    ('iv', 'マイナーから'),
+    ('II7', 'V/V'),
+    ('V7', 'メジャーから'),
+  ],
+  'harmonicMinor': [
+    ('IV', 'ドリアンから'),
+    ('ii7', 'ドリアンから'),
+    ('♭II', 'フリジアン'),
+  ],
+};
+
+/// そのスケールで使える借用コード。ペンタトニックは親スケールのものを出す
+List<BorrowedChord> borrowedChords(Scale scale) {
+  final kind = scale.kind;
+  final specs = _borrowedSpecs[kind.parentId ?? kind.id] ?? const <(String, String)>[];
+  final out = <BorrowedChord>[];
+  for (final (roman, origin) in specs) {
+    final c = chordFromRoman(roman, scale);
+    if (c == null) continue;
+    out.add(BorrowedChord(
+      Chord(
+        degree: -1,
+        root: c.root,
+        intervals: c.intervals,
+        seventh: c.seventh,
+        mood: c.mood,
+        extensions: c.extensions,
+        roman: roman,
+      ),
+      origin,
+    ));
+  }
+  return out;
+}
+
 /// 進行のコードを、なめらかにつながる高さで並べる（1つ目は [center] のあたり、2つ目からは前のコードに寄せる）
 List<List<int>> voiceProgression(List<Chord> chords, {int center = 60}) {
   final out = <List<int>>[];

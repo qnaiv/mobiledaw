@@ -118,9 +118,10 @@ int _rootPitch(List<int> upper, int root) {
 /// キーの中で、根音から何度目かの音までの半音数（キーの外の根音なら [fallback]）
 int _scaleInterval(Scale scale, int root, int steps, int fallback) {
   final iv = scale.intervals;
+  final n = iv.length;
   final idx = iv.indexOf((root - scale.root + 12) % 12);
   if (idx < 0) return fallback;
-  int at(int i) => iv[i % 7] + 12 * (i ~/ 7);
+  int at(int i) => iv[i % n] + 12 * (i ~/ n);
   return at(idx + steps) - at(idx);
 }
 
