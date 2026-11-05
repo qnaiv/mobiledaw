@@ -309,22 +309,26 @@ class _Header extends StatelessWidget {
 /// 列と行の寸法（描画とタップ判定で共通に使う）
 /// 列幅は [minColWidth] を下回らない。画面に収まるときは今までどおり幅いっぱいに広げ、
 /// 収まらない分は横スクロールで見る（中身の幅が [contentWidth]）。
+/// ピンチズームの倍率（[rowZoom] は小節の高さ、[colZoom] は列幅）で寸法が変わる。
 class _Grid {
-  _Grid({required double width, required this.trackCount})
+  _Grid({required double width, required this.trackCount, double rowZoom = 1, double colZoom = 1})
       : columns = math.max(trackCount, 4),
-        colWidth = math.max(minColWidth,
-            (width - labelWidth - gap * math.max(trackCount, 4)) / math.max(trackCount, 4)),
+        rowHeight = barHeightForZoom(rowZoom),
+        colWidth = colWidthForZoom(
+            math.max(minColWidth,
+                (width - labelWidth - gap * math.max(trackCount, 4)) / math.max(trackCount, 4)),
+            colZoom),
         _viewportWidth = width;
 
   static const double labelWidth = 36;
   static const double gap = 6;
-  static const double rowHeight = 40; // 1小節
 
-  /// 列の最小幅（これより細くしない。タップしやすさと名前の読みやすさから 60）
+  /// 列の最小幅（倍率1のとき。これより細くしない。タップしやすさと名前の読みやすさから 60）
   static const double minColWidth = 60;
 
   final int trackCount;
   final int columns;
+  final double rowHeight; // 1小節（ズームで変わる）
   final double colWidth;
   final double _viewportWidth;
 
@@ -360,14 +364,15 @@ enum _ArrDragKind { scroll, resize, move, duplicate }
 
 /// アレンジ画面でなぞっている間の状態（y は中身の座標）
 class _ArrDrag {
-  _ArrDrag(this.kind, this.placement, this.startY) : currentY = startY;
+  _ArrDrag(this.kind, this.placement, this.startY, this.rowHeight) : currentY = startY;
 
   final _ArrDragKind kind;
   final PlacementData? placement;
   final double startY;
+  final double rowHeight; // なぞり始めの1小節の高さ（ズームで変わるため持ち回る）
   double currentY;
 
-  int get deltaBars => ((currentY - startY) / _Grid.rowHeight).round();
+  int get deltaBars => ((currentY - startY) / rowHeight).round();
 
   /// 指を離したときの結果（伸縮なら新しい長さ、移動・複製なら新しい開始小節）
   int get resultBars => switch (kind) {
@@ -387,6 +392,17 @@ class _TimelineState extends State<_Timeline> {
   final _scroll = ScrollController(); // 縦
   final _hscroll = ScrollController(); // 横（ヘッダーとグリッドで共有して連動させる）
   _ArrDrag? _drag;
+
+  // ピンチズーム（ピアノロールと同じ分け方・焦点の合わせ方）。
+  // 縦は小節の高さ、横は列幅を、それぞれピンチの拡縮に合わせて変える
+  bool _zooming = false;
+  double _rowZoom = 1;
+  double _colZoom = 1;
+  double _zoomBaseRow = 1;
+  double _zoomBaseCol = 1;
+  double _zoomFocalBar = 0; // 指の間にある位置（小節の単位・小数）
+  double _zoomFocalCol = 0; // 指の間にある位置（列の単位・小数）
+  double _viewportWidth = 0;
 
   @override
   void dispose() {
@@ -409,7 +425,8 @@ class _TimelineState extends State<_Timeline> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: LayoutBuilder(
         builder: (context, box) {
-          final grid = _Grid(width: box.maxWidth, trackCount: p.tracks.length);
+          _viewportWidth = box.maxWidth;
+          final grid = _Grid(width: box.maxWidth, trackCount: p.tracks.length, rowZoom: _rowZoom, colZoom: _colZoom);
           final contentW = grid.contentWidth;
           final gridH = math.max(0.0, box.maxHeight - 56 - 8); // ヘッダー 56 + すき間 8
           return Stack(
@@ -432,10 +449,29 @@ class _TimelineState extends State<_Timeline> {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTapUp: (d) => _onTap(grid, d.localPosition),
-                      onPanStart: (d) => _onPanStart(grid, d.localPosition),
-                      onPanUpdate: (d) => _onDragMove(d.delta),
-                      onPanEnd: (d) => _onDragEnd(d.velocity),
-                      onPanCancel: () => setState(() => _drag = null),
+                      // 1本指はなぞり（スクロール・編集）、2本指はピンチで縮尺（ピアノロールと同じ分け方）
+                      onScaleStart: (d) {
+                        if (d.pointerCount >= 2) {
+                          _startZoom(grid, d.localFocalPoint);
+                        } else {
+                          _onPanStart(grid, d.localFocalPoint);
+                        }
+                      },
+                      onScaleUpdate: (d) {
+                        if (d.pointerCount >= 2) {
+                          if (!_zooming) _startZoom(grid, d.localFocalPoint);
+                          _updateZoom(d);
+                        } else if (!_zooming) {
+                          _onDragMove(d.focalPointDelta);
+                        }
+                      },
+                      onScaleEnd: (d) {
+                        if (_zooming) {
+                          _zooming = false;
+                          return;
+                        }
+                        _onDragEnd(d.velocity);
+                      },
                       onLongPressStart: (d) => _onLongPressStart(grid, d.localPosition),
                       onLongPressMoveUpdate: (d) => _onLongPressMove(_content(d.localPosition)),
                       onLongPressEnd: (_) => _onDragEnd(Velocity.zero),
@@ -450,7 +486,7 @@ class _TimelineState extends State<_Timeline> {
                             controller: _scroll,
                             physics: const NeverScrollableScrollPhysics(),
                             child: SizedBox(
-                              height: rows * _Grid.rowHeight,
+                              height: rows * grid.rowHeight,
                               width: contentW,
                               child: Stack(
                                 children: [
@@ -479,6 +515,7 @@ class _TimelineState extends State<_Timeline> {
                                           position: widget.position,
                                           ticksPerBar: p.ticksPerBar,
                                           loopEndBar: math.max(p.lengthBars, 1),
+                                          rowHeight: grid.rowHeight,
                                         ),
                                       ),
                                     ),
@@ -535,6 +572,7 @@ class _TimelineState extends State<_Timeline> {
                         scroll: _scroll,
                         position: widget.position,
                         ticksPerBar: p.ticksPerBar,
+                        rowHeight: grid.rowHeight,
                       ),
                     ),
                   ),
@@ -552,6 +590,42 @@ class _TimelineState extends State<_Timeline> {
   /// 左の小節番号の上かどうか（画面の座標）。ここは横スクロールしても固定で、
   /// 中身の座標に直す前に判定する
   bool _onRuler(Offset viewport) => viewport.dx < _Grid.labelWidth + _Grid.gap;
+
+  /// ピンチの始まり：指の間にある位置を覚えておく（拡縮してもそこが指の間に残るように）
+  void _startZoom(_Grid grid, Offset focal) {
+    // なぞりの途中で2本目の指が来たら、なぞりは取り消す
+    if (_drag != null) setState(() => _drag = null);
+    _zooming = true;
+    _zoomBaseRow = _rowZoom;
+    _zoomBaseCol = _colZoom;
+    _zoomFocalBar = (focal.dy + _offset) / grid.rowHeight;
+    _zoomFocalCol = (focal.dx + _hOffset - _Grid.labelWidth - _Grid.gap) / (grid.colWidth + _Grid.gap);
+  }
+
+  void _updateZoom(ScaleUpdateDetails d) {
+    final rowZoom = clampRowZoom(_zoomBaseRow * d.verticalScale);
+    final colZoom = clampColZoom(_zoomBaseCol * d.horizontalScale);
+    if (rowZoom == _rowZoom && colZoom == _colZoom) return;
+    setState(() {
+      _rowZoom = rowZoom;
+      _colZoom = colZoom;
+    });
+    // 描き直したあとで、指の間の位置が動かないようにスクロールを合わせる
+    final focal = d.localFocalPoint;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final g = _Grid(
+          width: _viewportWidth, trackCount: widget.song.project.tracks.length, rowZoom: rowZoom, colZoom: colZoom);
+      if (_scroll.hasClients) {
+        final y = _zoomFocalBar * g.rowHeight - focal.dy;
+        _scroll.jumpTo(y.clamp(0, _scroll.position.maxScrollExtent).toDouble());
+      }
+      if (_hscroll.hasClients) {
+        final x = _Grid.labelWidth + _Grid.gap + _zoomFocalCol * (g.colWidth + _Grid.gap) - focal.dx;
+        _hscroll.jumpTo(x.clamp(0, _hscroll.positions.first.maxScrollExtent).toDouble());
+      }
+    });
+  }
 
   PlacementData? _hitPlacement(_Grid grid, Offset at) {
     final col = grid.colAt(at.dx);
@@ -594,7 +668,7 @@ class _TimelineState extends State<_Timeline> {
 
   void _onPanStart(_Grid grid, Offset viewport) {
     if (_onRuler(viewport)) {
-      _drag = _ArrDrag(_ArrDragKind.scroll, null, viewport.dy);
+      _drag = _ArrDrag(_ArrDragKind.scroll, null, viewport.dy, grid.rowHeight);
       return;
     }
     final at = _content(viewport);
@@ -604,16 +678,16 @@ class _TimelineState extends State<_Timeline> {
       if (col >= 0) {
         final grip = grid.gripCenter(col, sel);
         if ((at - grip).distance <= 28) {
-          setState(() => _drag = _ArrDrag(_ArrDragKind.resize, sel, at.dy));
+          setState(() => _drag = _ArrDrag(_ArrDragKind.resize, sel, at.dy, grid.rowHeight));
           return;
         }
       }
       if (_hitPlacement(grid, at)?.id == sel.id) {
-        setState(() => _drag = _ArrDrag(_ArrDragKind.move, sel, at.dy));
+        setState(() => _drag = _ArrDrag(_ArrDragKind.move, sel, at.dy, grid.rowHeight));
         return;
       }
     }
-    _drag = _ArrDrag(_ArrDragKind.scroll, null, at.dy);
+    _drag = _ArrDrag(_ArrDragKind.scroll, null, at.dy, grid.rowHeight);
   }
 
   void _onLongPressStart(_Grid grid, Offset viewport) {
@@ -623,7 +697,7 @@ class _TimelineState extends State<_Timeline> {
     if (hit == null) return;
     HapticFeedback.mediumImpact();
     widget.song.select(hit.id);
-    setState(() => _drag = _ArrDrag(_ArrDragKind.duplicate, hit, at.dy));
+    setState(() => _drag = _ArrDrag(_ArrDragKind.duplicate, hit, at.dy, grid.rowHeight));
   }
 
   void _onLongPressMove(Offset at) {
@@ -812,6 +886,7 @@ class _RulerPainter extends CustomPainter {
     required this.scroll,
     required this.position,
     required this.ticksPerBar,
+    required this.rowHeight,
   }) : super(repaint: Listenable.merge([scroll, position]));
 
   final int rows;
@@ -820,6 +895,7 @@ class _RulerPainter extends CustomPainter {
   final ScrollController scroll; // 縦スクロール（番号の位置を本体と合わせる）
   final ValueNotifier<int> position;
   final int ticksPerBar;
+  final double rowHeight; // 1小節の高さ（ズームで変わる）
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -830,17 +906,17 @@ class _RulerPainter extends CustomPainter {
     canvas.clipRect(Offset.zero & size);
     canvas.translate(0, -dy);
     for (var bar = 0; bar < rows; bar++) {
-      final y = bar * _Grid.rowHeight;
-      if (y + _Grid.rowHeight < dy) continue;
+      final y = bar * rowHeight;
+      if (y + rowHeight < dy) continue;
       if (y > dy + size.height) break;
       // 小節番号。曲の範囲（ループする範囲）は明るく、再生を始める小節は印をつける
       final isStart = bar == startBar && startBar > 0;
       if (isStart) {
         canvas.drawRRect(
-            RRect.fromRectAndRadius(Rect.fromLTWH(0, y + 6, _Grid.labelWidth - 4, _Grid.rowHeight - 12), const Radius.circular(6)),
+            RRect.fromRectAndRadius(Rect.fromLTWH(0, y + 6, _Grid.labelWidth - 4, rowHeight - 12), const Radius.circular(6)),
             Paint()..color = DawColors.accent);
       }
-      _text(canvas, (bar + 1).toString().padLeft(2, '0'), Offset(4, y + _Grid.rowHeight / 2 - 7),
+      _text(canvas, (bar + 1).toString().padLeft(2, '0'), Offset(4, y + rowHeight / 2 - 7),
           color: isStart
               ? DawColors.background
               : bar < math.max(lengthBars, 1)
@@ -850,7 +926,7 @@ class _RulerPainter extends CustomPainter {
           bold: isStart);
     }
     // 再生ヘッドの印（線のほうは本体側の _PlayheadPainter が描く）
-    final y = position.value / ticksPerBar * _Grid.rowHeight;
+    final y = position.value / ticksPerBar * rowHeight;
     final tri = Path()
       ..moveTo(_Grid.labelWidth - 10, y - 7)
       ..lineTo(_Grid.labelWidth, y)
@@ -878,7 +954,11 @@ class _RulerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RulerPainter old) =>
-      old.rows != rows || old.startBar != startBar || old.lengthBars != lengthBars || old.ticksPerBar != ticksPerBar;
+      old.rows != rows ||
+      old.startBar != startBar ||
+      old.lengthBars != lengthBars ||
+      old.ticksPerBar != ticksPerBar ||
+      old.rowHeight != rowHeight;
 }
 
 class _GridPainter extends CustomPainter {
@@ -905,27 +985,36 @@ class _GridPainter extends CustomPainter {
       ..color = DawColors.line;
     final tpb = project.ticksPerBar;
 
+    // 空きマス（小節ごとの枠だけ）
     for (var bar = 0; bar < rows; bar++) {
       final y = grid.barY(bar);
-
       for (var i = 0; i < project.tracks.length; i++) {
-        final track = project.tracks[i];
-        final rect = Rect.fromLTWH(grid.colX(i), y + _inset, grid.colWidth, _Grid.rowHeight - _inset * 2);
-        final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(6));
-        final pl = project.placementAt(track.id, bar);
-        if (pl == null) {
-          canvas.drawRRect(rrect.deflate(0.5), emptyPaint);
-          continue;
+        if (project.placementAt(project.tracks[i].id, bar) != null) continue;
+        final rect = Rect.fromLTWH(grid.colX(i), y + _inset, grid.colWidth, grid.rowHeight - _inset * 2);
+        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)).deflate(0.5), emptyPaint);
+      }
+    }
+
+    // クリップは配置の全長にわたる1つのブロックとして描く（小節ごとの区切りは入れない）。
+    // 隙間なく隣り合った同じクリップの配置同士も、見た目だけ1つにつなげる
+    for (var i = 0; i < project.tracks.length; i++) {
+      final track = project.tracks[i];
+      for (final group in joinedClipGroups(project.placementsOn(track.id).toList())) {
+        final startBar = group.first.startBar;
+        final rect = Rect.fromLTWH(grid.colX(i), grid.barY(startBar) + _inset, grid.colWidth,
+            (group.last.endBar - startBar) * grid.rowHeight - _inset * 2);
+        canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)), Paint()..color = Color(track.color));
+        final clip = project.clip(group.first.clipId);
+        if (clip != null) {
+          _blockNotes(canvas, rect, clip, group, tpb);
+          if (clip.automation.isNotEmpty) {
+            _blockAutoCurve(canvas, rect, clip, group, tpb);
+            _autoTag(canvas, rect, clip);
+          }
         }
-        canvas.drawRRect(rrect, Paint()..color = Color(track.color));
-        final clip = project.clip(pl.clipId);
-        if (clip != null) _miniNotes(canvas, rect, clip, pl, bar, tpb);
-        if (clip != null && clip.automation.isNotEmpty) _autoCurve(canvas, rect, clip, pl, bar, tpb);
-        if (bar == pl.startBar) {
-          _text(canvas, labels[pl.clipId] ?? '', rect.topLeft + const Offset(5, 3),
-              color: DawColors.background, size: 10, bold: true);
-          if (clip != null && clip.automation.isNotEmpty) _autoTag(canvas, rect, clip);
-        }
+        // ラベルはブロックの先頭に1回だけ
+        _text(canvas, labels[group.first.clipId] ?? '', rect.topLeft + const Offset(5, 3),
+            color: DawColors.background, size: 10, bold: true);
       }
     }
 
@@ -956,8 +1045,9 @@ class _GridPainter extends CustomPainter {
     }
   }
 
-  /// セルの中にノートを小さく描く。縦が時間（下へ）、横が音の高さ
-  void _miniNotes(Canvas canvas, Rect cell, ClipData clip, PlacementData pl, int bar, int tpb) {
+  /// ブロックの中にノートを小さく描く。縦が時間（下へ）、横が音の高さ。
+  /// 配置ごとにパターンを繰り返すが、小節の継ぎ目では切らない（ブロックの終わりまで通して描く）
+  void _blockNotes(Canvas canvas, Rect block, ClipData clip, List<PlacementData> group, int tpb) {
     if (clip.notes.isEmpty) return;
     var lo = 127, hi = 0;
     for (final n in clip.notes) {
@@ -965,13 +1055,19 @@ class _GridPainter extends CustomPainter {
       hi = math.max(hi, n.pitch);
     }
     final span = math.max(hi - lo, 12);
-    final area = cell.deflate(5);
+    final area = block.deflate(5);
+    final totalTicks = (group.last.endBar - group.first.startBar) * tpb;
     final paint = Paint()..color = DawColors.background.withValues(alpha: 0.55);
-    for (final n in notesInBar(clip, pl, bar, tpb)) {
-      final x = area.left + (n.pitch - lo) / span * (area.width - 4);
-      final top = area.top + n.tick / tpb * area.height;
-      final h = math.max(2.0, math.min(n.length, tpb - n.tick) / tpb * area.height);
-      canvas.drawRect(Rect.fromLTWH(x, top, 4, h), paint);
+    for (final pl in group) {
+      for (var bar = pl.startBar; bar < pl.endBar; bar++) {
+        for (final n in notesInBar(clip, pl, bar, tpb)) {
+          final tick = (bar - group.first.startBar) * tpb + n.tick;
+          final x = area.left + (n.pitch - lo) / span * (area.width - 4);
+          final top = area.top + tick / totalTicks * area.height;
+          final h = math.max(2.0, math.min(n.length, totalTicks - tick) / totalTicks * area.height);
+          canvas.drawRect(Rect.fromLTWH(x, top, 4, h), paint);
+        }
+      }
     }
   }
 
@@ -980,41 +1076,49 @@ class _GridPainter extends CustomPainter {
   static const _autoLine = Color(0xFFD9C8FF);
 
   /// オートメーションのカーブをミニノートに重ねる。複数レーンがあるときは先頭のレーンが代表。
-  /// 横 = 値（左が小さい。パラメータの目盛りで 0〜1 に正規化）、縦 = 時間（この小節の中）
-  void _autoCurve(Canvas canvas, Rect cell, ClipData clip, PlacementData pl, int bar, int tpb) {
+  /// 横 = 値（左が小さい。パラメータの目盛りで 0〜1 に正規化）、縦 = 時間（ブロック全体）。
+  /// レーンは配置ごとに頭から始まるので、配置の区切りごとに線を引く
+  void _blockAutoCurve(Canvas canvas, Rect block, ClipData clip, List<PlacementData> group, int tpb) {
     final lane = clip.automation.first;
     final param = automationParamFor(lane.param);
     double unit(double v) => param?.toUnit(v) ?? v.clamp(0.0, 1.0);
-    final start = (bar - pl.startBar) * tpb;
-    final seg = automationSegment(lane.points, start, start + tpb);
-    if (seg.isEmpty) return;
-    final area = cell.deflate(5);
-    Offset at((int, double) p) =>
-        Offset(area.left + unit(p.$2) * area.width, area.top + (p.$1 - start) / tpb * area.height);
-    if (seg.length >= 2) {
-      final path = Path()..moveTo(at(seg.first).dx, at(seg.first).dy);
-      for (final p in seg.skip(1)) {
-        path.lineTo(at(p).dx, at(p).dy);
+    final area = block.deflate(5);
+    final totalTicks = (group.last.endBar - group.first.startBar) * tpb;
+    Offset at(int tick, double v) =>
+        Offset(area.left + unit(v) * area.width, area.top + tick / totalTicks * area.height);
+    for (final pl in group) {
+      final base = (pl.startBar - group.first.startBar) * tpb; // ブロックの頭からの tick
+      final seg = automationSegment(lane.points, 0, pl.lengthBars * tpb);
+      if (seg.length >= 2) {
+        final path = Path();
+        for (var i = 0; i < seg.length; i++) {
+          final o = at(base + seg[i].$1, seg[i].$2);
+          if (i == 0) {
+            path.moveTo(o.dx, o.dy);
+          } else {
+            path.lineTo(o.dx, o.dy);
+          }
+        }
+        canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3
+            ..color = _autoHalo.withValues(alpha: 0.55),
+        );
+        canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.6
+            ..color = _autoLine,
+        );
       }
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3
-          ..color = _autoHalo.withValues(alpha: 0.55),
-      );
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6
-          ..color = _autoLine,
-      );
-    }
-    // この小節の中にある点そのもの
-    for (final p in lane.points) {
-      if (p.$1 >= start && p.$1 < start + tpb) {
-        canvas.drawCircle(at(p), 1.8, Paint()..color = _autoLine);
+      // 配置の中にある点そのもの
+      for (final p in lane.points) {
+        if (p.$1 >= 0 && p.$1 < pl.lengthBars * tpb) {
+          canvas.drawCircle(at(base + p.$1, p.$2), 1.8, Paint()..color = _autoLine);
+        }
       }
     }
   }
@@ -1058,31 +1162,34 @@ class _GridPainter extends CustomPainter {
       old.project != project ||
       old.selectedId != selectedId ||
       old.grid.colWidth != grid.colWidth ||
+      old.grid.rowHeight != grid.rowHeight ||
       old.rows != rows;
 }
 
 class _PlayheadPainter extends CustomPainter {
-  _PlayheadPainter({required this.position, required this.ticksPerBar, required this.loopEndBar})
+  _PlayheadPainter({required this.position, required this.ticksPerBar, required this.loopEndBar, required this.rowHeight})
       : super(repaint: position);
 
   final ValueNotifier<int> position;
   final int ticksPerBar;
   final int loopEndBar;
+  final double rowHeight; // 1小節の高さ（ズームで変わる）
 
   @override
   void paint(Canvas canvas, Size size) {
-    final y = position.value / ticksPerBar * _Grid.rowHeight;
+    final y = position.value / ticksPerBar * rowHeight;
     final paint = Paint()..color = DawColors.text;
     canvas.drawRect(Rect.fromLTWH(_Grid.labelWidth, y - 1, size.width - _Grid.labelWidth, 2), paint);
     // 三角の印は左端の固定列（_RulerPainter）が描く
     // ループの終わり
-    final endY = loopEndBar * _Grid.rowHeight;
+    final endY = loopEndBar * rowHeight;
     canvas.drawRect(Rect.fromLTWH(_Grid.labelWidth, endY - 1, size.width - _Grid.labelWidth, 2),
         Paint()..color = DawColors.accent.withValues(alpha: 0.6));
   }
 
   @override
-  bool shouldRepaint(_PlayheadPainter old) => old.ticksPerBar != ticksPerBar || old.loopEndBar != loopEndBar;
+  bool shouldRepaint(_PlayheadPainter old) =>
+      old.ticksPerBar != ticksPerBar || old.loopEndBar != loopEndBar || old.rowHeight != rowHeight;
 }
 
 // ---- 選んだクリップの操作 --------------------------------------------------------
@@ -1095,18 +1202,14 @@ class _SelectionBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sel = song.selected;
+    // 何も選んでいないときはバーを出さない（説明文は置かず、その分グリッドを広く使う）
+    if (sel == null) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       constraints: const BoxConstraints(minHeight: 52),
       decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
-      child: sel == null
-          ? const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身 · 左の小節番号をタップでそこから再生 · 上のトラック名は長押しで変更',
-                  style: TextStyle(fontSize: 12, color: DawColors.muted)),
-            )
-          : Column(
+      child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
