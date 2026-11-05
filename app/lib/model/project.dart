@@ -40,19 +40,53 @@ class NoteData {
       );
 }
 
+/// オートメーションの1レーン（パラメータ1つ分）。ポイントは (tick, 値) の組で tick 昇順。
+/// [param] は保存ファイルのキー（例 'cutoffHz'、トラック音量は 'gain'）。
+class AutomationLaneData {
+  const AutomationLaneData({required this.param, required this.points});
+
+  final String param;
+  final List<(int, double)> points; // tick はクリップ先頭から
+
+  factory AutomationLaneData.fromJson(Map<String, Object?> j) => AutomationLaneData(
+        param: j['param'] is String ? j['param']! as String : '',
+        points: [
+          for (final p in _listRaw(j['points']))
+            if (p is List && p.length == 2 && p[0] is num && p[1] is num)
+              ((p[0]! as num).toInt(), (p[1]! as num).toDouble()),
+        ],
+      );
+}
+
 class ClipData {
-  const ClipData({required this.id, required this.trackId, required this.lengthTicks, required this.notes});
+  const ClipData({
+    required this.id,
+    required this.trackId,
+    required this.lengthTicks,
+    required this.notes,
+    this.automation = const [],
+  });
 
   final int id;
   final int trackId;
   final int lengthTicks;
   final List<NoteData> notes; // tick → pitch の順
+  final List<AutomationLaneData> automation; // レーンが無ければ空（従来のクリップ）
+
+  /// パラメータのキーでレーンを引く。無ければ null
+  AutomationLaneData? automationLane(String param) {
+    for (final lane in automation) {
+      if (lane.param == param) return lane;
+    }
+    return null;
+  }
 
   factory ClipData.fromJson(Map<String, Object?> j) => ClipData(
         id: parseId(j['id']),
         trackId: parseId(j['trackId']),
         lengthTicks: _int(j['lengthTicks']),
         notes: _list(j['notes']).map(NoteData.fromJson).toList(growable: false),
+        automation: _list(j['automation']).map(AutomationLaneData.fromJson).toList(growable: false),
       );
 }
 
@@ -105,6 +139,11 @@ class TrackData {
     required this.color,
     required this.synth,
     this.kitId = '',
+    this.samplerKitId = '',
+    this.samplerSoundName = '',
+    this.samplerRootNote = 60,
+    this.samplerGain = 1.0,
+    this.samplerStart = 0.0,
     this.fx = const {},
     required this.mixer,
   });
@@ -114,6 +153,13 @@ class TrackData {
   final int color; // ARGB
   final Map<String, double> synth; // cutoffHz, resonance, attackS など
   final String kitId; // 空ならシンセ。入っていればドラムキット（kits/<id>）
+  final String samplerKitId; // サンプラーの素材キット（空ならサンプラーではない）
+  final String samplerSoundName; // キット内の音の名前
+  final int samplerRootNote; // 基準音程（この音程で原音の速さ）
+  final double samplerGain; // 0〜2
+  final double samplerStart; // 再生開始位置 0〜1
+
+  bool get isSampler => samplerKitId.isNotEmpty;
   final Map<String, double> fx; // reverb, ott, sidechain など
 
   bool get isKit => kitId.isNotEmpty;
@@ -131,6 +177,15 @@ class TrackData {
           if (e.value is num) e.key: (e.value! as num).toDouble(),
       },
       kitId: instrument['type'] == 'kit' && instrument['kit'] is String ? instrument['kit']! as String : '',
+      samplerKitId: instrument['type'] == 'sampler' && _map(instrument['sampler'])['kit'] is String
+          ? _map(instrument['sampler'])['kit']! as String
+          : '',
+      samplerSoundName: _map(instrument['sampler'])['sound'] is String
+          ? _map(instrument['sampler'])['sound']! as String
+          : '',
+      samplerRootNote: _int(_map(instrument['sampler'])['rootNote'], 60),
+      samplerGain: _double(_map(instrument['sampler'])['gain'], 1.0),
+      samplerStart: _double(_map(instrument['sampler'])['start'], 0.0),
       fx: {
         for (final e in _map(j['fx']).entries)
           if (e.value is num) e.key: (e.value! as num).toDouble(),
@@ -200,6 +255,7 @@ double _double(Object? v, double fallback) => v is num ? v.toDouble() : fallback
 Map<String, Object?> _map(Object? v) => v is Map<String, Object?> ? v : const <String, Object?>{};
 Iterable<Map<String, Object?>> _list(Object? v) =>
     v is List<Object?> ? v.whereType<Map<String, Object?>>() : const <Map<String, Object?>>[];
+List<Object?> _listRaw(Object? v) => v is List<Object?> ? v : const <Object?>[];
 
 T? _find<T>(List<T> items, bool Function(T) test) {
   for (final item in items) {

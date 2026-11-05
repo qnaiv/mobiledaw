@@ -51,6 +51,9 @@ abstract final class MdawParam {
   static const fxSidechain = 40;
   static const fxSidechainReleaseS = 41;
   static const fxSidechainSource = 42;
+
+  // オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。setTrackParam では使わない
+  static const trackGain = 48;
 }
 
 abstract final class MdawResult {
@@ -224,6 +227,9 @@ class MdawEngine {
       _lib.lookupFunction<Void Function(_EnginePtr), void Function(_EnginePtr)>('mdaw_reload_kits');
   late final _setTrackKit = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>),
       int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_set_track_kit');
+  late final _setTrackSampler = _lib.lookupFunction<
+      Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>, Pointer<Utf8>, Int32, Float, Float),
+      int Function(_EnginePtr, int, Pointer<Utf8>, Pointer<Utf8>, int, double, double)>('mdaw_set_track_sampler');
   late final _kitError = _lib.lookupFunction<Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>),
       Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>)>('mdaw_kit_error');
   late final _exportStart = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>, Uint64),
@@ -262,6 +268,9 @@ class MdawEngine {
       int Function(_EnginePtr, int, Pointer<Uint64>, int, int)>('mdaw_resize_notes');
   late final _setTempo = _lib
       .lookupFunction<Int32 Function(_EnginePtr, Double), int Function(_EnginePtr, double)>('mdaw_set_tempo');
+  late final _setClipAutomation = _lib.lookupFunction<
+      Int32 Function(_EnginePtr, Uint64, Int32, Pointer<Int64>, Pointer<Float>, Int32),
+      int Function(_EnginePtr, int, int, Pointer<Int64>, Pointer<Float>, int)>('mdaw_set_clip_automation');
   late final _setTrackParam = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Float),
       int Function(_EnginePtr, int, int, double)>('mdaw_set_track_param');
   late final _setTrackParamLive = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Float),
@@ -347,6 +356,18 @@ class MdawEngine {
     }
   }
 
+  /// トラックの楽器をサンプラーにする（kitId が空ならサンプラーをやめる）。Undo できる
+  bool setTrackSampler(int trackId, String kitId, String soundName, int rootNote, double gain, double start) {
+    final pk = kitId.toNativeUtf8();
+    final ps = soundName.toNativeUtf8();
+    try {
+      return _setTrackSampler(_handle, trackId, pk, ps, rootNote, gain, start) != 0;
+    } finally {
+      malloc.free(pk);
+      malloc.free(ps);
+    }
+  }
+
   /// キットが読めなければ理由、読めれば ''
   String kitError(String kitId) {
     final p = kitId.toNativeUtf8();
@@ -429,6 +450,23 @@ class MdawEngine {
   }
 
   bool setTempo(double bpm) => _setTempo(_handle, bpm) != 0;
+
+  /// クリップのオートメーション：[paramId] のレーンを丸ごと差し替える（Undo できる）。
+  /// [points] は (tick, 値) の組（tick はクリップ先頭から）。空ならレーンを消す。変わらなければ false
+  bool setClipAutomation(int clipId, int paramId, List<(int, double)> points) {
+    final ticks = calloc<Int64>(points.length);
+    final values = calloc<Float>(points.length);
+    try {
+      for (var i = 0; i < points.length; i++) {
+        ticks[i] = points[i].$1;
+        values[i] = points[i].$2;
+      }
+      return _setClipAutomation(_handle, clipId, paramId, ticks, values, points.length) != 0;
+    } finally {
+      calloc.free(ticks);
+      calloc.free(values);
+    }
+  }
 
   /// 音色の確定（Undo できる）。スライダーを動かしている間は [setTrackParamLive]、離した時にこれ
   bool setTrackParam(int trackId, int paramId, double value) => _setTrackParam(_handle, trackId, paramId, value) != 0;

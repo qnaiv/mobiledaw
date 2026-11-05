@@ -193,6 +193,11 @@ class SongController extends ChangeNotifier {
   /// トラックの音源をドラムキットにする（空ならシンセに戻す）。Undo できる
   bool setTrackKit(int trackId, String kitId) => _edit(() => engine.setTrackKit(trackId, kitId));
 
+  /// トラックの楽器をサンプラーにする（kitId が空ならサンプラーをやめる）。Undo できる。
+  /// 引数はトラックの現在値から組み立てて渡す（設定一式の差し替えのため）
+  bool setTrackSampler(int trackId, String kitId, String soundName, int rootNote, double gain, double start) =>
+      _edit(() => engine.setTrackSampler(trackId, kitId, soundName, rootNote, gain, start));
+
   /// キットをダウンロード・削除したあと：コアに読み直してもらい、画面も描き直す
   void kitsChanged() {
     engine.reloadKits();
@@ -212,6 +217,11 @@ class SongController extends ChangeNotifier {
           }
         }));
   }
+
+  /// クリップのオートメーション：[paramId] のレーンを丸ごと差し替える（Undo できる）。
+  /// [points] は (tick, 値) の組。空ならレーンを消す
+  bool setClipAutomation(int clipId, int paramId, List<(int, double)> points) =>
+      _edit(() => engine.setClipAutomation(clipId, paramId, points));
 
   /// 指定したものだけ変える（他は今の値のまま）
   bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
