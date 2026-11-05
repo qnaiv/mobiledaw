@@ -12,9 +12,10 @@ import '../music/chords.dart';
 import '../music/progressions.dart';
 import '../music/voicing.dart';
 import '../music/scale.dart';
+import '../sound/sound_params.dart';
 import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
-import 'automation_sheet.dart';
+import 'automation_params.dart';
 import 'chord_tools.dart';
 import 'key_scale_sheet.dart';
 import 'progression_sheet.dart';
@@ -87,6 +88,14 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   int _step = ticksPerBeat ~/ 2; // 1/8
   bool _chromatic = false;
+
+  // オートメーションモード（ノートと切り替え。ロール全幅にカーブを描いて編集する）
+  bool _autoMode = false;
+  String _autoParamKey = 'gain'; // 編集中のレーンのパラメータキー
+  List<(int, double)> _autoPoints = const []; // 編集中レーンの点（コアの正規化済みを読み直す）
+  int? _autoSel; // 触っている・選んでいる点の番号
+  int? _autoDragIndex; // ドラッグ中の点の番号（無ければ縦スクロール）
+  bool _autoDragMoved = false;
 
   // コード入力モード
   bool _chordMode = false;
@@ -167,6 +176,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
         final track = project.track(pl.trackId);
         final label = clipLabels(project)[clip.id] ?? '';
         _followLoop(pl, clip);
+        if (_autoMode) _syncAuto(clip);
 
         return Scaffold(
           body: SafeArea(
@@ -175,8 +185,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               children: [
                 _header(track, label, pl, scale, clip),
                 _toolbar(clip),
+                if (_autoMode) _autoParamBar(clip),
                 Expanded(child: _roll(clip, scale, track)),
-                if (_chordMode) _chordPanel(scale, clip),
+                if (_chordMode && !_autoMode) _chordPanel(scale, clip),
                 _bottomControls(pl, clip),
               ],
             ),
@@ -244,12 +255,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
             ),
           ),
           const SizedBox(width: 6),
-          _RoundIcon(
-            icon: Icons.show_chart,
-            label: 'オートメーション',
-            onPressed: () => showAutomationSheet(context, song, clip.id),
-          ),
-          const SizedBox(width: 6),
           _RoundIcon(icon: Icons.undo, label: '元に戻す', onPressed: song.canUndo ? song.undo : null),
           const SizedBox(width: 6),
           _RoundIcon(icon: Icons.redo, label: 'やり直す', onPressed: song.canRedo ? song.redo : null),
@@ -258,28 +263,32 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     );
   }
 
-  /// 選んでいるノートがあれば数と削除、なければ操作のヒント
+  /// ノート／オートメーションのモード切替。あとは選んでいるノートがあれば数と削除、なければ操作のヒント
   Widget _toolbar(ClipData clip) {
     final ids = _selection.toList();
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      padding: const EdgeInsets.fromLTRB(12, 0, 4, 0),
+      padding: const EdgeInsets.fromLTRB(8, 0, 4, 0),
       constraints: const BoxConstraints(minHeight: 44),
       decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
+          _modeToggle(),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
-              ids.isEmpty
-                  ? (_chordMode
-                      ? 'コードを選んでタップで置く · ノートをタップで選ぶ · 2本指で縮尺'
-                      : 'タップで置く · タップで選ぶ · 長押しで移動 · 何もない所を長押しで範囲選択')
-                  : '選んだノート ${ids.length} 個 · つまみで長さ、掴むか長押しで移動 · ゴミ箱で削除',
+              _autoMode
+                  ? 'タップで点を追加 · ドラッグで移動 · 長押しで削除'
+                  : ids.isEmpty
+                      ? (_chordMode
+                          ? 'コードを選んでタップで置く · ノートをタップで選ぶ · 2本指で縮尺'
+                          : 'タップで置く · タップで選ぶ · 長押しで移動 · 何もない所を長押しで範囲選択')
+                      : '選んだノート ${ids.length} 個 · つまみで長さ、掴むか長押しで移動 · ゴミ箱で削除',
               maxLines: 2,
               style: const TextStyle(fontSize: 11, color: DawColors.muted),
             ),
           ),
-          if (ids.isNotEmpty) ...[
+          if (!_autoMode && ids.isNotEmpty) ...[
             IconButton(
               tooltip: '選択をやめる',
               onPressed: () => setState(_selection.clear),
@@ -294,6 +303,157 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               icon: const Icon(Icons.delete_outline, size: 20),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  // ---- オートメーションモード ---------------------------------------------------
+
+  static const _autoColor = Color(0xFF9A7CF2); // カーブの紫
+
+  /// ノート／オートメーションの切替（ツールバーの左端）
+  Widget _modeToggle() {
+    Widget seg(String label, bool active, VoidCallback onTap) => InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: active ? _autoColor : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: active ? const Color(0xFFFFFFFF) : DawColors.muted)),
+          ),
+        );
+    return Container(
+      decoration: BoxDecoration(
+        color: DawColors.background,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: DawColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          seg('ノート', !_autoMode, () => _setAutoMode(false)),
+          seg('オートメーション', _autoMode, () => _setAutoMode(true)),
+        ],
+      ),
+    );
+  }
+
+  void _setAutoMode(bool on) {
+    if (on == _autoMode) return;
+    setState(() {
+      _autoMode = on;
+      _drag = null;
+      _autoSel = null;
+      _autoDragIndex = null;
+      if (on) {
+        final pl = _placement;
+        final clip = pl == null ? null : song.clip(pl.clipId);
+        if (clip != null) _loadAutoLane(clip);
+      }
+    });
+  }
+
+  /// 編集中レーンの点をクリップから読み直す（コアの正規化済みの形になる）
+  void _loadAutoLane(ClipData clip) {
+    _autoPoints = [...clip.automationLane(_autoParamKey)?.points ?? const <(int, double)>[]];
+    _autoSel = null;
+  }
+
+  /// Undo や外部の変更でレーンが変わっていたら合わせる（ドラッグ中は触らない）
+  void _syncAuto(ClipData clip) {
+    if (_autoDragIndex != null) return;
+    final lane = clip.automationLane(_autoParamKey)?.points ?? const <(int, double)>[];
+    if (!_samePoints(lane, _autoPoints)) _loadAutoLane(clip);
+  }
+
+  bool _samePoints(List<(int, double)> a, List<(int, double)> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  SoundParam? get _autoParam => automationParamFor(_autoParamKey);
+
+  /// 編集をコアへ確定する（1回の呼び出し = 1つの Undo）。確定後は正規化済みを読み直す
+  void _commitAuto(int clipId) {
+    final param = _autoParam;
+    if (param == null) return;
+    final sorted = [..._autoPoints]..sort((a, b) => a.$1.compareTo(b.$1));
+    song.setClipAutomation(clipId, param.id, sorted);
+    final fresh = song.clip(clipId);
+    if (fresh != null) _loadAutoLane(fresh);
+  }
+
+  /// 対象パラメータのチップ（代表6種＋このクリップに既にレーンがあるもの）と、選んだ点の値
+  Widget _autoParamBar(ClipData clip) {
+    final params = <SoundParam>[...automationTargets];
+    for (final lane in clip.automation) {
+      final p = automationParamFor(lane.param);
+      if (p != null && params.every((t) => t.key != p.key)) params.add(p);
+    }
+    final param = _autoParam;
+    final sel = _autoSel;
+    final readout = param == null
+        ? ''
+        : (sel != null && sel < _autoPoints.length)
+            ? '${param.label}：${param.format(_autoPoints[sel].$2)}'
+            : '${_autoPoints.length} 点';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(12)),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final p in params)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Material(
+                        color: p.key == _autoParamKey ? _autoColor : DawColors.background,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: const BorderSide(color: DawColors.line),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(999),
+                          onTap: () => setState(() {
+                            _autoParamKey = p.key;
+                            _loadAutoLane(clip);
+                          }),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            child: Text(automationShortLabel(p.key),
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: p.key == _autoParamKey ? const Color(0xFFFFFFFF) : DawColors.text)),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(readout,
+                style: const TextStyle(fontSize: 11, color: DawColors.muted, fontFeatures: [FontFeature.tabularFigures()])),
+          ),
         ],
       ),
     );
@@ -721,16 +881,22 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _ValueButton(
-              caption: 'コード',
-              value: _chordMode ? 'ON' : 'OFF',
-              highlighted: _chordMode,
-              onTap: () => setState(() {
-                _chordMode = !_chordMode;
-                _suggestFrom = null;
-                _suggest = const [];
-              }),
-            ),
+            child: _autoMode
+                ? _ValueButton(
+                    caption: 'モード',
+                    value: 'ノートへ',
+                    onTap: () => _setAutoMode(false),
+                  )
+                : _ValueButton(
+                    caption: 'コード',
+                    value: _chordMode ? 'ON' : 'OFF',
+                    highlighted: _chordMode,
+                    onTap: () => setState(() {
+                      _chordMode = !_chordMode;
+                      _suggestFrom = null;
+                      _suggest = const [];
+                    }),
+                  ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -774,6 +940,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   Widget _roll(ClipData clip, Scale scale, TrackData? track) {
+    if (_autoMode) return _autoRoll(clip, scale, track);
     final kit = track != null && track.isKit ? song.kits.installed(track.kitId) : null;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -944,6 +1111,205 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
         },
       ),
     );
+  }
+
+  /// オートメーションモードのロール：横幅そのままに、ゴーストノートの上へカーブを描く。
+  /// 縦（時間）はノートと同じ RollGeometry と同じ縦スクロール（_v）を使うので、
+  /// ノートとカーブの時間位置がそのまま見比べられる。横は値（左 = 小さい）なので横スクロールはしない
+  Widget _autoRoll(ClipData clip, Scale scale, TrackData? track) {
+    final kit = track != null && track.isKit ? song.kits.installed(track.kitId) : null;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: const Color(0xFF16181B), borderRadius: BorderRadius.circular(14)),
+      clipBehavior: Clip.antiAlias,
+      child: LayoutBuilder(
+        builder: (context, box) {
+          final viewportW = box.maxWidth - _labelWidth;
+          final viewportH = box.maxHeight;
+          final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
+          final rowHeight = _rowHeightFor(viewportH, rows);
+          final g = RollGeometry(
+            // ゴーストノートの列はノートモードと同じ並びにする
+            columns: kit != null && kit.sounds.isNotEmpty ? kit.notes : rollColumns(scale, chromatic: _chromatic),
+            colWidth: _colWidth,
+            step: _step,
+            rowHeight: rowHeight,
+            lengthTicks: clip.lengthTicks,
+          );
+          _g = g;
+          _viewportWidth = viewportW;
+          final color = track != null ? Color(track.color) : DawColors.lead;
+          return Stack(
+            children: [
+              // 小節・拍の目盛り（ノートモードと共通）
+              Positioned(
+                left: 0,
+                top: 0,
+                width: _labelWidth,
+                height: viewportH,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _setStartAt(g, d.localPosition.dy),
+                  child: CustomPaint(
+                    painter: _LabelPainter(
+                        g: g, v: _v, ticksPerBar: song.project.ticksPerBar, startTick: _startInClip),
+                  ),
+                ),
+              ),
+              // カーブの編集面
+              Positioned(
+                left: _labelWidth,
+                top: 0,
+                right: 0,
+                height: viewportH,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (d) => _onAutoTap(clip, g, _autoContent(d.localPosition), viewportW),
+                  onLongPressStart: (d) => _onAutoLongPress(clip, g, _autoContent(d.localPosition), viewportW),
+                  onPanStart: (d) => _onAutoPanStart(g, _autoContent(d.localPosition), viewportW),
+                  onPanUpdate: (d) => _onAutoPanUpdate(g, d, viewportW),
+                  onPanEnd: (d) => _onAutoPanEnd(clip, d.velocity),
+                  onPanCancel: () => _autoDragIndex = null,
+                  child: SingleChildScrollView(
+                    controller: _v,
+                    physics: const NeverScrollableScrollPhysics(), // スクロールは自前（点のドラッグと分けるため）
+                    child: SizedBox(
+                      width: viewportW,
+                      height: g.height + _bottomRoom,
+                      child: CustomPaint(
+                        painter: _AutoPainter(
+                          clip: clip,
+                          g: g,
+                          scale: scale,
+                          chromatic: _chromatic,
+                          ticksPerBar: song.project.ticksPerBar,
+                          noteColor: color,
+                          curveColor: _autoColor,
+                          param: _autoParam,
+                          points: _autoPoints,
+                          sel: _autoSel,
+                          playhead: _playhead,
+                          h: _h,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  /// 編集面の座標（縦スクロールを足した中身の座標。横はそのまま = 値の位置）
+  Offset _autoContent(Offset viewport) =>
+      Offset(viewport.dx, viewport.dy + (_v.hasClients ? _v.offset : 0));
+
+  /// その位置に一番近い点（指の太さを見込んで半径 28px まで）
+  int? _autoPointAt(RollGeometry g, Offset at, double width) {
+    final param = _autoParam;
+    if (param == null) return null;
+    int? best;
+    var bestDist = 28.0;
+    for (var i = 0; i < _autoPoints.length; i++) {
+      final (tick, value) = _autoPoints[i];
+      final dx = param.toUnit(value) * width - at.dx;
+      final dy = g.tickY(tick) - at.dy;
+      final d = math.sqrt(dx * dx + dy * dy);
+      if (d <= bestDist) {
+        bestDist = d;
+        best = i;
+      }
+    }
+    return best;
+  }
+
+  /// タップ：近くに点があれば選ぶだけ、無ければその位置に点を追加して確定（1つの Undo）
+  void _onAutoTap(ClipData clip, RollGeometry g, Offset at, double width) {
+    final param = _autoParam;
+    if (param == null || at.dy >= g.height) return;
+    final hit = _autoPointAt(g, at, width);
+    if (hit != null) {
+      setState(() => _autoSel = hit);
+      return;
+    }
+    final tick = g.tickAt(at.dy);
+    final value = param.fromUnit(width <= 0 ? 0 : at.dx / width);
+    setState(() {
+      // 同じ tick の点は置き換え（コアの正規化と同じ「あと勝ち」）
+      _autoPoints = [..._autoPoints.where((p) => p.$1 != tick), (tick, value)]
+        ..sort((a, b) => a.$1.compareTo(b.$1));
+      _autoSel = _autoPoints.indexWhere((p) => p.$1 == tick);
+      _commitAuto(clip.id);
+    });
+  }
+
+  /// 長押し：近くの点を消して確定（1つの Undo）
+  void _onAutoLongPress(ClipData clip, RollGeometry g, Offset at, double width) {
+    final hit = _autoPointAt(g, at, width);
+    if (hit == null) return;
+    HapticFeedback.mediumImpact();
+    setState(() {
+      _autoDragIndex = null;
+      _autoPoints = [..._autoPoints]..removeAt(hit);
+      _autoSel = null;
+      _commitAuto(clip.id);
+    });
+  }
+
+  void _onAutoPanStart(RollGeometry g, Offset at, double width) {
+    _autoDragMoved = false;
+    final hit = _autoPointAt(g, at, width);
+    if (hit != null) {
+      setState(() {
+        _autoDragIndex = hit;
+        _autoSel = hit;
+      });
+    } else {
+      _autoDragIndex = null; // 点を掴んでいないなぞりは縦スクロール
+    }
+  }
+
+  void _onAutoPanUpdate(RollGeometry g, DragUpdateDetails d, double width) {
+    final index = _autoDragIndex;
+    final param = _autoParam;
+    if (index == null || param == null) {
+      if (_v.hasClients) {
+        _v.jumpTo((_v.offset - d.delta.dy).clamp(0, _v.position.maxScrollExtent).toDouble());
+      }
+      return;
+    }
+    final at = _autoContent(d.localPosition);
+    final tick = g.tickAt(at.dy);
+    final value = param.fromUnit(width <= 0 ? 0 : at.dx / width);
+    setState(() {
+      _autoDragMoved = true;
+      final next = [..._autoPoints];
+      next[index] = (tick, value);
+      // 同じ tick に重なった他の点は消す（あと勝ち）
+      _autoPoints = [
+        for (var i = 0; i < next.length; i++)
+          if (i == index || next[i].$1 != tick) next[i],
+      ]..sort((a, b) => a.$1.compareTo(b.$1));
+      _autoSel = _autoPoints.indexWhere((p) => p.$1 == tick);
+    });
+  }
+
+  /// 指を離したら、点の移動を1回だけ確定する（シートと同じ確定タイミング）
+  void _onAutoPanEnd(ClipData clip, Velocity velocity) {
+    final index = _autoDragIndex;
+    _autoDragIndex = null;
+    if (index != null) {
+      if (_autoDragMoved) _commitAuto(clip.id);
+      return;
+    }
+    final v = velocity.pixelsPerSecond.dy;
+    if (_v.hasClients && v.abs() > 200) {
+      final to = (_v.offset - v * 0.3).clamp(0, _v.position.maxScrollExtent).toDouble();
+      _v.animateTo(to, duration: const Duration(milliseconds: 450), curve: Curves.decelerate);
+    }
   }
 
   /// 開いたとき（と全音表示を切り替えたとき）に、見せたい音のあたりへ横スクロールする
@@ -1493,6 +1859,161 @@ class _RollPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RollPainter old) => true; // 指で動かしている間は毎回描き直す
+}
+
+/// オートメーションモードの描画：ノートと同じ背景・グリッドの上にゴーストノート（淡色）、
+/// その上に選択中レーンのカーブ（横 = 値、縦 = ノートと同じ tick→y）。
+/// ゴーストの横位置はノートモードの横スクロール（h）に合わせるので、モードを切り替えても音の位置がずれない
+class _AutoPainter extends CustomPainter {
+  _AutoPainter({
+    required this.clip,
+    required this.g,
+    required this.scale,
+    required this.chromatic,
+    required this.ticksPerBar,
+    required this.noteColor,
+    required this.curveColor,
+    required this.param,
+    required this.points,
+    required this.sel,
+    required this.playhead,
+    required this.h,
+  }) : super(repaint: Listenable.merge([playhead, h]));
+
+  final ClipData clip;
+  final RollGeometry g;
+  final Scale scale;
+  final bool chromatic;
+  final int ticksPerBar;
+  final Color noteColor;
+  final Color curveColor;
+  final SoundParam? param;
+  final List<(int, double)> points;
+  final int? sel;
+  final ValueNotifier<int?> playhead;
+  final ScrollController h;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final hOff = h.hasClients ? h.offset : 0.0;
+
+    // 列の背景（ノートモードと同じ色分け・同じ横位置）
+    for (var c = 0; c < g.columns.length; c++) {
+      final p = g.columns[c];
+      final x = g.colX(c) - hOff;
+      if (x + g.colWidth < 0 || x > size.width) continue;
+      final isRoot = p % 12 == scale.root;
+      if (isRoot) {
+        canvas.drawRect(Rect.fromLTWH(x, 0, g.colWidth, g.height), Paint()..color = const Color(0xFF1C1F23));
+        canvas.drawRect(Rect.fromLTWH(x, 0, 1, g.height), Paint()..color = const Color(0xFF3A3E46));
+      } else if (!scale.contains(p)) {
+        canvas.drawRect(Rect.fromLTWH(x, 0, g.colWidth, g.height), Paint()..color = const Color(0xFF121315));
+      } else if (chromatic) {
+        canvas.drawRect(Rect.fromLTWH(x, 0, g.colWidth, g.height), Paint()..color = const Color(0xFF182420));
+      }
+    }
+
+    // 横線：小節（明）、拍（中）、グリッド（暗）。ノートモードと同じ
+    for (var r = 0; r <= g.rows; r++) {
+      final tick = r * g.step;
+      final isBar = tick % ticksPerBar == 0;
+      final isBeat = tick % ticksPerBeat == 0;
+      canvas.drawRect(
+        Rect.fromLTWH(0, g.tickY(tick), size.width, isBar ? 1.5 : 1),
+        Paint()..color = isBar ? const Color(0xFF4A4F58) : (isBeat ? const Color(0xFF2A2D33) : const Color(0xFF1F2125)),
+      );
+    }
+
+    // 値の目安（縦線：左 = 小さい値、右 = 大きい値）
+    final guide = Paint()..color = DawColors.line.withValues(alpha: 0.5);
+    for (final u in [0.25, 0.5, 0.75]) {
+      canvas.drawRect(Rect.fromLTWH(u * size.width, 0, 1, g.height), guide);
+    }
+
+    // ゴーストノート（既存ノートを通常の音程・時間位置に淡色で）
+    final ghost = Paint()..color = noteColor.withValues(alpha: 0.22);
+    for (final n in clip.notes) {
+      final col = g.columnOf(n.pitch);
+      if (col == null) continue;
+      final rect = Rect.fromLTRB(
+        g.colX(col) - hOff + 2,
+        g.tickY(n.tick) + 1,
+        g.colX(col) - hOff + g.colWidth - 2,
+        g.tickY(n.endTick) - 1,
+      );
+      if (rect.right < 0 || rect.left > size.width) continue;
+      canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(6)), ghost);
+    }
+
+    // カーブ（x = パラメータの目盛りで正規化した値、y = ノートと同じ時間軸）
+    final param = this.param;
+    if (param != null && points.isNotEmpty) {
+      double xOf(double v) => param.toUnit(v) * size.width;
+      final path = Path()..moveTo(xOf(points.first.$2), g.tickY(points.first.$1));
+      for (final p in points.skip(1)) {
+        path.lineTo(xOf(p.$2), g.tickY(p.$1));
+      }
+      path.lineTo(xOf(points.last.$2), g.height); // 最後の点より後は値そのまま
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 6
+          ..color = curveColor.withValues(alpha: 0.25),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..color = curveColor,
+      );
+      for (var i = 0; i < points.length; i++) {
+        final c = Offset(xOf(points[i].$2), g.tickY(points[i].$1));
+        canvas.drawCircle(c, i == sel ? 7 : 5, Paint()..color = curveColor);
+        if (i == sel) {
+          canvas.drawCircle(
+            c,
+            7,
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2
+              ..color = DawColors.text,
+          );
+        }
+      }
+      // 値域の目安（最小は左上、最大は右上）
+      _text(canvas, param.format(param.min), const Offset(4, 4), color: DawColors.muted, size: 9);
+      final maxLabel = param.format(param.max);
+      final tp = TextPainter(
+        text: TextSpan(text: maxLabel, style: const TextStyle(color: DawColors.muted, fontSize: 9)),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      tp.paint(canvas, Offset(size.width - tp.width - 4, 4));
+    }
+
+    // クリップの終わり（線と下側のマスク。ノートモードと同じ見た目）
+    canvas.drawRect(Rect.fromLTWH(0, g.height, size.width, size.height - g.height),
+        Paint()..color = DawColors.background.withValues(alpha: 0.55));
+    canvas.drawRect(Rect.fromLTWH(0, g.height - 1, size.width, 2), Paint()..color = DawColors.accent.withValues(alpha: 0.8));
+
+    // 再生位置
+    final ph = playhead.value;
+    if (ph != null) {
+      canvas.drawRect(Rect.fromLTWH(0, g.tickY(ph) - 1, size.width, 2), Paint()..color = DawColors.text);
+    }
+  }
+
+  void _text(Canvas canvas, String s, Offset at, {required Color color, required double size}) {
+    final tp = TextPainter(
+      text: TextSpan(text: s, style: TextStyle(color: color, fontSize: size)),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at);
+  }
+
+  @override
+  bool shouldRepaint(_AutoPainter old) => true; // 点を動かしている間は毎回描き直す
 }
 
 // ---- 小さな部品 -------------------------------------------------------------------
