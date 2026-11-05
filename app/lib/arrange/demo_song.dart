@@ -4,9 +4,10 @@
 // ・kawaii フューチャーベース：150 BPM・F major・77小節（約2分）、8トラック。サビは Jersey Club のキック。
 //   ファイルは tools/demos/future_bass.py で作り、build/mdaw_render で wav にして音を確かめる。
 //   ドラムは Future Bass キット（kits/future-bass）を使う
-// ・kawaii フューチャーベース2：155 BPM・D major・56小節（約1分27秒）、11トラック。リッチなウェーブテーブル
-//   （テーブル5/7、wtPos の LFO とオートメーション）を使った第2弾。既存曲とはキー・進行・メロディが別。
-//   ファイルは tools/demos/kawaii2.py で作る。ドラムは Future Bass キット（kits/future-bass）を使う
+// ・kawaii フューチャーベース2：155 BPM・D major・56小節（約1分27秒）、12トラック。本格 FB プリセット
+//   （FB Chords 9th／FB Vocal Lead／FB Wobble Bass 等）と 9th ボイシング、エンジン拡張
+//   （グライド＋モノ、テンポ同期 LFO、キートラッキング）を使った第2弾。既存曲とはキー・進行・メロディが別。
+//   ファイルは tools/demos/kawaii2.py で作る。ドラムは Future Bass Pro キット（kits/future-bass-pro）を使う
 // ・ハウス：124 BPM・A minor・32小節（約1分）、7トラック。四つ打ち、裏拍のオープンハット、オフビートベース。キーズとリードはウェーブテーブル使用。
 //   ファイルは tools/demos/house.py で作る。ドラムは House キット（kits/house）を使う
 // ・Lo-fi：84 BPM・D minor・24小節（約1分9秒）、7トラック。スウィングするドラム、ローパスの効いたコード。
@@ -48,7 +49,7 @@ String demoAsset(DemoSong d) => switch (d) {
 /// メニューに出すキット名
 String demoKitName(DemoSong d) => switch (d) {
       DemoSong.futureBass => 'Future Bass キット',
-      DemoSong.kawaii2 => 'Future Bass キット',
+      DemoSong.kawaii2 => 'Future Bass Pro キット',
       DemoSong.house => 'House キット',
       DemoSong.lofi => 'Lo-fi Boom Bap キット',
       DemoSong.rnb => 'Acoustic Live キット',

@@ -9,23 +9,23 @@
 
 155 BPM / D major / 56小節（約1分27秒）。既存の kawaii フューチャーベース
 （F major・150 BPM・Jersey キック）とは別のキー・進行・メロディ。
-ウェーブテーブル強化（テーブル5/6/7、wtPos の LFO）とクリップの
-オートメーション（"automation" のレーン）を使った曲。
-  小節   0– 3  イントロ   クワイアパッド（音量フェードインのレーン付き）とプラックのアルペジオ
-         4–11  Aメロ      ハーフタイムのドラム（3拍目にクラップ、スネアのゴースト入り）、刻むコード、フォルマントリード、サブベース
-        12–15  ビルド     4つ打ち＋スネアの2・4拍 → スネアロール＋タムフィル、ライザー。コードの cutoff が開いていくレーン
-        16–27  サビ       跳ねるキックでスーパーソーが弾む。グロウルベースは wtPos のレーンでうねる
-        28–35  ブレイク   ドラムは薄いハットとマラカスだけ（最後に小さいフィル）。クワイアとボーカルコード、プラック、柔らかいリード
-        36–39  ビルド2    ビルドと同じ（カットオフのレーンも同じ動き）
-        40–51  ラストサビ サビ＋ベルがメロディを1オクターブ上で重ねる
+エンジン拡張（キートラッキング／グライド＋モノ／テンポ同期 LFO）と
+本格 FB プリセット、ドラムキット future-bass-pro を使った曲。
+  小節   0– 3  イントロ   パッド（FB Pad Air、音量フェードインのレーン付き）とプラックのアルペジオ
+         4–11  Aメロ      ハーフタイムのドラム（3拍目にクラップ、スネアのゴースト入り）、刻むコード、歌うリード、サブベース
+        12–15  ビルド     4つ打ち＋スネアロール→タムフィル。最後の1拍はドラムを落として息継ぎ（リバースシンバルの吸い込み）
+        16–27  サビ       跳ねるキックで 9th コードが弾む。ワブルベース＋クリーンなサブ。サビ頭にインパクト
+        28–35  ブレイク   ドラムは薄いハットとマラカスだけ。冒頭にダウンリフター。クワイアとパッド、プラック、柔らかいリード
+        36–39  ビルド2    ビルドと同じ動き＋ライザー短も重ねる
+        40–51  ラストサビ サビ＋プラックがメロディを1オクターブ上で重ねる。最後にトーキングリードの掛け合い
         52–55  アウトロ   パッド（音量フェードアウトのレーン付き）とプラック。最後に D の一発
-進行
-  イントロ/Aメロ/ブレイク  DM7 → Bm7 → GM7 → A（I–vi–IV–V）
-  ビルド                   Em7 → F#m7 → GM7 → A
-  サビ                     GM7 → A → F#m7 → Bm7 → Em7 → A → DM7 → D（IV–V–iii–vi–ii–V–I–I）
-ドラムは Future Bass キット（kits/future-bass）を使う
-音色はウェーブテーブルのプリセット（FB WT Chords / FB Formant Lead /
-Spectral Pluck / Choir Pad / FB Vocal Chords / FB Growl Bass / FB Sub Bass）が土台
+進行（コードは maj9／m9／add9 の広いボイシング。ルートはベース側、3・5・7・9 を上に広げる）
+  イントロ/Aメロ/ブレイク  DM9 → Bm9 → GM9 → A9（I–vi–IV–V）
+  ビルド                   Em9 → F#m9 → GM9 → A9
+  サビ                     GM9 → A9 → F#m9 → Bm9 → Em9 → A9 → DM9 → Dadd9（IV–V–iii–vi–ii–V–I–I）
+ドラムは Future Bass Pro キット（kits/future-bass-pro）を使う
+音色は本格 FB プリセット（FB Chords 9th / FB Vocal Lead / FB Talking Lead /
+FB Pluck / FB Pad Air / FB Wobble Bass / FB Sub Clean）が土台
 """
 import json
 import sys
@@ -33,16 +33,17 @@ import sys
 from future_bass import Builder, n, steps, PPQ, BAR, S16
 
 # ---- 音色（mdaw.h の MDAW_PARAM_* / MDAW_FX_* の保存名） -------------------------
+# プリセットは app/lib/sound/sound_params.dart の本格 FB プリセットの値をそのまま使う
+# （synth と fx に分けて書く。mixer はデモ側のバランス）。
 
 SOUNDS = {
-    # サビの主役。テーブル5（Spectral Saw）の厚いスーパーソー（FB WT Chords が土台）
+    # サビの主役。FB Chords 9th（スーパーソー9声、keyTrack 0.6、OTT 0.3）
     "Chords": dict(
         color="fff7a8d8",
-        synth=dict(cutoffHz=8500, resonance=0.8, attackS=0.008, decayS=0.6, sustain=0.75, releaseS=0.22,
-                   detuneCents=45, masterGain=0.55, unison=9, width=1.0, blend=0.7, noise=0.03,
-                   drive=0.12, filterEnv=0.25, filterEnvDecayS=0.25,
-                   wtTable=5, wtPos=0.55, wtLfoRate=0.4, wtLfoAmount=0.12),
-        fx=dict(lowCutHz=180, chorus=0.3, ott=0.55, reverb=0.3, reverbSize=0.7,
+        synth=dict(unison=9, detuneCents=34, width=0.95, blend=0.7, noise=0.02, drive=0.12,
+                   cutoffHz=10000, resonance=0.8, keyTrack=0.6, filterEnv=0.2, filterEnvDecayS=0.3,
+                   attackS=0.006, decayS=0.6, sustain=0.78, releaseS=0.4, masterGain=0.55),
+        fx=dict(lowCutHz=180, saturation=0.12, chorus=0.3, ott=0.3, reverb=0.3, reverbSize=0.7,
                 sidechain=0.9, sidechainReleaseS=0.3),
         mixer=dict(gain=0.5, pan=0),
     ),
@@ -57,72 +58,93 @@ SOUNDS = {
                 sidechain=0.8, sidechainReleaseS=0.3),
         mixer=dict(gain=0.45, pan=-0.06),
     ),
-    # メロディ。テーブル3のフォルマントリード（FB Formant Lead が土台）
+    # メロディ。FB Vocal Lead（モノ＋グライド90ms、+12st のスクープ、5.5Hz ビブラート）。
+    # レガート区間は melody_legato で音をつなぎ、グライドで歌わせる
     "Lead": dict(
         color="ffe879c6",
-        synth=dict(cutoffHz=6500, resonance=1.0, attackS=0.004, decayS=0.3, sustain=0.65, releaseS=0.15,
-                   detuneCents=14, masterGain=0.6, unison=3, width=0.5, blend=0.85,
-                   filterEnv=0.25, filterEnvDecayS=0.2,
-                   wtTable=3, wtPos=0.6, wtWarp=1, wtWarpAmount=0.35, wtLfoRate=3.5, wtLfoAmount=0.3),
-        fx=dict(lowCutHz=250, chorus=0.2, ott=0.4, delay=0.35, delayFeedback=0.4, reverb=0.3,
-                sidechain=0.45, sidechainReleaseS=0.22),
+        synth=dict(wtTable=3, wtPos=0.5, wtWarp=1, wtWarpAmount=0.25,
+                   mono=1, glideS=0.09, pitchEnv=12, pitchEnvDecayS=0.08,
+                   wtLfoRate=5.5, lfoPitch=0.18,
+                   unison=2, detuneCents=10, width=0.3, blend=0.9,
+                   cutoffHz=6000, resonance=1.0, keyTrack=0.5, filterEnv=0.2, filterEnvDecayS=0.2,
+                   attackS=0.004, decayS=0.3, sustain=0.7, releaseS=0.15, masterGain=0.7),
+        fx=dict(lowCutHz=250, saturation=0.1, ott=0.35, delay=0.35, delayFeedback=0.4,
+                reverb=0.3, reverbSize=0.65, sidechain=0.45),
         mixer=dict(gain=0.42, pan=0.05),
     ),
-    # キラキラしたプラック。テーブル5（Spectral Pluck が土台）。アルペジオとサビのチョップ用
+    # ラストサビの掛け合い。FB Talking Lead（フォルマントを LFO で往復、グライド120ms）
+    "Talk": dict(
+        color="ffd45af2",
+        synth=dict(wtTable=3, wtPos=0.45, wtWarp=1, wtWarpAmount=0.35,
+                   mono=1, glideS=0.12, wtLfoRate=2.2, wtLfoAmount=0.55,
+                   unison=1, width=0.15, blend=1.0,
+                   cutoffHz=4200, resonance=1.8, keyTrack=0.35, filterEnv=0.3, filterEnvDecayS=0.25,
+                   attackS=0.005, decayS=0.3, sustain=0.7, releaseS=0.12, masterGain=0.6),
+        fx=dict(lowCutHz=250, saturation=0.15, ott=0.35, delay=0.3, delayFeedback=0.35,
+                reverb=0.28, sidechain=0.45),
+        mixer=dict(gain=0.4, pan=-0.08),
+    ),
+    # アルペジオとサビのチョップ。FB Pluck（keyTrack 0.85 で高音域まで抜ける）
     "Pluck": dict(
         color="ff9a7cf2",
-        synth=dict(cutoffHz=2400, resonance=1.1, attackS=0.001, decayS=0.22, sustain=0.0, releaseS=0.18,
-                   detuneCents=8, masterGain=0.65, unison=2, width=0.4, blend=0.9,
-                   filterEnv=0.65, filterEnvDecayS=0.12,
-                   wtTable=5, wtPos=0.8, wtWarp=1, wtWarpAmount=0.2),
-        fx=dict(lowCutHz=250, chorus=0.15, ott=0.35, delay=0.3, delayFeedback=0.35, reverb=0.35,
-                sidechain=0.4, sidechainReleaseS=0.2),
+        synth=dict(unison=2, detuneCents=10, width=0.45, blend=0.85,
+                   cutoffHz=1600, resonance=1.1, keyTrack=0.85, filterEnv=0.72, filterEnvDecayS=0.09,
+                   attackS=0.001, decayS=0.16, sustain=0.0, releaseS=0.12, masterGain=0.68),
+        fx=dict(lowCutHz=250, chorus=0.15, ott=0.35, delay=0.32, delayFeedback=0.38, reverb=0.3,
+                reverbSize=0.6, sidechain=0.45),
         mixer=dict(gain=0.4, pan=-0.12),
     ),
-    # イントロとブレイクの土台。テーブル7（クワイア）のパッド（Choir Pad が土台）
+    # イントロとブレイクとアウトロの土台。FB Pad Air（12声＋1小節同期の微ドリフト）。
+    # ブレイクでは Vox（クワイア系）と重ねる
     "Pad": dict(
         color="ff8fd8f2",
-        synth=dict(cutoffHz=4200, resonance=0.9, attackS=0.5, decayS=1.0, sustain=0.85, releaseS=1.4,
-                   detuneCents=35, masterGain=0.5, unison=7, width=1.0, blend=0.8,
-                   wtTable=7, wtPos=0.4, wtLfoRate=0.25, wtLfoAmount=0.2),
-        fx=dict(lowCutHz=200, chorus=0.5, reverb=0.65, reverbSize=0.85,
-                sidechain=0.4, sidechainReleaseS=0.35),
+        synth=dict(wtTable=5, wtPos=0.3, noise=0.015,
+                   unison=12, detuneCents=30, width=1.0, blend=0.75,
+                   lfoSync=1, lfoDiv=0, lfoWave=0, lfoCutoff=0.1, wtLfoAmount=0.18,
+                   cutoffHz=5200, resonance=0.8, keyTrack=0.45,
+                   attackS=0.6, decayS=1.2, sustain=0.85, releaseS=1.8, masterGain=0.30),
+        fx=dict(lowCutHz=200, saturation=0.08, chorus=0.45, ott=0.25, reverb=0.6, reverbSize=0.85,
+                sidechain=0.5, sidechainReleaseS=0.35),
         mixer=dict(gain=0.55, pan=0),
     ),
-    # サビのうねるベース。テーブル5＋強めの LFO（FB Growl Bass が土台）。wtPos はレーンでも動かす
+    # サビのワブルベース。FB Wobble Bass（付点8分に同期した矩形 LFO がカットオフと wtPos を開閉）。
+    # wtPos はレーンでゆっくり寄せて、ワブルの中心を動かす
     "Bass": dict(
         color="ff5aa9f2",
-        synth=dict(cutoffHz=900, resonance=3.2, attackS=0.003, decayS=0.4, sustain=0.8, releaseS=0.09,
-                   detuneCents=25, masterGain=0.75, unison=3, width=0.3, blend=0.85, sub=0.55,
-                   drive=0.55, filterEnv=0.5, filterEnvDecayS=0.16,
-                   wtTable=5, wtPos=0.75, wtWarp=1, wtWarpAmount=0.45, wtLfoRate=8, wtLfoAmount=0.35),
-        fx=dict(saturation=0.5, ott=0.6, sidechain=0.85, sidechainReleaseS=0.28),
+        synth=dict(wtTable=5, wtPos=0.6, wtWarp=1, wtWarpAmount=0.4,
+                   mono=1, glideS=0.02,
+                   lfoSync=1, lfoDiv=2, lfoWave=2, lfoCutoff=0.65, wtLfoAmount=0.45,
+                   unison=3, detuneCents=22, width=0.25, blend=0.85, sub=0.5, drive=0.45,
+                   cutoffHz=850, resonance=2.8, keyTrack=0.3, filterEnv=0.35, filterEnvDecayS=0.15,
+                   attackS=0.003, decayS=0.35, sustain=0.85, releaseS=0.08, masterGain=0.75),
+        fx=dict(saturation=0.5, ott=0.5, sidechain=0.8, sidechainReleaseS=0.25),
         mixer=dict(gain=0.3, pan=0),
     ),
-    # Aメロの静かな土台。テーブル1のサブ（FB Sub Bass が土台）
+    # 低域の土台。FB Sub Clean（サインのみ）に、デモ側でサイドチェインを足す
+    # （プリセット側はクリーン維持のため sidechain 0。task20 の推奨どおり 0.85／release 0.25）
     "Sub": dict(
         color="ff4a7de0",
-        synth=dict(cutoffHz=500, resonance=0.9, attackS=0.003, decayS=0.3, sustain=0.9, releaseS=0.06,
-                   detuneCents=0, masterGain=0.85, unison=1, sub=0.8, osc=0.8,
-                   filterEnv=0.15, filterEnvDecayS=0.1,
-                   wtTable=1, wtPos=0.15),
-        fx=dict(saturation=0.2, sidechain=0.9, sidechainReleaseS=0.28),
+        synth=dict(osc=0, sub=1.0, unison=1, width=0, blend=1.0,
+                   mono=1, glideS=0.02,
+                   cutoffHz=300, resonance=0.9,
+                   attackS=0.004, decayS=0.2, sustain=0.95, releaseS=0.05, masterGain=0.9),
+        fx=dict(saturation=0.12, sidechain=0.85, sidechainReleaseS=0.25),
         mixer=dict(gain=0.26, pan=0),
     ),
-    # ドラムは Future Bass キット（kits/future-bass）。キックは他のトラックを引っ込める
+    # ドラムは Future Bass Pro キット（kits/future-bass-pro）。キックは他のトラックを引っ込める
     "Kick": dict(
         color="fff28c38",
-        kit="future-bass",
+        kit="future-bass-pro",
         synth=dict(cutoffHz=40, resonance=0.7, attackS=0.0005, decayS=0.26, sustain=0.0, releaseS=0.04,
                    detuneCents=0, masterGain=1.0, unison=1, width=0, sub=1.0, filterEnv=0.8,
                    filterEnvDecayS=0.025, pitchEnv=30, pitchEnvDecayS=0.03, wave=0, osc=0.5),
         fx=dict(saturation=0.1, sidechainSource=1),
         mixer=dict(gain=0.2, pan=0),
     ),
-    # Clap Wide＋Snare Cute Tight を重ねる（ロールは Snare Cute Tight）。ドライでタイトに
+    # Clap Pro Main＋Snare Pro Main を重ねる（ロールも Snare Pro Main）。ドライでタイトに
     "Clap": dict(
         color="fff2d45a",
-        kit="future-bass",
+        kit="future-bass-pro",
         synth=dict(cutoffHz=2600, resonance=0.9, attackS=0.0005, decayS=0.15, sustain=0.0, releaseS=0.07,
                    detuneCents=0, masterGain=1.0, unison=1, noise=1.0, filterEnv=0.5, filterEnvDecayS=0.05,
                    pitchEnv=12, pitchEnvDecayS=0.02, wave=1, osc=0.25),
@@ -132,38 +154,38 @@ SOUNDS = {
     # 閉じたハット・短い開いたハット・サビ頭のシンバル
     "Hats": dict(
         color="ff5ad6c0",
-        kit="future-bass",
+        kit="future-bass-pro",
         synth=dict(cutoffHz=16000, resonance=0.7, attackS=0.0005, decayS=0.04, sustain=0.0, releaseS=0.03,
                    unison=1, noise=1.0, osc=0, masterGain=1.0),
         fx=dict(lowCutHz=300, sidechain=0.3, sidechainReleaseS=0.12),
         mixer=dict(gain=0.45, pan=0.2),
     ),
-    # ビルドで盛り上がるノイズ（attack は長めにして4小節かけて開く）
-    "Riser": dict(
-        color="ffb0b6c0",
-        synth=dict(cutoffHz=6000, resonance=1.5, attackS=8.0, decayS=1.0, sustain=1.0, releaseS=0.3,
-                   unison=1, noise=1.0, osc=0, masterGain=0.6),
-        fx=dict(lowCutHz=500, reverb=0.5, reverbSize=0.8),
-        mixer=dict(gain=1.3, pan=0),
+    # 演出ワンショット専用トラック（Pro キットのライザー／リバース／インパクト／ダウンリフター）
+    "FX": dict(
+        color="ff9fb6c9",
+        kit="future-bass-pro",
+        synth=dict(cutoffHz=16000, resonance=0.7, attackS=0.0005, decayS=0.04, sustain=0.0, releaseS=0.03,
+                   unison=1, noise=1.0, osc=0, masterGain=1.0),
+        fx=dict(lowCutHz=120),
+        mixer=dict(gain=0.5, pan=0),
     ),
 }
 
 # ---- コード ----------------------------------------------------------------------
+# 声部は maj9／m9／add9 の広い配置（下から順に間隔を空ける）。根音はベース用。
 
-V = {  # 声部（明るめの高さ）と根音（ベース用）
-    "DM7": ([62, 66, 69, 73, 76], 38),
-    "Bm7": ([59, 62, 66, 69, 74], 47),
-    "GM7": ([55, 59, 62, 66, 71], 43),
-    "A": ([57, 61, 64, 69, 73], 45),
-    "Em7": ([59, 62, 64, 67, 71], 40),
-    "F#m7": ([57, 61, 64, 66, 69], 42),
-    "D": ([62, 66, 69, 74, 76], 38),
-    "A7": ([57, 61, 64, 67, 71], 45),
+V = {
+    "DM9": ([62, 66, 69, 73, 76], 38),    # D4 F#4 A4 C#5 E5
+    "Bm9": ([59, 62, 66, 69, 73], 47),    # B3 D4 F#4 A4 C#5
+    "GM9": ([55, 59, 62, 66, 69], 43),    # G3 B3 D4 F#4 A4
+    "A9": ([57, 61, 64, 67, 71], 45),     # A3 C#4 E4 G4 B4
+    "Em9": ([59, 62, 66, 67, 71], 40),    # B3 D4 F#4 G4 B4（根音はベース側）
+    "F#m9": ([57, 61, 64, 68, 73], 42),   # A3 C#4 E4 G#4 C#5（根音はベース側）
+    "Dadd9": ([62, 66, 69, 74, 76], 38),  # D4 F#4 A4 D5 E5
 }
-VERSE = ["DM7", "Bm7", "GM7", "A"]
-BUILD = ["Em7", "F#m7", "GM7", "A"]
-BUILD2 = ["Em7", "F#m7", "GM7", "A7"]
-CHORUS = ["GM7", "A", "F#m7", "Bm7", "Em7", "A", "DM7", "D"]
+VERSE = ["DM9", "Bm9", "GM9", "A9"]
+BUILD = ["Em9", "F#m9", "GM9", "A9"]
+CHORUS = ["GM9", "A9", "F#m9", "Bm9", "Em9", "A9", "DM9", "Dadd9"]
 CHORUS_A = CHORUS[:4]
 CHORUS_B = CHORUS[4:]
 
@@ -183,7 +205,7 @@ def stabs(prog):
 
 
 def growl_line(prog):
-    # サビのグロウル：16分のシンコペ。10は5度、14はオクターブ上
+    # サビのワブル：16分のシンコペ。10は5度、14はオクターブ上
     out = []
     for i, c in enumerate(prog):
         root = V[c][1]
@@ -229,6 +251,22 @@ def melody(spec, transpose=0, vel=0.85):
     return [n(b * PPQ, l * PPQ - 30, p + transpose, vel) for b, l, p in spec]
 
 
+def melody_legato(spec, vel=0.85):
+    """モノ＋グライドのリード用。次音まで半拍以内のランは音同士を重ねて
+    レガートにし、グライドで滑らかにつなぐ（間が空く音は通常の発音＝スクープが効く）"""
+    spec = sorted(spec)
+    out = []
+    for i, (b, l, p) in enumerate(spec):
+        start = int(b * PPQ)
+        if i + 1 < len(spec):
+            nxt = int(spec[i + 1][0] * PPQ)
+            if nxt - (start + l * PPQ) <= PPQ // 2:
+                out.append(n(start, nxt - start + 170, p, vel))
+                continue
+        out.append(n(start, l * PPQ - 30, p, vel))
+    return out
+
+
 VERSE_MELODY = [  # (拍, 長さ, 音程) 8小節
     (0, .5, 78), (.5, .5, 81), (1, 1, 81), (2, .5, 79), (2.5, .5, 78), (3, 1, 76),
     (4, .5, 74), (4.5, .5, 76), (5, 1, 78), (6, 1.5, 81), (7.5, .5, 79),
@@ -256,17 +294,25 @@ CHORUS_MELODY_A = [x for x in CHORUS_MELODY if x[0] < 16]
 CHORUS_MELODY_B = [(b - 16, l, p) for b, l, p in CHORUS_MELODY if b >= 16]
 CHORUS_MELODY_B_END = [(b - 16, l, p) for b, l, p in CHORUS_MELODY_END if b >= 16]
 
+# ラストサビ最終小節、リードが D を伸ばすところへ返す掛け合い（レガートでつなぐ）
+TALK_PHRASE = [(13.5, .5, 76), (14, .5, 78), (14.5, .5, 79), (15, 1, 81)]
+
 # ---- ドラム（1小節 = 16分×16） ------------------------------------------------------
 
-# kits/future-bass の番号（future_bass.py と同じ）
-KICK = 36          # Kick Punchy
-CLAP = [28, 41]    # Clap Wide＋Snare Cute Tight
-SNARE = 41         # Snare Cute Tight（単独のバックビート／ゴースト／ロール）
-HAT_C, HAT_O = 42, 58  # 808 Hihat Closed / Open Short
-CRASH = 49         # 808 Cymbal
-TOM_H, TOM_M, TOM_L = 50, 47, 45  # 808 Tom High / Mid / Low（フィル用）
+# kits/future-bass-pro の番号（既存 future-bass と互換配置＋演出系）
+KICK = 36          # Kick Pro Main
+CLAP = [39, 38]    # Clap Pro Main＋Snare Pro Main
+SNARE = 38         # Snare Pro Main（単独のバックビート／ゴースト／ロール）
+HAT_C, HAT_O = 42, 58  # Hat Closed / Open Short
+CRASH = 49         # 808 Cymbal Pro
+TOM_H, TOM_M, TOM_L = 50, 47, 45  # Tom High / Mid / Low Pro（フィル用）
 MARACAS = 70       # 808 Maracas（シェイカー代わり。ごく薄く敷く）
 FINGER = 57        # Perc Finger Cymbal（ラストサビ頭の決めに1発だけ、控えめに）
+REVERSE = 52       # Cymbal Reverse（1小節。ピークが末尾＝次のダウンビートに着地）
+IMPACT = 53        # Impact Pro（サビ頭用）
+RISER_L = 59       # Riser Pro Long（4小節 @155BPM）
+RISER_S = 61       # Riser Pro Short（2小節）
+DOWNLIFT = 65      # Downlifter Pro（2小節、下降）
 
 
 def bounce_kicks(bars=4):
@@ -285,8 +331,13 @@ def halftime_kicks(bars=4):
     return out
 
 
-def four_floor(bars=4):
-    return [x for b in range(bars) for x in steps(b, [0, 4, 8, 12], S16 * 2, [KICK], 1.0)]
+def four_floor_gap(bars=4):
+    # ビルドの4つ打ち。最終小節の4拍目は落として、ドロップ直前に息継ぎを作る
+    out = []
+    for b in range(bars):
+        pos = [0, 4, 8, 12] if b < bars - 1 else [0, 4, 8]
+        out += steps(b, pos, S16 * 2, [KICK], 1.0)
+    return out
 
 
 def claps(bars, positions, extra_last=()):
@@ -295,16 +346,6 @@ def claps(bars, positions, extra_last=()):
         out += steps(b, positions, S16, CLAP, 0.95)
         if b == bars - 1:
             out += steps(b, list(extra_last), S16, [SNARE], 0.8)
-    return out
-
-
-def snare_roll(bars=2):
-    # 8分 → 16分で、だんだん強く（ビルドの後半2小節）
-    out = []
-    for b, d in enumerate([8, 16]):
-        step = BAR // d
-        for k in range(d):
-            out.append(n(b * BAR + k * step, max(step - 10, 30), SNARE, 0.45 + 0.5 * (b * d + k) / (bars * d)))
     return out
 
 
@@ -321,9 +362,21 @@ def hats(bars, sixteenths, crash=False):
     return out
 
 
+def hats_build(bars=4):
+    # ビルドのハット：16分で回し、最終小節の4拍目（12以降）は落として息継ぎに合わせる
+    out = []
+    for b in range(bars):
+        last = 12 if b == bars - 1 else 16
+        for pos in range(last):
+            vel = 0.9 if pos % 4 == 2 else 0.55
+            pitch = HAT_O if pos == 14 else HAT_C
+            out.append(n(b * BAR + pos * S16, S16, pitch, vel))
+    return out
+
+
 def verse_backbeat(bars=4):
-    # Aメロ：ハーフタイムの3拍目にクラップ（28＋41のレイヤー）。
-    # 41単独のゴースト（14拍目）と、4小節目終わりの小さな拾いで「スネア」を聞かせる
+    # Aメロ：ハーフタイムの3拍目にクラップ（39＋38のレイヤー）。
+    # 38単独のゴースト（14拍目）と、4小節目終わりの小さな拾いで「スネア」を聞かせる
     out = []
     for b in range(bars):
         out += steps(b, [8], S16, CLAP, 0.95)
@@ -344,10 +397,14 @@ def build_snare(bars=2):
 
 
 def build_roll_fill():
-    # ビルド後半：スネアロール＋最終小節の後半にタムフィル（高→低）でサビへ落とす
-    out = snare_roll(2)
-    for pos, pitch, vel in [(8, TOM_H, 0.7), (10, TOM_H, 0.7), (12, TOM_M, 0.8),
-                            (13, TOM_M, 0.8), (14, TOM_L, 0.9), (15, TOM_L, 0.9)]:
+    # ビルド後半：8分ロール→16分ロール→タムフィル（高→低）。
+    # 最終小節の4拍目は全部落として、ドロップ直前の息継ぎにする
+    out = []
+    for k in range(8):
+        out.append(n(k * PPQ // 2, PPQ // 2 - 10, SNARE, 0.45 + 0.25 * k / 7))
+    for k in range(8):
+        out.append(n(BAR + k * S16, S16 - 10, SNARE, 0.7 + 0.25 * k / 7))
+    for pos, pitch, vel in [(8, TOM_H, 0.75), (9, TOM_H, 0.8), (10, TOM_M, 0.85), (11, TOM_L, 0.95)]:
         out.append(n(BAR + pos * S16, S16, pitch, vel))
     return out
 
@@ -400,21 +457,23 @@ class AutoBuilder(Builder):
 
 # ビルドのコード：カットオフが4小節かけて開く（1200 → 11000 Hz）
 BUILD_CUTOFF = [{"param": "cutoffHz", "points": [[0, 1200], [7680, 4500], [15360, 11000]]}]
-# サビ前半のグロウル：wtPos が2拍ごとにうねる
-GROWL_WT_A = [{"param": "wtPos", "points": [[0, 0.25], [1920, 0.8], [3840, 0.3], [5760, 0.85],
-                                             [7680, 0.2], [9600, 0.75], [11520, 0.35], [13440, 0.8],
-                                             [15360, 0.3]]}]
-# サビ後半のグロウル：うねりの形を変える
-GROWL_WT_B = [{"param": "wtPos", "points": [[0, 0.7], [3840, 0.3], [7680, 0.65], [11520, 0.25],
-                                             [15360, 0.6]]}]
+# ビルドのコード：ローカットも一緒に開く（700 → 180 Hz。薄く始めてドロップで全開）
+BUILD_LOWCUT = [{"param": "lowCutHz", "points": [[0, 700], [11520, 320], [15360, 180]]}]
+# サビ前半のワブル：wtPos の中心がゆっくり寄れる（同期 LFO のワブルに重ねる）
+GROWL_WT_A = [{"param": "wtPos", "points": [[0, 0.4], [1920, 0.62], [3840, 0.38], [5760, 0.65],
+                                             [7680, 0.35], [9600, 0.6], [11520, 0.42], [13440, 0.62],
+                                             [15360, 0.4]]}]
+# サビ後半のワブル：寄れの形を変える
+GROWL_WT_B = [{"param": "wtPos", "points": [[0, 0.6], [3840, 0.42], [7680, 0.58], [11520, 0.38],
+                                             [15360, 0.55]]}]
 
 
 def build(solo=None):
     b = AutoBuilder()
     t = {name: b.track(name, SOUNDS[name], solo) for name in SOUNDS}
-    C, VX, L, PL, PD = t["Chords"], t["Vox"], t["Lead"], t["Pluck"], t["Pad"]
+    C, VX, L, TK, PL, PD = t["Chords"], t["Vox"], t["Lead"], t["Talk"], t["Pluck"], t["Pad"]
     BA, SU = t["Bass"], t["Sub"]
-    K, CL, H, R = t["Kick"], t["Clap"], t["Hats"], t["Riser"]
+    K, CL, H, FX = t["Kick"], t["Clap"], t["Hats"], t["FX"]
 
     # イントロ（0–3）：パッドは音量フェードインのレーン付き専用クリップ
     b.clip(PD, 4, held(VERSE, 0.5), [0],
@@ -424,52 +483,64 @@ def build(solo=None):
 
     # Aメロ（4–11）
     b.clip(C, 4, stabs(VERSE), [4, 8])
-    b.clip(L, 8, melody(VERSE_MELODY, vel=0.8), [4])
+    b.clip(L, 8, melody_legato(VERSE_MELODY, vel=0.8), [4])
     b.clip(SU, 4, sub_line(VERSE), [4, 8])
     b.clip(K, 4, halftime_kicks(), [4, 8])
     b.clip(CL, 4, verse_backbeat(), [4, 8])
     b.clip(H, 4, hats_verse(), [4, 8])
 
-    # ビルド（12–15）とビルド2（36–39）：コードはカットオフのレーン付き
-    b.clip(C, 4, held(BUILD, 0.7), [12], automation=BUILD_CUTOFF)
-    b.clip(C, 4, held(BUILD2, 0.72), [36], automation=BUILD_CUTOFF)
+    # ビルド（12–15）とビルド2（36–39）：コードはカットオフ＋ローカットのレーン付き
+    b.clip(C, 4, held(BUILD, 0.7), [12], automation=BUILD_CUTOFF + BUILD_LOWCUT)
+    b.clip(C, 4, held(BUILD, 0.72), [36], automation=BUILD_CUTOFF + BUILD_LOWCUT)
     b.clip(SU, 4, sub_line(BUILD), [12, 36])
-    b.clip(K, 4, four_floor(), [12, 36])
-    b.clip(H, 4, hats(4, True), [12, 36])
+    b.clip(K, 4, four_floor_gap(), [12, 36])
+    b.clip(H, 4, hats_build(), [12, 36])
     b.clip(CL, 2, build_snare(2), [12, 36])
     b.clip(CL, 2, build_roll_fill(), [14, 38])
-    b.clip(R, 4, [n(0, BAR * 4 - 200, 60, 0.9)], [12, 36])
+    # 演出：ライザー長はビルド全体、ビルド2は後半にライザー短も重ねる
+    b.clip(FX, 4, [n(0, BAR * 4 - 200, RISER_L, 0.9)], [12])
+    b.clip(FX, 4, [n(0, BAR * 4 - 200, RISER_L, 0.9), n(BAR * 2, BAR * 2 - 200, RISER_S, 0.85)], [36])
+    # リバースシンバル：ドロップ（とサビ後半の頭）に着地させる
+    b.clip(FX, 1, [n(0, BAR, REVERSE, 0.9)], [15, 23, 39, 47])
+    # インパクト：サビ頭
+    b.clip(FX, 1, [n(0, BAR, IMPACT, 0.95)], [16, 40])
 
     # サビ（16–27）とラストサビ（40–51）：8小節＋4小節の2クリップ構成
     b.clip(C, 8, held(CHORUS, 0.88), [16, 40])
-    b.clip(L, 8, melody(CHORUS_MELODY), [16])
-    b.clip(L, 8, melody(CHORUS_MELODY_END), [40])
-    b.clip(L, 4, melody(CHORUS_MELODY_B), [24])
-    b.clip(L, 4, melody(CHORUS_MELODY_B_END), [48])
+    b.clip(L, 8, melody_legato(CHORUS_MELODY), [16])
+    b.clip(L, 8, melody_legato(CHORUS_MELODY_END), [40])
+    b.clip(L, 4, melody_legato(CHORUS_MELODY_B), [24])
+    b.clip(L, 4, melody_legato(CHORUS_MELODY_B_END), [48])
+    b.clip(TK, 4, melody_legato(TALK_PHRASE, vel=0.75), [48])
     b.clip(PL, 8, pluck_chops(CHORUS), [16])
     b.clip(PL, 8, melody(CHORUS_MELODY, transpose=12, vel=0.65), [40])
     b.clip(PL, 4, pluck_chops(CHORUS_B), [24, 48])
     b.clip(BA, 4, growl_line(CHORUS_A), [16, 40], automation=GROWL_WT_A)
     b.clip(BA, 4, growl_line(CHORUS_B), [24, 48], automation=GROWL_WT_B)
+    # サビの低域の土台：クリーンなサブを別トラックで（キックで引っ込むサイドチェイン付き）
+    b.clip(SU, 4, sub_line(CHORUS_A), [16, 40])
+    b.clip(SU, 4, sub_line(CHORUS_B), [24, 48])
     b.clip(K, 4, bounce_kicks(), [16, 20, 24, 40, 44, 48])
     b.clip(CL, 4, claps(4, [4, 12], extra_last=[15]), [16, 20, 24, 40, 44, 48])
     b.clip(H, 4, hats(4, True, crash=True), [16, 20, 24, 44, 48])
     # ラストサビ頭だけ、フィンガーシンバルを1発重ねた別クリップにする
     b.clip(H, 4, hats(4, True, crash=True) + [n(0, S16 * 2, FINGER, 0.35)], [40])
 
-    # ブレイク（28–35）：ドラムは薄いハット＋マラカスだけ。パッド（レーンなし）とボーカルコードとプラック
+    # ブレイク（28–35）：冒頭にダウンリフター。ドラムは薄いハット＋マラカスだけ。
+    # パッド（Pad Air）とクワイア系（Vox）の重ね、プラック、柔らかいリード
+    b.clip(FX, 2, [n(0, BAR * 2, DOWNLIFT, 0.85)], [28])
     b.clip(H, 4, break_hats(), [28, 32])
     b.clip(CL, 1, break_fill(), [35])
     b.clip(PD, 4, held(VERSE, 0.5), [28, 32])
     b.clip(VX, 4, held(VERSE, 0.45), [28, 32])
     b.clip(PL, 4, pluck_arp(VERSE), [28, 32])
-    b.clip(L, 8, melody(VERSE_MELODY, vel=0.55), [28])
+    b.clip(L, 8, melody_legato(VERSE_MELODY, vel=0.55), [28])
 
     # アウトロ（52–55）：パッドは音量フェードアウトのレーン付き。最後に D の一発
     b.clip(PD, 4, held(VERSE, 0.45), [52],
            automation=[{"param": "gain", "points": [[0, 0.55], [15360, 0.0]]}])
-    b.clip(C, 1, [n(0, BAR - 60, p, 0.85) for p in V["D"][0]], [55])
-    b.clip(SU, 1, [n(0, PPQ * 2, V["D"][1], 0.9)], [55])
+    b.clip(C, 1, [n(0, BAR - 60, p, 0.85) for p in V["Dadd9"][0]], [55])
+    b.clip(SU, 1, [n(0, PPQ * 2, V["Dadd9"][1], 0.9)], [55])
     b.clip(K, 1, [n(0, S16 * 2, KICK, 1.0)], [55])
     b.clip(H, 1, [n(0, BAR, CRASH, 0.8)], [55])  # 最後の一発にシンバルを重ねる
 

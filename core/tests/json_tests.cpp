@@ -112,9 +112,9 @@ TEST(json_round_trip_keeps_more_than_eight_tracks) {
     CHECK(q.tracks[10].name == "Track 11");
 }
 
-// 実物のデモ曲 kawaii2（11トラック）が丸ごと読めること。9本目以降が消えると
-// Clap／Hats／Riser が鳴らない（実際に起きた不具合）。
-TEST(json_loads_kawaii2_demo_with_all_eleven_tracks) {
+// 実物のデモ曲 kawaii2（12トラック）が丸ごと読めること。9本目以降が消えると
+// Clap／Hats／FX が鳴らない（実際に起きた不具合）。
+TEST(json_loads_kawaii2_demo_with_all_twelve_tracks) {
     const auto demo = juce::File(__FILE__)
                           .getParentDirectory()
                           .getParentDirectory()
@@ -130,15 +130,15 @@ TEST(json_loads_kawaii2_demo_with_all_eleven_tracks) {
     Project q;
     std::string error;
     CHECK(projectFromJson(demo.loadFileAsString().toStdString(), q, error));
-    CHECK(q.tracks.size() == 11);
-    if (q.tracks.size() == 11) {
-        CHECK(q.tracks[8].name == "Clap");
-        CHECK(q.tracks[9].name == "Hats");
-        CHECK(q.tracks[10].name == "Riser");
+    CHECK(q.tracks.size() == 12);
+    if (q.tracks.size() == 12) {
+        CHECK(q.tracks[9].name == "Clap");
+        CHECK(q.tracks[10].name == "Hats");
+        CHECK(q.tracks[11].name == "FX");
         // Hats のクリップとノートも残っている
         bool hatsHasNotes = false;
         for (const auto& c : q.clips)
-            if (c.trackId == q.tracks[9].id && !c.notes.empty())
+            if (c.trackId == q.tracks[10].id && !c.notes.empty())
                 hatsHasNotes = true;
         CHECK(hatsHasNotes);
     }
