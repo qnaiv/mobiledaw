@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 
 import '../model/project.dart';
 import '../music/scale.dart';
+import '../piano_roll/automation_params.dart';
 import '../piano_roll/piano_roll_screen.dart';
 import '../ui/theme.dart';
 import '../update/update_banner.dart';
@@ -759,9 +760,11 @@ class _GridPainter extends CustomPainter {
         canvas.drawRRect(rrect, Paint()..color = Color(track.color));
         final clip = project.clip(pl.clipId);
         if (clip != null) _miniNotes(canvas, rect, clip, pl, bar, tpb);
+        if (clip != null && clip.automation.isNotEmpty) _autoCurve(canvas, rect, clip, pl, bar, tpb);
         if (bar == pl.startBar) {
           _text(canvas, labels[pl.clipId] ?? '', rect.topLeft + const Offset(5, 3),
               color: DawColors.background, size: 10, bold: true);
+          if (clip != null && clip.automation.isNotEmpty) _autoTag(canvas, rect, clip);
         }
       }
     }
@@ -810,6 +813,68 @@ class _GridPainter extends CustomPainter {
       final h = math.max(2.0, math.min(n.length, tpb - n.tick) / tpb * area.height);
       canvas.drawRect(Rect.fromLTWH(x, top, 4, h), paint);
     }
+  }
+
+  // オートメーションの色（紫系）。クリップの地色の上でも見えるよう濃い紫の縁＋淡い紫の線で描く
+  static const _autoHalo = Color(0xFF5B21B6);
+  static const _autoLine = Color(0xFFD9C8FF);
+
+  /// オートメーションのカーブをミニノートに重ねる。複数レーンがあるときは先頭のレーンが代表。
+  /// 横 = 値（左が小さい。パラメータの目盛りで 0〜1 に正規化）、縦 = 時間（この小節の中）
+  void _autoCurve(Canvas canvas, Rect cell, ClipData clip, PlacementData pl, int bar, int tpb) {
+    final lane = clip.automation.first;
+    final param = automationParamFor(lane.param);
+    double unit(double v) => param?.toUnit(v) ?? v.clamp(0.0, 1.0);
+    final start = (bar - pl.startBar) * tpb;
+    final seg = automationSegment(lane.points, start, start + tpb);
+    if (seg.isEmpty) return;
+    final area = cell.deflate(5);
+    Offset at((int, double) p) =>
+        Offset(area.left + unit(p.$2) * area.width, area.top + (p.$1 - start) / tpb * area.height);
+    if (seg.length >= 2) {
+      final path = Path()..moveTo(at(seg.first).dx, at(seg.first).dy);
+      for (final p in seg.skip(1)) {
+        path.lineTo(at(p).dx, at(p).dy);
+      }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..color = _autoHalo.withValues(alpha: 0.55),
+      );
+      canvas.drawPath(
+        path,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.6
+          ..color = _autoLine,
+      );
+    }
+    // この小節の中にある点そのもの
+    for (final p in lane.points) {
+      if (p.$1 >= start && p.$1 < start + tpb) {
+        canvas.drawCircle(at(p), 1.8, Paint()..color = _autoLine);
+      }
+    }
+  }
+
+  /// 右上の小タグ：代表レーンのパラメータ名。複数レーンなら「他N」も付ける
+  void _autoTag(Canvas canvas, Rect cell, ClipData clip) {
+    var text = automationShortLabel(clip.automation.first.param);
+    if (clip.automation.length > 1) text += ' 他${clip.automation.length - 1}';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(color: Color(0xFFFFFFFF), fontSize: 9, fontWeight: FontWeight.w700),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final w = tp.width + 8;
+    final h = tp.height + 3;
+    final rect = Rect.fromLTWH(cell.right - w - 2, cell.top + 2, w, h);
+    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(4)), Paint()..color = const Color(0xFF7A5CD6));
+    tp.paint(canvas, Offset(rect.left + 4, rect.top + 1.5));
   }
 
   void _text(Canvas canvas, String s, Offset at, {required Color color, required double size, bool bold = false}) {
@@ -887,11 +952,43 @@ class _SelectionBar extends StatelessWidget {
               child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身 · 左の小節番号をタップでそこから再生 · 上のトラック名は長押しで変更',
                   style: TextStyle(fontSize: 12, color: DawColors.muted)),
             )
-          : Row(
+          : Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _BarAction(icon: Icons.copy_all_outlined, label: '下に複製', onPressed: song.duplicateSelected),
-                _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
-                _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
+                Row(
+                  children: [
+                    _BarAction(icon: Icons.copy_all_outlined, label: '下に複製', onPressed: song.duplicateSelected),
+                    _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
+                    _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
+                  ],
+                ),
+                const Divider(height: 1, color: DawColors.line),
+                // オートメーションのコピペ（レーン一式。貼り付け・消去は1つの Undo）
+                Builder(builder: (context) {
+                  final hasLanes = song.clip(sel.clipId)?.automation.isNotEmpty ?? false;
+                  return Row(
+                    children: [
+                      _BarAction(
+                        icon: Icons.content_copy,
+                        label: 'オートメーションをコピー',
+                        fontSize: 9,
+                        onPressed: hasLanes ? () => song.copyAutomation(sel.clipId) : null,
+                      ),
+                      _BarAction(
+                        icon: Icons.content_paste,
+                        label: 'オートメーションを貼り付け',
+                        fontSize: 9,
+                        onPressed: song.hasAutomationClipboard ? () => song.pasteAutomation(sel.clipId) : null,
+                      ),
+                      _BarAction(
+                        icon: Icons.layers_clear,
+                        label: 'オートメーションを消す',
+                        fontSize: 9,
+                        onPressed: hasLanes ? () => song.clearAutomation(sel.clipId) : null,
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
     );
@@ -899,11 +996,12 @@ class _SelectionBar extends StatelessWidget {
 }
 
 class _BarAction extends StatelessWidget {
-  const _BarAction({required this.icon, required this.label, required this.onPressed});
+  const _BarAction({required this.icon, required this.label, required this.onPressed, this.fontSize = 10});
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+  final double fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -919,7 +1017,7 @@ class _BarAction extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: color),
               const SizedBox(height: 2),
-              Text(label, style: TextStyle(fontSize: 10, color: color)),
+              Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: fontSize, color: color)),
             ],
           ),
         ),
