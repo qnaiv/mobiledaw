@@ -136,7 +136,33 @@ class SoundPreset {
 
   /// プリセットを当てるときに送る値（すべての項目。書いていないものは既定値に戻す）
   Map<int, double> get allValues => {for (final p in allSoundParams) p.id: values[p.key] ?? p.def};
+
+  /// ウェーブテーブルを使うプリセットか（音色画面の楽器ごとの振り分けに使う）
+  bool get isWavetable => (values['wtTable'] ?? 0) >= 1;
 }
+
+/// ウェーブテーブルのテーブル一覧（音色画面のチップ用）。コアのテーブル番号と対応
+const wtTableNames = <(int, String)>[
+  (1, '基本'),
+  (2, '倍音'),
+  (3, 'フォルマント'),
+  (4, 'デジタル'),
+];
+
+/// 音色画面のセクション用にパラメータをキーで引く
+List<SoundParam> pickParams(List<String> keys) => [for (final k in keys) _byKey[k]!];
+
+/// アナログ・シンセのオシレーター節（波形トグルは別に大きく出す）
+final analogOscParams = pickParams(['unison', 'detuneCents', 'width', 'blend', 'osc', 'sub', 'noise', 'drive']);
+
+/// ウェーブテーブル・シンセのユニゾン節
+final unisonParams = pickParams(['unison', 'detuneCents', 'width', 'blend']);
+
+/// フィルター節（両シンセ共通）
+final filterParams = pickParams(['cutoffHz', 'resonance', 'filterEnv', 'filterEnvDecayS']);
+
+/// エンベロープ節（両シンセ共通。音量もここ）
+final envParams = pickParams(['attackS', 'decayS', 'sustain', 'releaseS', 'pitchEnv', 'pitchEnvDecayS', 'masterGain']);
 
 // tools/demos/future_bass.py の音色（Chords・Lead・Bell・Bass・Kick・Clap・Hats・Riser）＋よく使う形
 const soundPresets = <SoundPreset>[
@@ -220,4 +246,35 @@ const soundPresets = <SoundPreset>[
     'lowCutHz': 400, 'reverb': 0.5, 'reverbSize': 0.8,
   }),
   SoundPreset('Basic Saw', 'その他', {}),
+  // --- ウェーブテーブル用（wtTable を使うものだけ。音色画面ではWTシンセ側に出る） ---
+  SoundPreset('WT Chords', 'コード', {
+    'wtTable': 1, 'wtPos': 0.35, 'unison': 7, 'detuneCents': 38, 'width': 0.9, 'blend': 0.75,
+    'cutoffHz': 9000, 'resonance': 0.8, 'attackS': 0.01, 'decayS': 0.6, 'sustain': 0.75, 'releaseS': 0.25,
+    'masterGain': 0.55, 'lowCutHz': 180, 'chorus': 0.3, 'ott': 0.5, 'reverb': 0.3, 'reverbSize': 0.7,
+    'sidechain': 0.85, 'sidechainReleaseS': 0.3,
+  }),
+  SoundPreset('Formant Lead', 'リード', {
+    'wtTable': 3, 'wtPos': 0.5, 'wtWarp': 1, 'wtWarpAmount': 0.3, 'unison': 3, 'detuneCents': 12,
+    'width': 0.5, 'blend': 0.85, 'cutoffHz': 5200, 'resonance': 0.9, 'attackS': 0.004, 'decayS': 0.3,
+    'sustain': 0.6, 'releaseS': 0.15, 'masterGain': 0.55, 'drive': 0.08, 'filterEnv': 0.25, 'filterEnvDecayS': 0.2,
+    'lowCutHz': 250, 'delay': 0.35, 'delayFeedback': 0.4, 'reverb': 0.3, 'sidechain': 0.45,
+  }),
+  SoundPreset('Digital Bass', 'ベース', {
+    'wtTable': 4, 'wtPos': 0.65, 'wtWarp': 2, 'wtWarpAmount': 0.4, 'unison': 2, 'detuneCents': 10,
+    'width': 0.1, 'sub': 0.6, 'drive': 0.35, 'cutoffHz': 1200, 'resonance': 1.4, 'attackS': 0.003,
+    'decayS': 0.3, 'sustain': 0.85, 'releaseS': 0.08, 'masterGain': 0.75, 'filterEnv': 0.2, 'filterEnvDecayS': 0.1,
+    'saturation': 0.3, 'sidechain': 0.7, 'sidechainReleaseS': 0.25,
+  }),
+  SoundPreset('Vocal Pad', 'コード', {
+    'wtTable': 3, 'wtPos': 0.2, 'unison': 5, 'detuneCents': 25, 'width': 0.95, 'blend': 0.8,
+    'cutoffHz': 3800, 'resonance': 0.9, 'attackS': 0.4, 'decayS': 1.0, 'sustain': 0.85, 'releaseS': 1.1,
+    'masterGain': 0.5, 'lowCutHz': 200, 'chorus': 0.45, 'reverb': 0.6, 'reverbSize': 0.85, 'sidechain': 0.5,
+    'sidechainReleaseS': 0.35,
+  }),
+  SoundPreset('Harmonic Pluck', 'リード', {
+    'wtTable': 2, 'wtPos': 0.7, 'wtWarp': 1, 'wtWarpAmount': 0.2, 'unison': 2, 'detuneCents': 8,
+    'width': 0.4, 'blend': 0.9, 'cutoffHz': 2600, 'resonance': 1.1, 'attackS': 0.001, 'decayS': 0.22,
+    'sustain': 0, 'releaseS': 0.18, 'masterGain': 0.65, 'filterEnv': 0.6, 'filterEnvDecayS': 0.12,
+    'lowCutHz': 250, 'delay': 0.3, 'delayFeedback': 0.35, 'reverb': 0.35, 'sidechain': 0.4,
+  }),
 ];
