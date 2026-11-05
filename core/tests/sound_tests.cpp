@@ -12,6 +12,7 @@
 #include "playback.h"
 #include "project_json.h"
 #include "synth.h"
+#include "wavetable.h"
 #include "test_util.h"
 
 namespace {
@@ -287,5 +288,127 @@ TEST(engine_master_never_clips) {
     CHECK(pk <= 0.95f);
     CHECK(pk > 0.5f);
 }
+
+TEST(synth_wavetable_params_clamp_and_roundtrip) {
+    SynthParams p;
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_TABLE, 9.0f));
+    CHECK(p.wtTable == 4.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_TABLE, 2.4f));
+    CHECK(p.wtTable == 2.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_POS, 1.5f));
+    CHECK(p.wtPos == 1.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_WARP, -1.0f));
+    CHECK(p.wtWarp == 0.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_WARP, 2.6f));
+    CHECK(p.wtWarp == 3.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_WT_WARP_AMOUNT, 0.5f));
+    CHECK(p.wtWarpAmount == 0.5f);
+
+    Project proj;
+    Track t;
+    t.id = 7;
+    t.name = "WT";
+    t.synth.wtTable = 3.0f;
+    t.synth.wtPos = 0.25f;
+    t.synth.wtWarp = 1.0f;
+    t.synth.wtWarpAmount = 0.75f;
+    proj.tracks.push_back(t);
+    Project back;
+    std::string error;
+    CHECK(projectFromJson(projectToJson(proj), back, error));
+    CHECK(back.tracks.size() == 1);
+    CHECK(back.tracks[0].synth == t.synth);
+
+    // 古いファイル（wt〜 の項目がない）は既定値（従来オシレーター）で読める
+    Project oldProj;
+    CHECK(projectFromJson(R"({"format":"mobiledaw-project","version":1,"tempo":120,
+        "tracks":[{"id":"0000000000000001","name":"A","color":"ffffffff",
+        "instrument":{"type":"synth","params":{"cutoffHz":900}}}]})",
+                          oldProj, error));
+    CHECK(oldProj.tracks.size() == 1);
+    CHECK(oldProj.tracks[0].synth.wtTable == 0.0f);
+    CHECK(oldProj.tracks[0].synth.wtPos == 0.0f);
+}
+
+TEST(synth_wavetable_table0_keeps_legacy_waveform) {
+    auto renderWith = [](float table, float pos, float warp, float amount) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.wtTable = table;
+        p.wtPos = pos;
+        p.wtWarp = warp;
+        p.wtWarpAmount = amount;
+        s.setParams(p);
+        s.noteOn(57, 1.0f);
+        return renderSynth(s, 4800);
+    };
+    const auto legacy = renderWith(0.0f, 0.0f, 0.0f, 0.0f);
+    const auto legacyWithWtKnobs = renderWith(0.0f, 0.8f, 3.0f, 1.0f);
+    // WT_TABLE=0 では WT_POS／ワープは効かず、従来と1サンプルも違わない
+    CHECK(legacy.l == legacyWithWtKnobs.l);
+    CHECK(legacy.r == legacyWithWtKnobs.r);
+    CHECK(rms(legacy.l) > 0.01f);
+}
+
+TEST(synth_wavetable_sounds_and_pos_changes_timbre) {
+    auto renderWith = [](float table, float pos, int note) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.cutoffHz = 18000.0f; // テーブルの音をフィルターで潰さない
+        p.wtTable = table;
+        p.wtPos = pos;
+        s.setParams(p);
+        s.noteOn(note, 1.0f);
+        return renderSynth(s, 12000);
+    };
+    for (int table = 1; table <= 4; ++table) {
+        const auto out = renderWith(static_cast<float>(table), 0.5f, 57);
+        const float r = rms(out.l, 4000, 12000);
+        const float pk = peakAbs(out.l, 4000, 12000);
+        std::printf("  テーブル %d: RMS %.4f / 最大 %.3f\n", table, r, pk);
+        CHECK(r > 0.01f);  // 無音でない
+        CHECK(pk < 0.6f);  // 1ボ이스ではクリップしない
+        // 高い音でも壊れない（帯域制限バンドの確認を兼ねる）
+        const auto high = renderWith(static_cast<float>(table), 0.5f, 108);
+        CHECK(std::isfinite(rms(high.l)));
+        CHECK(peakAbs(high.l) < 0.6f);
+    }
+    // WT_POS を動かすと波形が変わる（テーブル1：サイン寄り → のこぎり寄り）
+    const auto a = renderWith(1.0f, 0.0f, 57);
+    const auto b = renderWith(1.0f, 1.0f, 57);
+    double diff = 0.0;
+    for (size_t i = 4000; i < a.l.size(); ++i) {
+        const double d = static_cast<double>(a.l[i]) - b.l[i];
+        diff += d * d;
+    }
+    const float diffRms = static_cast<float>(std::sqrt(diff / 8000.0));
+    std::printf("  WT_POS 0→1 の差の RMS %.4f（元の RMS %.4f）\n", diffRms, rms(a.l, 4000, 12000));
+    CHECK(diffRms > 0.3f * rms(a.l, 4000, 12000));
+    // ワープでも波形が変わる
+    Synth s;
+    s.prepare(kRate, 256);
+    SynthParams p;
+    p.sustain = 1.0f;
+    p.cutoffHz = 18000.0f;
+    p.wtTable = 1.0f;
+    p.wtPos = 0.5f;
+    p.wtWarp = 3.0f;
+    p.wtWarpAmount = 1.0f;
+    s.setParams(p);
+    s.noteOn(57, 1.0f);
+    const auto warped = renderSynth(s, 12000);
+    const auto plain = renderWith(1.0f, 0.5f, 57);
+    double wdiff = 0.0;
+    for (size_t i = 4000; i < plain.l.size(); ++i) {
+        const double d = static_cast<double>(plain.l[i]) - warped.l[i];
+        wdiff += d * d;
+    }
+    CHECK(static_cast<float>(std::sqrt(wdiff / 8000.0)) > 0.2f * rms(plain.l, 4000, 12000));
+}
+
 
 } // namespace

@@ -32,6 +32,10 @@ abstract final class MdawParam {
   static const pitchEnvDecayS = 17;
   static const wave = 18;
   static const osc = 19;
+  static const wtTable = 20;
+  static const wtPos = 21;
+  static const wtWarp = 22;
+  static const wtWarpAmount = 23;
 
   // トラックのエフェクト（setTrackParam で同じように変えられる）
   static const fxLowCutHz = 32;

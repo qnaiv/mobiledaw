@@ -55,6 +55,11 @@ class SoundParam {
 
 const synthParams = <SoundParam>[
   SoundParam(MdawParam.wave, 'wave', '波形（のこぎり／矩形）', 0, 1, 0, scale: ParamScale.toggle),
+  SoundParam(MdawParam.wtTable, 'wtTable', 'ウェーブテーブル（0=従来、1=基本、2=倍音、3=フォルマント、4=デジタル）', 0, 4, 0,
+      scale: ParamScale.integer),
+  SoundParam(MdawParam.wtPos, 'wtPos', 'テーブルの位置', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.wtWarp, 'wtWarp', 'ワープ（0=なし、1=曲げる、2=絞る、3=シンク）', 0, 3, 0, scale: ParamScale.integer),
+  SoundParam(MdawParam.wtWarpAmount, 'wtWarpAmount', 'ワープの量', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.unison, 'unison', '重ねる本数', 1, 16, 2, scale: ParamScale.integer),
   SoundParam(MdawParam.detuneCents, 'detuneCents', 'ずらし幅（デチューン）', 0, 100, 7, unit: 'ct'),
   SoundParam(MdawParam.width, 'width', '左右の広がり', 0, 1, 0.5, unit: '%'),
