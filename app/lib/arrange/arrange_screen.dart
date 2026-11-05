@@ -656,6 +656,12 @@ class _TrackHeader extends StatelessWidget {
               bottom: 0,
               child: GestureDetector(
                 onTap: () => showSoundSheet(context, song, tracks[i].id),
+                // トラック名は長押しで変える（中身は SongController.renameTrack が既にある）
+                onLongPress: () async {
+                  final name = await askSongTitle(context,
+                      title: 'トラックの名前', initial: tracks[i].name, ok: '変更');
+                  if (name != null && name.trim().isNotEmpty) song.renameTrack(tracks[i].id, name);
+                },
                 child: Container(
                 decoration: BoxDecoration(color: DawColors.panel, borderRadius: BorderRadius.circular(10)),
                 padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -878,7 +884,7 @@ class _SelectionBar extends StatelessWidget {
       child: sel == null
           ? const Padding(
               padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身 · 左の小節番号をタップでそこから再生',
+              child: Text('空きマスをタップで置く · タップで選んで下のつまみで伸縮、掴んで移動 · 長押しなぞりで複製 · もう一度タップで中身 · 左の小節番号をタップでそこから再生 · 上のトラック名は長押しで変更',
                   style: TextStyle(fontSize: 12, color: DawColors.muted)),
             )
           : Row(
