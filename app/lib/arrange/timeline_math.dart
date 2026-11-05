@@ -36,6 +36,41 @@ String _letters(int n) {
   return s;
 }
 
+/// 隙間なく隣り合った同じクリップの配置を、見た目をつなげるためにまとめる。
+/// 返り値は開始小節順のグループ（各グループは開始小節順の配置リスト）。
+/// 間に小節が空いていたり、違うクリップだったりすればそこで切れる
+List<List<PlacementData>> joinedClipGroups(List<PlacementData> placements) {
+  final sorted = [...placements]..sort((a, b) => a.startBar.compareTo(b.startBar));
+  final groups = <List<PlacementData>>[];
+  for (final pl in sorted) {
+    final last = groups.isEmpty ? null : groups.last;
+    if (last != null && last.last.clipId == pl.clipId && last.last.endBar == pl.startBar) {
+      last.add(pl);
+    } else {
+      groups.add([pl]);
+    }
+  }
+  return groups;
+}
+
+// ---- ピンチズーム（ソング画面） ---------------------------------------------------
+
+/// ズーム倍率 1 のときの1小節の高さ
+const double baseBarHeight = 40;
+
+/// 小節の高さの倍率の下限・上限（高さで 16〜120dp になる範囲）
+double clampRowZoom(double zoom) => zoom.clamp(0.4, 3.0).toDouble();
+
+/// 倍率から1小節の高さを求める（16〜120dp に収まる）
+double barHeightForZoom(double zoom) => baseBarHeight * clampRowZoom(zoom);
+
+/// 列幅の倍率の下限・上限
+double clampColZoom(double zoom) => zoom.clamp(0.3, 4.0).toDouble();
+
+/// 倍率から列幅を求める。細くなりすぎ・太くなりすぎを防ぐため 28〜320dp に収める
+double colWidthForZoom(double baseWidth, double zoom) =>
+    (baseWidth * clampColZoom(zoom)).clamp(28.0, 320.0).toDouble();
+
 /// そのトラックで start 以降に lengthBars 小節ぶん空いている最初の小節
 int nextFreeBar(ProjectData p, int trackId, int start, int lengthBars) {
   var bar = start < 0 ? 0 : start;

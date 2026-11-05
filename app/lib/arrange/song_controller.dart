@@ -13,14 +13,17 @@ import '../kits/kit_store.dart';
 import '../project/library.dart';
 import 'demo_song.dart';
 import 'timeline_math.dart';
+import 'wake_lock.dart';
 
 /// 画面とコアのあいだ。編集はコアに頼み、変わったら読み直して画面に知らせる。
 /// 編集後 2 秒操作がなければ自動で保存する（バックグラウンドに回るときは [saveNow]）。
 class SongController extends ChangeNotifier {
-  SongController(this.engine, {required this.library, required this.kits, required String projectPath})
+  SongController(this.engine,
+      {required this.library, required this.kits, required String projectPath, WakeLock? wakeLock})
       : _projectPath = projectPath,
         project = engine.project {
     _version = engine.projectVersion;
+    _playbackWake = PlaybackWakeLock(lock: wakeLock ?? const WakelockPlusWakeLock(), isPlaying: () => engine.isPlaying);
   }
 
   static const autosaveDelay = Duration(seconds: 2);
@@ -32,6 +35,9 @@ class SongController extends ChangeNotifier {
   final ProjectLibrary library;
   final KitStore kits;
   String _projectPath;
+
+  /// 再生中は画面を眠らせない（自然終了でも外れるよう見張り付き）
+  late final PlaybackWakeLock _playbackWake;
 
   /// 開いている曲の project.json
   String get projectPath => _projectPath;
@@ -82,6 +88,7 @@ class SongController extends ChangeNotifier {
     if (id == projectId) return;
     saveNow();
     engine.stopPlayback();
+    _playbackWake.stopped();
     engine.clearLoop();
     _projectPath = library.pathFor(id);
     selectedPlacementId = null;
@@ -92,6 +99,7 @@ class SongController extends ChangeNotifier {
   void newSong({String title = '無題の曲'}) {
     saveNow();
     engine.stopPlayback();
+    _playbackWake.stopped();
     engine.clearLoop();
     _projectPath = library.pathFor(library.newId());
     engine.newProject();
@@ -281,6 +289,7 @@ class SongController extends ChangeNotifier {
   Future<void> loadDemo(DemoSong demo) async {
     saveNow();
     engine.stopPlayback();
+    _playbackWake.stopped();
     engine.clearLoop();
     final id = demoProjectId(demo);
     final path = library.pathFor(id);
@@ -500,11 +509,13 @@ class SongController extends ChangeNotifier {
   void togglePlay() {
     if (engine.isPlaying) {
       engine.stopPlayback();
+      _playbackWake.stopped();
       engine.seek(_startTick); // 止めたら再生を始めた位置に戻る
     } else {
       engine.clearLoop();
       engine.seek(_startTick);
       engine.play();
+      _playbackWake.started();
     }
   }
 
@@ -514,6 +525,7 @@ class SongController extends ChangeNotifier {
     engine.setLoop(startTick, endTick);
     if (from != null) engine.seek(from);
     engine.play();
+    _playbackWake.started();
   }
 
   /// 範囲ループをやめて曲全体に戻す（止まっていれば曲頭へ）
@@ -528,6 +540,7 @@ class SongController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _playbackWake.dispose();
     saveNow();
     super.dispose();
   }
