@@ -398,6 +398,8 @@ class _AnalogPanel extends StatelessWidget {
         ('詳しく：オシレーター', analogOscParams),
         ('詳しく：フィルター', filterParams),
         ('詳しく：エンベロープ', envParams),
+        ('詳しく：演奏（グライド・モノ）', playParams),
+        ('詳しく：LFO（揺らしの拡張）', lfoParams),
         ('詳しく：エフェクト', fxParams),
       ],
     );
@@ -498,6 +500,8 @@ class _WavetablePanel extends StatelessWidget {
         ('詳しく：ユニゾン', unisonParams),
         ('詳しく：フィルター', filterParams),
         ('詳しく：エンベロープ', envParams),
+        ('詳しく：演奏（グライド・モノ）', playParams),
+        ('詳しく：LFO（揺らしの拡張）', lfoParams),
         ('詳しく：エフェクト', fxParams),
       ],
     );
