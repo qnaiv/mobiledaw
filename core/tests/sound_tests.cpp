@@ -537,5 +537,290 @@ TEST(synth_wavetable_lfo_moves_pos) {
     CHECK(peakAbs(on.l) < 0.6f);
 }
 
+// 波形のゼロ交差から基本周波数を粗く見積もる（グライド／ビブラートの確認用）
+float zeroCrossFreq(const std::vector<float>& x, size_t from, size_t to, double sampleRate) {
+    int crossings = 0;
+    for (size_t i = std::max<size_t>(from, 1); i < to && i < x.size(); ++i)
+        if (x[i - 1] < 0.0f && x[i] >= 0.0f)
+            ++crossings;
+    const double seconds = static_cast<double>(to - from) / sampleRate;
+    return seconds > 0.0 ? static_cast<float>(crossings / seconds) : 0.0f;
+}
+
+TEST(synth_new_engine_params_clamp_and_roundtrip) {
+    SynthParams p;
+    CHECK(setSynthParam(p, MDAW_PARAM_KEY_TRACK, 1.5f));
+    CHECK(p.keyTrack == 1.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_GLIDE_S, 9.0f));
+    CHECK(p.glideS == 0.4f);
+    CHECK(setSynthParam(p, MDAW_PARAM_MONO, 0.6f));
+    CHECK(p.mono == 1.0f); // 整数丸め
+    CHECK(setSynthParam(p, MDAW_PARAM_LFO_WAVE, 2.4f));
+    CHECK(p.lfoWave == 2.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_LFO_DIV, 9.0f));
+    CHECK(p.lfoDiv == 4.0f);
+    CHECK(setSynthParam(p, MDAW_PARAM_LFO_PITCH, -1.0f));
+    CHECK(p.lfoPitch == 0.0f);
+    // FX の番号はシンセ拡張に合わせてずれている（名前ベース保存なのでファイル互換は保たれる）
+    FxParams f;
+    CHECK(setFxParam(f, MDAW_FX_REVERB, 0.4f));
+    CHECK(f.reverb == 0.4f);
+    CHECK(!setFxParam(f, MDAW_PARAM_LFO_PITCH, 0.5f));
+
+    Project proj;
+    Track t;
+    t.id = 7;
+    t.name = "EXP";
+    t.synth.keyTrack = 0.8f;
+    t.synth.glideS = 0.12f;
+    t.synth.mono = 1.0f;
+    t.synth.lfoWave = 3.0f;
+    t.synth.lfoSync = 1.0f;
+    t.synth.lfoDiv = 2.0f;
+    t.synth.lfoCutoff = 0.5f;
+    t.synth.lfoPitch = 0.25f;
+    proj.tracks.push_back(t);
+    Project back;
+    std::string error;
+    CHECK(projectFromJson(projectToJson(proj), back, error));
+    CHECK(back.tracks.size() == 1);
+    CHECK(back.tracks[0].synth == t.synth);
+
+    // 古いファイル（新項目がない）は全て既定値（＝従来挙動）で読める
+    Project oldProj;
+    CHECK(projectFromJson(R"({"format":"mobiledaw-project","version":1,"tempo":120,
+        "tracks":[{"id":"0000000000000001","name":"A","color":"ffffffff",
+        "instrument":{"type":"synth","params":{"cutoffHz":900}}}]})",
+                          oldProj, error));
+    CHECK(oldProj.tracks.size() == 1);
+    CHECK(oldProj.tracks[0].synth.keyTrack == 0.0f);
+    CHECK(oldProj.tracks[0].synth.glideS == 0.0f);
+    CHECK(oldProj.tracks[0].synth.mono == 0.0f);
+    CHECK(oldProj.tracks[0].synth.lfoSync == 0.0f);
+    CHECK(oldProj.tracks[0].synth.lfoCutoff == 0.0f);
+    CHECK(oldProj.tracks[0].synth.lfoPitch == 0.0f);
+}
+
+TEST(synth_polyphony_16_voices) {
+    Synth s;
+    s.prepare(kRate, 256);
+    SynthParams p;
+    p.sustain = 1.0f;
+    p.releaseS = 0.5f;
+    s.setParams(p);
+    for (int n = 0; n < 16; ++n)
+        s.noteOn(40 + n, 1.0f);
+    CHECK(s.activeVoices() == 16);
+    s.noteOn(90, 1.0f); // 17音目は最古を奪う（数は増えない）
+    CHECK(s.activeVoices() == 16);
+    const auto out = renderSynth(s, 4800);
+    CHECK(std::isfinite(rms(out.l)));
+    CHECK(peakAbs(out.l) < 2.0f);
+}
+
+TEST(synth_keytrack_scales_cutoff_with_pitch) {
+    auto renderWith = [](int note, float cutoff, float keyTrack) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.unison = 1.0f;
+        p.cutoffHz = cutoff;
+        p.keyTrack = keyTrack;
+        s.setParams(p);
+        // カットオフの平滑化（約20msで目標へ寄る）を先に落ち着かせてから発音する
+        std::vector<float> dl(4800), dr(4800);
+        for (int i = 0; i < 10; ++i)
+            s.render(dl.data(), dr.data(), 4800);
+        s.noteOn(note, 1.0f);
+        return renderSynth(s, 12000);
+    };
+    // 基準ピッチ（64）では量 1 でも等倍＝量 0 と1サンプルも違わない
+    const auto ref0 = renderWith(64, 2000.0f, 0.0f);
+    const auto ref1 = renderWith(64, 2000.0f, 1.0f);
+    CHECK(ref0.l == ref1.l);
+    CHECK(ref0.r == ref1.r);
+    // 1オクターブ上＋量 1＋カットオフ半分 ＝ 実効カットオフが同じ → 同じ音
+    const auto upTracked = renderWith(76, 1000.0f, 1.0f);
+    const auto upPlain = renderWith(76, 2000.0f, 0.0f);
+    CHECK(upTracked.l == upPlain.l);
+    CHECK(upTracked.r == upPlain.r);
+    // 高い音でもカットオフが開く（暗くならない）：量 1 の方が明るい（RMS が大きい）
+    const auto highDark = renderWith(100, 800.0f, 0.0f);
+    const auto highTracked = renderWith(100, 800.0f, 1.0f);
+    std::printf("  高音域 RMS：キートラックなし %.4f / あり %.4f\n", rms(highDark.l, 4000, 12000), rms(highTracked.l, 4000, 12000));
+    CHECK(rms(highTracked.l, 4000, 12000) > rms(highDark.l, 4000, 12000) * 1.2f);
+}
+
+TEST(synth_glide_moves_pitch_smoothly) {
+    Voice v;
+    v.prepare(kRate);
+    SynthParams p;
+    p.sustain = 1.0f;
+    p.attackS = 0.001f;
+    p.decayS = 0.01f;
+    p.unison = 1.0f;
+    p.cutoffHz = 18000.0f;
+    p.glideS = 0.2f;
+    v.start(60, 1.0f, p, 1, 12345u);
+    std::vector<float> l(48000), r(48000);
+    auto renderVoice = [&](int from, int n) {
+        std::fill(l.begin() + from, l.begin() + from + n, 0.0f);
+        std::fill(r.begin() + from, r.begin() + from + n, 0.0f);
+        v.render(l.data() + from, r.data() + from, n);
+    };
+    renderVoice(0, 4800); // C4（261 Hz）で安定
+    const float f0 = zeroCrossFreq(l, 2400, 4800, kRate);
+    v.start(72, 1.0f, p, 2, 67890u); // 鳴っているボイスを奪う → グライド開始
+    renderVoice(4800, 24000);
+    const float fEarly = zeroCrossFreq(l, 4800 + 400, 4800 + 2000, kRate);   // 移り始め：まだ低い
+    const float fMid = zeroCrossFreq(l, 4800 + 4400, 4800 + 6800, kRate);    // 途中：中間の高さ
+    const float fLate = zeroCrossFreq(l, 4800 + 14400, 4800 + 19200, kRate); // 到達後：C5（523 Hz）
+    std::printf("  周波数：開始前 %.0f / 移行直後 %.0f / 途中 %.0f / 到達後 %.0f Hz\n", f0, fEarly, fMid, fLate);
+    CHECK(f0 > 230.0f && f0 < 295.0f);
+    CHECK(fEarly > 240.0f && fEarly < 380.0f);
+    CHECK(fMid > fEarly + 30.0f && fMid < 500.0f);
+    CHECK(fLate > 470.0f && fLate < 580.0f);
+
+    // グライドなし（既定）では即座に移る
+    Voice v2;
+    v2.prepare(kRate);
+    SynthParams p2 = p;
+    p2.glideS = 0.0f;
+    v2.start(60, 1.0f, p2, 1, 12345u);
+    std::fill(l.begin(), l.end(), 0.0f);
+    std::fill(r.begin(), r.end(), 0.0f);
+    v2.render(l.data(), r.data(), 4800);
+    v2.start(72, 1.0f, p2, 2, 67890u);
+    std::fill(l.begin(), l.end(), 0.0f);
+    std::fill(r.begin(), r.end(), 0.0f);
+    v2.render(l.data(), r.data(), 2400);
+    const float fNow = zeroCrossFreq(l, 200, 2400, kRate);
+    std::printf("  グライドなしの周波数 %.0f Hz\n", fNow);
+    CHECK(fNow > 470.0f && fNow < 580.0f);
+}
+
+TEST(synth_mono_legato_single_voice_no_retrigger) {
+    Synth s;
+    s.prepare(kRate, 256);
+    SynthParams p;
+    p.mono = 1.0f;
+    p.glideS = 0.05f;
+    p.attackS = 0.4f; // 遅いアタック：鳴らし直すと音量が落ちてから上がり直すので見分けられる
+    p.decayS = 0.01f;
+    p.sustain = 1.0f;
+    p.unison = 1.0f;
+    s.setParams(p);
+    s.noteOn(60, 1.0f);
+    s.noteOn(64, 1.0f);
+    s.noteOn(67, 1.0f);
+    CHECK(s.activeVoices() == 1); // 何音重ねても1ボイス
+    const auto first = renderSynth(s, 9600); // 0.2秒（アタック途中）
+    const float levelBefore = peakAbs(first.l, 7200, 9600);
+    s.noteOn(72, 1.0f); // レガート（鳴らし直さない）
+    CHECK(s.activeVoices() == 1);
+    const auto second = renderSynth(s, 2400);
+    const float levelAfter = peakAbs(second.l, 0, 2400);
+    std::printf("  レガート前後の音量 %.3f → %.3f\n", levelBefore, levelAfter);
+    CHECK(levelAfter > levelBefore * 0.6f); // アタックに戻っていない
+    // 下の音を離す順序：全部離すとリリースに入る
+    s.noteOff(72);
+    s.noteOff(67);
+    s.noteOff(64);
+    CHECK(s.activeVoices() == 1); // まだ 60 が残っている（リリースしない）
+    s.noteOff(60);
+    renderSynth(s, 24000); // リリース（0.3秒）を消化
+    CHECK(s.activeVoices() == 0);
+}
+
+TEST(synth_lfo_sync_phase_follows_song_position) {
+    auto makeSynth = [](double startTick) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.unison = 1.0f;
+        p.cutoffHz = 900.0f;
+        p.lfoSync = 1.0f;
+        p.lfoDiv = 1.0f; // 4分音符＝960 tick
+        p.lfoCutoff = 1.0f;
+        s.setParams(p);
+        s.noteOn(57, 1.0f);
+        return s;
+    };
+    // エンジンと同じく、描画のたびに曲位置（tick）を進めて渡す（120 BPM：960 tick ＝ 24000 サンプル）
+    auto renderWithClock = [](Synth& s, double startTick, int total) {
+        Stereo out{std::vector<float>(static_cast<size_t>(total)), std::vector<float>(static_cast<size_t>(total))};
+        double pos = startTick;
+        for (int done = 0; done < total; done += 512) {
+            const int n = std::min(512, total - done);
+            s.setLfoClock(pos, 0.04);
+            s.render(out.l.data() + done, out.r.data() + done, n);
+            pos += n * 0.04;
+        }
+        return out;
+    };
+    auto a = makeSynth(0.0);
+    const auto outA = renderWithClock(a, 0.0, 24000);
+    auto b = makeSynth(960.0); // ちょうど1周期後から → 位相が一周して同じになる
+    const auto outB = renderWithClock(b, 960.0, 24000);
+    CHECK(outA.l == outB.l);
+    CHECK(outA.r == outB.r);
+    auto c = makeSynth(480.0); // 半周期ずらし → 違う音
+    const auto outC = renderWithClock(c, 480.0, 24000);
+    double diff = 0.0;
+    for (size_t i = 2000; i < outA.l.size(); ++i) {
+        const double d = static_cast<double>(outA.l[i]) - outC.l[i];
+        diff += d * d;
+    }
+    const float diffRms = static_cast<float>(std::sqrt(diff / 22000.0));
+    std::printf("  同期位相 半周期ずらしの差 RMS %.4f（元の RMS %.4f）\n", diffRms, rms(outA.l, 2000, 24000));
+    CHECK(diffRms > 0.2f * rms(outA.l, 2000, 24000));
+    // カットオフが周期で動いている（前半と後半で明るさが違う）
+    CHECK(std::abs(rms(outA.l, 1000, 6000) - rms(outA.l, 13000, 18000)) > 0.1f * rms(outA.l, 1000, 6000));
+}
+
+TEST(synth_lfo_shapes_and_pitch_assignment) {
+    auto renderWith = [](float wave, float pitchAmount, float cutoffAmount) {
+        Synth s;
+        s.prepare(kRate, 256);
+        SynthParams p;
+        p.sustain = 1.0f;
+        p.unison = 1.0f;
+        p.cutoffHz = 18000.0f;
+        p.wtTable = 2.0f;
+        p.wtPos = 0.5f;
+        p.wtLfoRate = 3.0f;
+        p.wtLfoAmount = 0.7f;
+        p.lfoWave = wave;
+        p.lfoPitch = pitchAmount;
+        p.lfoCutoff = cutoffAmount;
+        s.setParams(p);
+        s.noteOn(57, 1.0f);
+        return renderSynth(s, 24000);
+    };
+    const auto sine = renderWith(0.0f, 0.0f, 0.0f);
+    const auto sineAgain = renderWith(0.0f, 0.0f, 0.0f);
+    CHECK(sine.l == sineAgain.l); // 決定的
+    for (float wave : {1.0f, 2.0f, 3.0f}) {
+        const auto other = renderWith(wave, 0.0f, 0.0f);
+        double diff = 0.0;
+        for (size_t i = 4000; i < sine.l.size(); ++i) {
+            const double d = static_cast<double>(sine.l[i]) - other.l[i];
+            diff += d * d;
+        }
+        std::printf("  波形 %.0f と正弦の差 RMS %.4f\n", wave, std::sqrt(diff / 20000.0));
+        CHECK(std::sqrt(diff / 20000.0) > 0.05 * rms(sine.l, 4000, 24000));
+    }
+    // 音程への割当（ビブラート）：音程が揺れるので波形がずれる
+    const auto vib = renderWith(0.0f, 1.0f, 0.0f);
+    double vdiff = 0.0;
+    for (size_t i = 4000; i < sine.l.size(); ++i) {
+        const double d = static_cast<double>(sine.l[i]) - vib.l[i];
+        vdiff += d * d;
+    }
+    CHECK(std::sqrt(vdiff / 20000.0) > 0.1 * rms(sine.l, 4000, 24000));
+    CHECK(peakAbs(vib.l) < 0.6f);
+}
 
 } // namespace

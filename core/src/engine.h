@@ -134,6 +134,9 @@ private:
     bool playing_ = false;
     double position_ = 0.0;   // tick
     double firedUpTo_ = -1.0; // この tick までのイベントは処理済み
+    // テンポ同期 LFO 用の時計（renderSegment の頭でシンセへ渡す）。再生していない間は自由進行で進める
+    double lfoClockPos_ = 0.0, lfoClockInc_ = 0.0;
+    double lfoFreePos_ = 0.0;
     int64_t loopStart_ = 0;   // 範囲ループ（loopEnd_ が 0 なら曲全体）
     int64_t loopEnd_ = 0;
     size_t cursor_ = 0;       // 次に見るイベント

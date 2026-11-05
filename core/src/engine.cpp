@@ -343,8 +343,10 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
 
     // 試聴の音。トラックを選んでいればそのトラックのエフェクトに通す
     const bool previewing = preview_.activeVoices() > 0;
-    if (previewing)
+    if (previewing) {
+        preview_.setLfoClock(lfoClockPos_, lfoClockInc_);
         preview_.render(prevL_.data(), prevR_.data(), n);
+    }
     const bool previewToSlot = previewing && previewSlot_ >= 0;
     if (previewing && !previewToSlot) {
         for (size_t i = 0; i < un; ++i) {
@@ -387,6 +389,7 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         }
         s.tailSamples -= n;
 
+        s.synth.setLfoClock(lfoClockPos_, lfoClockInc_);
         s.synth.render(bufL_.data(), bufR_.data(), n);
         if (s.drums.activeVoices() > 0)
             s.drums.render(bufL_.data(), bufR_.data(), n);
@@ -484,8 +487,20 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
             n = static_cast<int>(std::clamp(until, 1.0, static_cast<double>(n)));
         }
 
+        // テンポ同期 LFO の時計：再生中は曲位置、止まっている間はテンポで自由進行（試聴でも揺れるように）
+        if (sequencing) {
+            lfoClockPos_ = position_;
+            lfoClockInc_ = ticksPerSample;
+        } else {
+            const double tempo = current_ != nullptr ? current_->tempo : 120.0;
+            lfoClockPos_ = lfoFreePos_;
+            lfoClockInc_ = tempo * static_cast<double>(kPpq) / (60.0 * sr);
+        }
+
         renderSegment(interleaved + static_cast<std::ptrdiff_t>(done) * channels, n, channels);
 
+        if (!sequencing)
+            lfoFreePos_ += n * lfoClockInc_;
         if (sequencing) {
             position_ += n * ticksPerSample;
             if (position_ >= loopEnd - kTickEpsilon) {
