@@ -55,11 +55,13 @@ class SoundParam {
 
 const synthParams = <SoundParam>[
   SoundParam(MdawParam.wave, 'wave', '波形（のこぎり／矩形）', 0, 1, 0, scale: ParamScale.toggle),
-  SoundParam(MdawParam.wtTable, 'wtTable', 'ウェーブテーブル（0=従来、1=基本、2=倍音、3=フォルマント、4=デジタル）', 0, 4, 0,
+  SoundParam(MdawParam.wtTable, 'wtTable', 'ウェーブテーブル（0=従来、1=基本、2=倍音、3=フォルマント、4=デジタル、5=スペクトルソー、6=パルス、7=クワイア）', 0, 7, 0,
       scale: ParamScale.integer),
   SoundParam(MdawParam.wtPos, 'wtPos', 'テーブルの位置', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.wtWarp, 'wtWarp', 'ワープ（0=なし、1=曲げる、2=絞る、3=シンク）', 0, 3, 0, scale: ParamScale.integer),
   SoundParam(MdawParam.wtWarpAmount, 'wtWarpAmount', 'ワープの量', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.wtLfoRate, 'wtLfoRate', '揺らし速さ（LFO）', 0.01, 30, 1, scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.wtLfoAmount, 'wtLfoAmount', '揺らし量（LFO）', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.unison, 'unison', '重ねる本数', 1, 16, 2, scale: ParamScale.integer),
   SoundParam(MdawParam.detuneCents, 'detuneCents', 'ずらし幅（デチューン）', 0, 100, 7, unit: 'ct'),
   SoundParam(MdawParam.width, 'width', '左右の広がり', 0, 1, 0.5, unit: '%'),
@@ -147,6 +149,9 @@ const wtTableNames = <(int, String)>[
   (2, '倍音'),
   (3, 'フォルマント'),
   (4, 'デジタル'),
+  (5, 'スペクトルソー'),
+  (6, 'パルス'),
+  (7, 'クワイア'),
 ];
 
 /// 音色画面のセクション用にパラメータをキーで引く
@@ -276,5 +281,81 @@ const soundPresets = <SoundPreset>[
     'width': 0.4, 'blend': 0.9, 'cutoffHz': 2600, 'resonance': 1.1, 'attackS': 0.001, 'decayS': 0.22,
     'sustain': 0, 'releaseS': 0.18, 'masterGain': 0.65, 'filterEnv': 0.6, 'filterEnvDecayS': 0.12,
     'lowCutHz': 250, 'delay': 0.3, 'delayFeedback': 0.35, 'reverb': 0.35, 'sidechain': 0.4,
+  }),
+  // --- フューチャーベース：ベース ---
+  SoundPreset('FB Growl Bass', 'ベース', {
+    'wtTable': 5, 'wtPos': 0.75, 'wtWarp': 1, 'wtWarpAmount': 0.45, 'wtLfoRate': 8, 'wtLfoAmount': 0.35,
+    'unison': 3, 'detuneCents': 25, 'width': 0.3, 'blend': 0.85, 'sub': 0.55, 'drive': 0.55,
+    'cutoffHz': 900, 'resonance': 3.2, 'filterEnv': 0.5, 'filterEnvDecayS': 0.16,
+    'attackS': 0.003, 'decayS': 0.4, 'sustain': 0.8, 'releaseS': 0.09, 'masterGain': 0.75,
+    'saturation': 0.5, 'ott': 0.6, 'sidechain': 0.85, 'sidechainReleaseS': 0.28,
+  }),
+  SoundPreset('FB Sub Bass', 'ベース', {
+    'wtTable': 1, 'wtPos': 0.15, 'unison': 1, 'sub': 0.8, 'osc': 0.8,
+    'cutoffHz': 500, 'resonance': 0.9, 'attackS': 0.003, 'decayS': 0.3, 'sustain': 0.9, 'releaseS': 0.06,
+    'masterGain': 0.85, 'filterEnv': 0.15, 'filterEnvDecayS': 0.1,
+    'saturation': 0.2, 'sidechain': 0.9, 'sidechainReleaseS': 0.28,
+  }),
+  SoundPreset('PWM Bass', 'ベース', {
+    'wtTable': 6, 'wtPos': 0.65, 'wtLfoRate': 2.2, 'wtLfoAmount': 0.45,
+    'unison': 2, 'detuneCents': 12, 'width': 0.2, 'sub': 0.4, 'drive': 0.3,
+    'cutoffHz': 1100, 'resonance': 2.0, 'filterEnv': 0.35, 'filterEnvDecayS': 0.14,
+    'attackS': 0.003, 'decayS': 0.35, 'sustain': 0.85, 'releaseS': 0.08, 'masterGain': 0.75,
+    'saturation': 0.35, 'ott': 0.4, 'sidechain': 0.8, 'sidechainReleaseS': 0.26,
+  }),
+  SoundPreset('Spectral Reese', 'ベース', {
+    'wtTable': 5, 'wtPos': 0.3, 'wtLfoRate': 0.5, 'wtLfoAmount': 0.2,
+    'unison': 5, 'detuneCents': 50, 'width': 0.2, 'blend': 0.7, 'sub': 0.3, 'drive': 0.4,
+    'cutoffHz': 700, 'resonance': 1.2, 'attackS': 0.005, 'decayS': 0.4, 'sustain': 0.9, 'releaseS': 0.1,
+    'masterGain': 0.7, 'saturation': 0.45, 'ott': 0.5, 'sidechain': 0.7, 'sidechainReleaseS': 0.3,
+  }),
+  // --- フューチャーベース：コード ---
+  SoundPreset('FB WT Chords', 'コード', {
+    'wtTable': 5, 'wtPos': 0.55, 'wtLfoRate': 0.4, 'wtLfoAmount': 0.12,
+    'unison': 9, 'detuneCents': 45, 'width': 1.0, 'blend': 0.7, 'noise': 0.03, 'drive': 0.12,
+    'cutoffHz': 8500, 'resonance': 0.8, 'filterEnv': 0.25, 'filterEnvDecayS': 0.25,
+    'attackS': 0.008, 'decayS': 0.6, 'sustain': 0.75, 'releaseS': 0.22, 'masterGain': 0.55,
+    'lowCutHz': 180, 'chorus': 0.3, 'ott': 0.55, 'reverb': 0.3, 'reverbSize': 0.7,
+    'sidechain': 0.9, 'sidechainReleaseS': 0.3,
+  }),
+  SoundPreset('FB Vocal Chords', 'コード', {
+    'wtTable': 3, 'wtPos': 0.45, 'wtLfoRate': 1.8, 'wtLfoAmount': 0.5,
+    'unison': 5, 'detuneCents': 30, 'width': 0.9, 'blend': 0.75,
+    'cutoffHz': 6000, 'resonance': 0.9, 'filterEnv': 0.2, 'filterEnvDecayS': 0.3,
+    'attackS': 0.01, 'decayS': 0.6, 'sustain': 0.8, 'releaseS': 0.25, 'masterGain': 0.55,
+    'lowCutHz': 180, 'chorus': 0.35, 'ott': 0.4, 'reverb': 0.4, 'reverbSize': 0.75,
+    'sidechain': 0.8, 'sidechainReleaseS': 0.3,
+  }),
+  SoundPreset('Choir Pad', 'コード', {
+    'wtTable': 7, 'wtPos': 0.4, 'wtLfoRate': 0.25, 'wtLfoAmount': 0.2,
+    'unison': 7, 'detuneCents': 35, 'width': 1.0, 'blend': 0.8,
+    'cutoffHz': 4200, 'resonance': 0.9, 'attackS': 0.5, 'decayS': 1.0, 'sustain': 0.85, 'releaseS': 1.4,
+    'masterGain': 0.5, 'lowCutHz': 200, 'chorus': 0.5, 'reverb': 0.65, 'reverbSize': 0.85,
+    'sidechain': 0.4, 'sidechainReleaseS': 0.35,
+  }),
+  // --- フューチャーベース：リード ---
+  SoundPreset('FB Formant Lead', 'リード', {
+    'wtTable': 3, 'wtPos': 0.6, 'wtWarp': 1, 'wtWarpAmount': 0.35, 'wtLfoRate': 3.5, 'wtLfoAmount': 0.3,
+    'unison': 3, 'detuneCents': 14, 'width': 0.5, 'blend': 0.85,
+    'cutoffHz': 6500, 'resonance': 1.0, 'filterEnv': 0.25, 'filterEnvDecayS': 0.2,
+    'attackS': 0.004, 'decayS': 0.3, 'sustain': 0.65, 'releaseS': 0.15, 'masterGain': 0.6,
+    'lowCutHz': 250, 'chorus': 0.2, 'ott': 0.4, 'delay': 0.35, 'delayFeedback': 0.4, 'reverb': 0.3,
+    'sidechain': 0.45,
+  }),
+  SoundPreset('FB Digital Lead', 'リード', {
+    'wtTable': 4, 'wtPos': 0.55, 'wtWarp': 3, 'wtWarpAmount': 0.5,
+    'unison': 4, 'detuneCents': 18, 'width': 0.6, 'blend': 0.7, 'drive': 0.15,
+    'cutoffHz': 9000, 'resonance': 0.9, 'filterEnv': 0.2, 'filterEnvDecayS': 0.15,
+    'attackS': 0.003, 'decayS': 0.35, 'sustain': 0.7, 'releaseS': 0.18, 'masterGain': 0.55,
+    'lowCutHz': 250, 'saturation': 0.15, 'ott': 0.45, 'delay': 0.3, 'delayFeedback': 0.35, 'reverb': 0.3,
+    'sidechain': 0.4,
+  }),
+  SoundPreset('Spectral Pluck', 'リード', {
+    'wtTable': 5, 'wtPos': 0.8, 'wtWarp': 1, 'wtWarpAmount': 0.2,
+    'unison': 2, 'detuneCents': 8, 'width': 0.4, 'blend': 0.9,
+    'cutoffHz': 2400, 'resonance': 1.1, 'filterEnv': 0.65, 'filterEnvDecayS': 0.12,
+    'attackS': 0.001, 'decayS': 0.22, 'sustain': 0, 'releaseS': 0.18, 'masterGain': 0.65,
+    'lowCutHz': 250, 'chorus': 0.15, 'ott': 0.35, 'delay': 0.3, 'delayFeedback': 0.35, 'reverb': 0.35,
+    'sidechain': 0.4,
   }),
 ];

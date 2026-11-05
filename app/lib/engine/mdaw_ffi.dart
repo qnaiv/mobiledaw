@@ -36,6 +36,8 @@ abstract final class MdawParam {
   static const wtPos = 21;
   static const wtWarp = 22;
   static const wtWarpAmount = 23;
+  static const wtLfoRate = 24;
+  static const wtLfoAmount = 25;
 
   // トラックのエフェクト（setTrackParam で同じように変えられる）
   static const fxLowCutHz = 32;

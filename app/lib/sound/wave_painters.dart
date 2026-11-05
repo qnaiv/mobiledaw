@@ -35,32 +35,66 @@ List<(int, double, double)> wtHarmonics(int table, double f) {
     var ph = 0.0;
     switch (table) {
       case 1: // 基本（サイン→三角→矩形→のこぎり）
-        var sine = 0.0, tri = 0.0, square = 0.0;
-        final saw = 0.64 / h;
-        if (h == 1) sine = 1;
-        if (h % 2 == 1) {
-          tri = ((h >> 1) % 2 == 0 ? 1.0 : -1.0) * 0.81 / (h * h);
-          square = 1.27 / h;
+        {
+          var sine = 0.0, tri = 0.0, square = 0.0;
+          final saw = 0.64 / h;
+          if (h == 1) sine = 1;
+          if (h % 2 == 1) {
+            tri = ((h >> 1) % 2 == 0 ? 1.0 : -1.0) * 0.81 / (h * h);
+            square = 1.27 / h;
+          }
+          final x = f * 3;
+          final seg = math.min(2, x.floor());
+          final fr = x - seg;
+          final shapes = [sine, tri, square, saw];
+          a = shapes[seg] * (1 - fr) + shapes[seg + 1] * fr;
         }
-        final x = f * 3;
-        final seg = math.min(2, x.floor());
-        final fr = x - seg;
-        final shapes = [sine, tri, square, saw];
-        a = shapes[seg] * (1 - fr) + shapes[seg + 1] * fr;
       case 2: // 倍音（山が掃引）
-        final c = 1 + f * 24;
-        final d = (h - c) / 6;
-        a = math.exp(-d * d) * 0.9 + (h == 1 ? 0.8 : 0.0) + 0.12 / h;
+        {
+          final c = 1 + f * 24;
+          final d = (h - c) / 6;
+          a = math.exp(-d * d) * 0.9 + (h == 1 ? 0.8 : 0.0) + 0.12 / h;
+        }
       case 4: // デジタル（ハッシュで立つ倍音）
-        var x = (h * 2654435761) & 0xFFFFFFFF;
-        x ^= x >> 13;
-        x = (x * 2654435761) & 0xFFFFFFFF;
-        final r1 = (x & 0xFFFF) / 65536.0;
-        ph = ((x >> 16) & 0xFFFF) / 65536.0;
-        if (h == 1) {
-          a = 0.9;
-        } else {
-          a = r1 < 0.15 + f * 0.6 ? 0.8 / h : 0.0;
+        {
+          var x = (h * 2654435761) & 0xFFFFFFFF;
+          x ^= x >> 13;
+          x = (x * 2654435761) & 0xFFFFFFFF;
+          final r1 = (x & 0xFFFF) / 65536.0;
+          ph = ((x >> 16) & 0xFFFF) / 65536.0;
+          if (h == 1) {
+            a = 0.9;
+          } else {
+            a = r1 < 0.15 + f * 0.6 ? 0.8 / h : 0.0;
+          }
+        }
+      case 5: // スペクトルソー（frame で肩が上がり明るく）
+        {
+          final shoulder = 3 + f * 61;
+          final d = h / shoulder;
+          a = 0.85 / h / (1 + d * d) + (h == 1 ? 0.35 : 0.0);
+        }
+      case 6: // パルス（デューティ 0.5→0.08）
+        {
+          final duty = 0.5 - f * 0.42;
+          a = 1.3 * math.sin(math.pi * h * duty) / h;
+        }
+      case 7: // クワイア（ゆるいフォルマント＋ばらつき）
+        {
+          var hx = (h * 2654435761) & 0xFFFFFFFF;
+          hx ^= hx >> 13;
+          final jr = (hx & 0xFFFF) / 65536.0;
+          ph = ((hx >> 16) & 0xFFFF) / 65536.0 * 0.5;
+          final shift = 0.75 + f * 0.8;
+          var acc = 0.2 / h;
+          const centers = [4.0, 9.0, 20.0];
+          const widths = [2.2, 4.5, 8.0];
+          const heights = [1.0, 0.6, 0.35];
+          for (var i = 0; i < 3; i++) {
+            final d = (h - centers[i] * shift) / widths[i];
+            acc += math.exp(-d * d) * heights[i];
+          }
+          a = acc * (0.85 + 0.3 * jr);
         }
       default:
         a = 0;

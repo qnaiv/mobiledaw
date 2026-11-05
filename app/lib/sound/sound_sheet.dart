@@ -438,6 +438,9 @@ class _WavetablePanel extends StatelessWidget {
               ],
             ),
             _ParamRow(song: song, track: track, param: warpAmtParam),
+            const _Caption('テーブルの位置を揺らす（LFO）'),
+            _ParamRow(song: song, track: track, param: _paramOf('wtLfoRate')),
+            _ParamRow(song: song, track: track, param: _paramOf('wtLfoAmount')),
             const Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text('カスタム波形（WAVを読み込む／波形を描く）は準備中です', style: TextStyle(fontSize: 11, color: DawColors.muted)),
