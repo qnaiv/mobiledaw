@@ -35,6 +35,14 @@ struct SynthParams {
     float wtWarpAmount = 0.0f;
     float wtLfoRate = 1.0f;   // WT_POS を揺らす LFO の速さ（Hz）
     float wtLfoAmount = 0.0f; // LFO の深さ 0〜1（0 = 従来と完全一致）
+    float keyTrack = 0.0f;    // フィルターのキートラッキング 0〜1（0 = 従来と完全一致）
+    float glideS = 0.0f;      // グライドの時間（秒、0 = なし）
+    float mono = 0.0f;        // 1 = モノフォニック（レガート＋グライド）
+    float lfoWave = 0.0f;     // LFO 波形 0=正弦、1=三角、2=矩形、3=のこぎり
+    float lfoSync = 0.0f;     // 1 = テンポ同期（速さは lfoDiv、位相は曲位置）
+    float lfoDiv = 1.0f;      // 同期の分周 0=1小節、1=4分、2=付点8分、3=8分、4=16分
+    float lfoCutoff = 0.0f;   // LFO→カットオフの量 0〜1（最大 ±2 オクターブ）
+    float lfoPitch = 0.0f;    // LFO→音程の量 0〜1（最大 ±2 半音）
 };
 
 struct ParamSpec {
@@ -83,10 +91,18 @@ public:
 
     void prepare(double sampleRate);
     void start(int note, float velocity, const SynthParams& params, uint64_t age, uint32_t seed);
+    // モノ時のレガート：エンベロープや位相は鳴らし直さず、音程だけを目標へ滑らせる
+    void legato(int note, const SynthParams& params) noexcept;
     void release() noexcept;
     void kill() noexcept;
     void applyParams(const SynthParams& params) noexcept;
     void setCutoff(float hz) noexcept { cutoffHz_ = hz; }
+    // テンポ同期 LFO の位相（この render 呼び出しの頭の周期位置と、制御ブロックごとの進み）。
+    // Synth が曲位置から計算して渡す。sync でないときは使われない
+    void setLfoSyncPhase(double baseCycles, double incPerBlock) noexcept {
+        lfoSyncBase_ = baseCycles;
+        lfoSyncInc_ = incPerBlock;
+    }
     // 自分の音を left/right に足し込む
     void render(float* left, float* right, int numSamples) noexcept;
 
@@ -115,7 +131,10 @@ private:
 
     float cutoffHz_ = 6000.0f;
     float wtPos_ = 0.0f; // 平滑化した WT_POS（control block 単位で追従）
-    float lfoPhase_ = 0.0f;                 // WT_POS 用 LFO の位相 0〜1（発音ごとに 0 から。決定的）
+    float lfoPhase_ = 0.0f;                 // LFO の位相 0〜1（発音ごとに 0 から。決定的）
+    double lfoSyncBase_ = 0.0, lfoSyncInc_ = 0.0; // テンポ同期時の位相（Synth から渡される）
+    float pitchSemis_ = 0.0f;               // いま鳴っている音程（ノート番号の実数。グライドで遷移する）
+    float glideFrom_ = 0.0f, glideTarget_ = 0.0f, glidePos_ = 1.0f, glideStep_ = 0.0f; // グライドの進行
     float wtSpread_[kMaxUnison] = {};       // 新テーブル（5〜）用：サブボイスごとの WT_POS のずらし
     float filterEnv_ = 0.0f, filterEnvCoef_ = 0.0f;
     float pitchEnv_ = 0.0f, pitchEnvCoef_ = 0.0f;
@@ -125,10 +144,10 @@ private:
     uint64_t age_ = 0;
 };
 
-// 8ボイスのポリフォニックシンセ（ステレオ・ユニゾン最大16本）。音声スレッド専用。
+// 16ボイスのポリフォニックシンセ（ステレオ・ユニゾン最大16本）。音声スレッド専用。
 class Synth {
 public:
-    static constexpr int kNumVoices = 8;
+    static constexpr int kNumVoices = 16;
 
     void prepare(double sampleRate, int maxBlock);
     void noteOn(int note, float velocity) noexcept;
@@ -136,6 +155,13 @@ public:
     void allNotesOff() noexcept;
     void setParam(int id, float value) noexcept;
     void setParams(const SynthParams& params) noexcept;
+    // テンポ同期 LFO 用の時計：曲位置（tick）と tick の進み（tick/サンプル）をエンジンが毎回渡す。
+    // 渡されなければ内部の自由進行（120 BPM 相当）で位相を進める
+    void setLfoClock(double positionTicks, double ticksPerSample) noexcept {
+        lfoClockPos_ = positionTicks;
+        lfoClockInc_ = ticksPerSample;
+        lfoClockValid_ = true;
+    }
     // left/right を上書きする
     void render(float* left, float* right, int numSamples) noexcept;
 
@@ -144,6 +170,7 @@ public:
 
 private:
     Voice* findVoiceFor(int note) noexcept;
+    void clearMonoStack() noexcept { monoStackSize_ = 0; }
 
     std::array<Voice, kNumVoices> voices_;
     SynthParams params_;
@@ -152,6 +179,16 @@ private:
     double sampleRate_ = 48000.0;
     uint64_t ageCounter_ = 0;
     uint32_t seed_ = 0x9E3779B9u;
+
+    // モノフォニック用：押さえているノートの積み重ね（最後に押した音が鳴る）
+    static constexpr int kMonoStackMax = 32;
+    int monoStack_[kMonoStackMax] = {};
+    int monoStackSize_ = 0;
+
+    // テンポ同期 LFO の時計（エンジンから渡される曲位置。無ければ内部で進める）
+    double lfoClockPos_ = 0.0, lfoClockInc_ = 0.0;
+    bool lfoClockValid_ = false;
+    double lfoFreePos_ = 0.0; // 時計が無いときの自由進行位置（tick）
 };
 
 } // namespace mdaw

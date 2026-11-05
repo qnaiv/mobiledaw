@@ -36,6 +36,14 @@ const SynthParamSpec kSynthParamSpecs[] = {
     {{MDAW_PARAM_WT_WARP_AMOUNT, "wtWarpAmount", 0.0f, 1.0f, false}, &SynthParams::wtWarpAmount},
     {{MDAW_PARAM_WT_LFO_RATE, "wtLfoRate", 0.01f, 30.0f, false}, &SynthParams::wtLfoRate},
     {{MDAW_PARAM_WT_LFO_AMOUNT, "wtLfoAmount", 0.0f, 1.0f, false}, &SynthParams::wtLfoAmount},
+    {{MDAW_PARAM_KEY_TRACK, "keyTrack", 0.0f, 1.0f, false}, &SynthParams::keyTrack},
+    {{MDAW_PARAM_GLIDE_S, "glideS", 0.0f, 0.4f, false}, &SynthParams::glideS},
+    {{MDAW_PARAM_MONO, "mono", 0.0f, 1.0f, true}, &SynthParams::mono},
+    {{MDAW_PARAM_LFO_WAVE, "lfoWave", 0.0f, 3.0f, true}, &SynthParams::lfoWave},
+    {{MDAW_PARAM_LFO_SYNC, "lfoSync", 0.0f, 1.0f, true}, &SynthParams::lfoSync},
+    {{MDAW_PARAM_LFO_DIV, "lfoDiv", 0.0f, 4.0f, true}, &SynthParams::lfoDiv},
+    {{MDAW_PARAM_LFO_CUTOFF, "lfoCutoff", 0.0f, 1.0f, false}, &SynthParams::lfoCutoff},
+    {{MDAW_PARAM_LFO_PITCH, "lfoPitch", 0.0f, 1.0f, false}, &SynthParams::lfoPitch},
 };
 const int kNumSynthParamSpecs = static_cast<int>(std::size(kSynthParamSpecs));
 
@@ -78,6 +86,37 @@ juce::ADSR::Parameters toAdsr(const SynthParams& p) noexcept {
 uint32_t nextRandom(uint32_t& state) noexcept {
     state = state * 1664525u + 1013904223u;
     return state;
+}
+
+// LFO の波形（位相 0〜1 → -1〜+1）。0=正弦は従来どおり fastSin（互換のため）
+float lfoShape(int wave, float phase) noexcept {
+    const float p = phase - std::floor(phase);
+    switch (wave) {
+        case 1: // 三角
+            return p < 0.5f ? 4.0f * p - 1.0f : 3.0f - 4.0f * p;
+        case 2: // 矩形
+            return p < 0.5f ? 1.0f : -1.0f;
+        case 3: // のこぎり（立ち上がり）
+            return 2.0f * p - 1.0f;
+        default:
+            return fastSin(p);
+    }
+}
+
+// テンポ同期の分周 → 1周期の長さ（tick、kPpq=960）。0=1小節（4/4）, 1=4分, 2=付点8分, 3=8分, 4=16分
+double lfoDivTicks(int div) noexcept {
+    switch (div) {
+        case 0:
+            return 960.0 * 4.0;
+        case 2:
+            return 960.0 * 0.75;
+        case 3:
+            return 960.0 * 0.5;
+        case 4:
+            return 960.0 * 0.25;
+        default:
+            return 960.0;
+    }
 }
 
 } // namespace
@@ -130,12 +169,26 @@ void Voice::prepare(double sampleRate) {
 
 void Voice::start(int note, float velocity, const SynthParams& params, uint64_t age, uint32_t seed) {
     const bool wasActive = isActive();
+    const int prevNote = note_;
+    const float prevPitch = pitchSemis_;
     note_ = note;
     held_ = true;
     age_ = age;
     gain_ = std::pow(std::clamp(velocity, 0.0f, 1.0f), 1.5f) * 0.25f;
     filterEnv_ = 1.0f;
     pitchEnv_ = 1.0f;
+    // グライド：鳴っているボイスを別の音で奪ったときは、前の音程から滑らかに移る。
+    // それ以外（新規発音・同じ音の鳴らし直し・グライドなし）は従来どおり即座にその音程
+    if (wasActive && prevNote >= 0 && prevNote != note && params.glideS > 0.0f) {
+        glideFrom_ = prevPitch;
+        glideTarget_ = static_cast<float>(note);
+        glidePos_ = 0.0f;
+        glideStep_ = 1.0f / (params.glideS * static_cast<float>(sampleRate_));
+        pitchSemis_ = prevPitch;
+    } else {
+        glidePos_ = 1.0f;
+        pitchSemis_ = static_cast<float>(note);
+    }
     if (!wasActive) {
         wtPos_ = params.wtPos;
         lfoPhase_ = 0.0f; // LFO は発音ごとに位相 0 から（同じ設定なら同じ音になる決定的な動き）
@@ -152,6 +205,21 @@ void Voice::start(int note, float velocity, const SynthParams& params, uint64_t 
     }
     applyParams(params);
     adsr_.noteOn();
+}
+
+void Voice::legato(int note, const SynthParams& params) noexcept {
+    note_ = note;
+    held_ = true;
+    if (params.glideS > 0.0f && pitchSemis_ != static_cast<float>(note)) {
+        glideFrom_ = pitchSemis_;
+        glideTarget_ = static_cast<float>(note);
+        glidePos_ = 0.0f;
+        glideStep_ = 1.0f / (params.glideS * static_cast<float>(sampleRate_));
+    } else {
+        glidePos_ = 1.0f;
+        pitchSemis_ = static_cast<float>(note);
+    }
+    applyParams(params); // エンベロープは鳴らし直さない（adsr_.noteOn は呼ばない）
 }
 
 void Voice::release() noexcept {
@@ -207,7 +275,7 @@ void Voice::layoutUnison() noexcept {
 void Voice::updateIncrements(float pitchOffsetSemis) noexcept {
     if (note_ < 0)
         return;
-    const float base = static_cast<float>(note_) + pitchOffsetSemis - 69.0f;
+    const float base = pitchSemis_ + pitchOffsetSemis - 69.0f;
     const float sr = static_cast<float>(sampleRate_);
     for (int i = 0; i < unison_; ++i)
         inc_[i] = std::min(440.0f * std::exp2((base + detune_[i]) / 12.0f) / sr, 0.45f);
@@ -229,25 +297,61 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
     const float oscLevel = p_.osc;
     const int unison = oscLevel > 0.0f ? unison_ : 0;
 
+    // LFO の宛先。既定（正弦・フリー・宛先は WT_POS のみ・量 0）では従来と完全一致する
+    const bool lfoSync = p_.lfoSync >= 0.5f;
+    const int lfoWave = std::clamp(static_cast<int>(std::lround(p_.lfoWave)), 0, 3);
+    const bool lfoForWt = useWt && p_.wtLfoAmount > 0.0f;
+    const bool lfoForCutoff = p_.lfoCutoff > 0.0f;
+    const bool lfoForPitch = p_.lfoPitch > 0.0f;
+    const bool lfoAny = lfoForWt || lfoForCutoff || lfoForPitch;
+
     for (int start = 0; start < numSamples; start += kControlBlock) {
         const int end = std::min(numSamples, start + kControlBlock);
+        const int blockIndex = start / kControlBlock;
 
-        if (p_.pitchEnv > 0.0f && pitchEnv_ > 1e-4f) {
-            updateIncrements(p_.pitchEnv * pitchEnv_);
-            pitchEnv_ *= pitchEnvCoef_;
+        // この制御ブロックの LFO 値（-1〜+1）。同期時は曲位置から位相を引くので全ボイスで一致する
+        float lfoVal = 0.0f;
+        if (lfoAny) {
+            float ph;
+            if (lfoSync) {
+                const double cyc = lfoSyncBase_ + static_cast<double>(blockIndex) * lfoSyncInc_;
+                ph = static_cast<float>(cyc - std::floor(cyc));
+            } else {
+                ph = lfoPhase_;
+            }
+            lfoVal = lfoShape(lfoWave, ph);
+            if (!lfoSync) {
+                lfoPhase_ += p_.wtLfoRate * static_cast<float>(kControlBlock) / static_cast<float>(sampleRate_);
+                if (lfoPhase_ >= 1.0f)
+                    lfoPhase_ -= std::floor(lfoPhase_);
+            }
+        }
+
+        // グライド：音程（半音の実数）を目標へ一定速度で近づける
+        const bool gliding = glidePos_ < 1.0f;
+        if (gliding) {
+            glidePos_ = std::min(1.0f, glidePos_ + glideStep_ * static_cast<float>(kControlBlock));
+            pitchSemis_ = glideFrom_ + (glideTarget_ - glideFrom_) * glidePos_;
+        }
+
+        const bool pitchEnvActive = p_.pitchEnv > 0.0f && pitchEnv_ > 1e-4f;
+        if (pitchEnvActive || gliding || lfoForPitch) {
+            updateIncrements(p_.pitchEnv * pitchEnv_ + (lfoForPitch ? lfoVal * p_.lfoPitch * 2.0f : 0.0f));
+            if (pitchEnvActive)
+                pitchEnv_ *= pitchEnvCoef_;
         }
         wtPos_ += (p_.wtPos - wtPos_) * 0.35f; // WT_POS はブロック単位でなめらかに追従（ジッパー対策）
-        // WT_POS 用 LFO：±amount/2 で揺らす。amount=0 では wtPosEff == wtPos_ で従来と完全一致
+        // WT_POS への LFO：±amount/2 で揺らす。amount=0 では wtPosEff == wtPos_ で従来と完全一致
         float wtPosEff = wtPos_;
-        if (useWt && p_.wtLfoAmount > 0.0f) {
-            wtPosEff = std::clamp(wtPos_ + fastSin(lfoPhase_) * (p_.wtLfoAmount * 0.5f), 0.0f, 1.0f);
-            lfoPhase_ += p_.wtLfoRate * static_cast<float>(kControlBlock) / static_cast<float>(sampleRate_);
-            if (lfoPhase_ >= 1.0f)
-                lfoPhase_ -= std::floor(lfoPhase_);
-        }
+        if (lfoForWt)
+            wtPosEff = std::clamp(wtPos_ + lfoVal * (p_.wtLfoAmount * 0.5f), 0.0f, 1.0f);
         // 新テーブル（5〜）はユニゾンの各声で WT_POS を少しずらして厚みを出す（旧テーブルは従来どおり）
         const bool wtSpread = useWt && wtTable >= 5;
-        const float cutoff = cutoffHz_ * std::exp2(p_.filterEnv * 7.0f * filterEnv_);
+        // キートラッキング：ピッチ64 を等倍として、音程にカットオフを連動させる（量 0 では 1 倍＝従来一致）
+        const float keyFactor = p_.keyTrack > 0.0f ? std::exp2(p_.keyTrack * (pitchSemis_ - 64.0f) / 12.0f) : 1.0f;
+        float cutoff = cutoffHz_ * keyFactor * std::exp2(p_.filterEnv * 7.0f * filterEnv_);
+        if (lfoForCutoff)
+            cutoff *= std::exp2(lfoVal * p_.lfoCutoff * 2.0f); // 最大 ±2 オクターブ
         filterL_.set(cutoff, p_.resonance, sampleRate_);
         filterR_.set(cutoff, p_.resonance, sampleRate_);
         filterEnv_ *= filterEnvCoef_;
@@ -351,34 +455,93 @@ Voice* Synth::findVoiceFor(int note) noexcept {
 void Synth::noteOn(int note, float velocity) noexcept {
     if (note < 0 || note > 127)
         return;
+    if (params_.mono >= 0.5f) {
+        // モノ：押さえている音を積み、最後に押した音が鳴る。鳴っている間はレガートで移る
+        for (int i = 0; i < monoStackSize_; ++i) {
+            if (monoStack_[i] == note) {
+                for (int j = i + 1; j < monoStackSize_; ++j)
+                    monoStack_[j - 1] = monoStack_[j];
+                --monoStackSize_;
+                break;
+            }
+        }
+        const bool hadNotes = monoStackSize_ > 0;
+        if (monoStackSize_ < kMonoStackMax)
+            monoStack_[monoStackSize_++] = note;
+        auto& v = voices_[0];
+        if (hadNotes && v.isActive() && v.isHeld()) {
+            v.legato(note, params_);
+        } else {
+            v.start(note, velocity, params_, ++ageCounter_, nextRandom(seed_));
+            v.setCutoff(smoothedCutoff_);
+        }
+        return;
+    }
     auto* v = findVoiceFor(note);
     v->start(note, velocity, params_, ++ageCounter_, nextRandom(seed_));
     v->setCutoff(smoothedCutoff_);
 }
 
 void Synth::noteOff(int note) noexcept {
+    if (params_.mono >= 0.5f) {
+        int idx = -1;
+        for (int i = 0; i < monoStackSize_; ++i)
+            if (monoStack_[i] == note)
+                idx = i;
+        if (idx < 0)
+            return;
+        for (int j = idx + 1; j < monoStackSize_; ++j)
+            monoStack_[j - 1] = monoStack_[j];
+        --monoStackSize_;
+        auto& v = voices_[0];
+        if (monoStackSize_ == 0) {
+            if (v.isHeld())
+                v.release();
+        } else {
+            const int top = monoStack_[monoStackSize_ - 1];
+            if (v.isHeld() && v.note() != top)
+                v.legato(top, params_);
+        }
+        return;
+    }
     for (auto& v : voices_)
         if (v.isHeld() && v.note() == note)
             v.release();
 }
 
 void Synth::allNotesOff() noexcept {
+    clearMonoStack();
     for (auto& v : voices_)
         if (v.isHeld())
             v.release();
 }
 
 void Synth::setParam(int id, float value) noexcept {
+    const bool wasMono = params_.mono >= 0.5f;
     if (!setSynthParam(params_, id, value))
         return;
     if (id == MDAW_PARAM_CUTOFF_HZ || id == MDAW_PARAM_MASTER_GAIN)
         return; // この2つは render() 内でなめらかに追従させる
+    if ((params_.mono >= 0.5f) != wasMono) {
+        // モノ／ポリを切り替えたら、積んだ音と鳴っている音を落としてから始める（音の取り残し防止）
+        clearMonoStack();
+        for (auto& v : voices_)
+            if (v.isHeld())
+                v.release();
+    }
     for (auto& v : voices_)
         v.applyParams(params_);
 }
 
 void Synth::setParams(const SynthParams& params) noexcept {
+    const bool wasMono = params_.mono >= 0.5f;
     params_ = params;
+    if ((params_.mono >= 0.5f) != wasMono) {
+        clearMonoStack();
+        for (auto& v : voices_)
+            if (v.isHeld())
+                v.release();
+    }
     for (auto& v : voices_)
         v.applyParams(params_);
 }
@@ -386,6 +549,20 @@ void Synth::setParams(const SynthParams& params) noexcept {
 void Synth::render(float* left, float* right, int numSamples) noexcept {
     std::fill(left, left + numSamples, 0.0f);
     std::fill(right, right + numSamples, 0.0f);
+
+    // テンポ同期 LFO の位相を全ボイスへ渡す（位相源は曲位置。エンジンから時計が来ていなければ
+    // 120 BPM 相当で内部進行させる）。同期でない音色では使われず、従来の挙動に影響しない
+    if (params_.lfoSync >= 0.5f) {
+        const double pos = lfoClockValid_ ? lfoClockPos_ : lfoFreePos_;
+        const double tickInc = lfoClockValid_ ? lfoClockInc_ : 120.0 * 960.0 / (60.0 * sampleRate_);
+        const double ticksPerCycle = lfoDivTicks(std::clamp(static_cast<int>(std::lround(params_.lfoDiv)), 0, 4));
+        const double base = pos / ticksPerCycle;
+        const double perBlock = tickInc * static_cast<double>(kControlBlock) / ticksPerCycle;
+        for (auto& v : voices_)
+            v.setLfoSyncPhase(base, perBlock);
+    }
+    if (!lfoClockValid_)
+        lfoFreePos_ += static_cast<double>(numSamples) * (120.0 * 960.0 / (60.0 * sampleRate_));
 
     // カットオフはブロック単位でなめらかに追従させる（約20ms）
     const float k = 1.0f - std::exp(-static_cast<float>(numSamples) / static_cast<float>(0.02 * sampleRate_));

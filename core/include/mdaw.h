@@ -57,26 +57,35 @@ enum {
     MDAW_PARAM_WT_WARP_AMOUNT = 23, /* ワープの量 0〜1 */
     MDAW_PARAM_WT_LFO_RATE = 24,   /* WT_POS を揺らす LFO の速さ（Hz、0.01〜30） */
     MDAW_PARAM_WT_LFO_AMOUNT = 25, /* LFO の深さ 0〜1（0 = 揺らさない） */
-    MDAW_PARAM_COUNT = 26,
+    MDAW_PARAM_KEY_TRACK = 26,     /* フィルターのキートラッキング 0〜1（ピッチ64 で等倍、半音ごとに 2^(量/12) 倍） */
+    MDAW_PARAM_GLIDE_S = 27,       /* グライド（ポルタメント）の時間 0〜0.4 秒（0 = なし） */
+    MDAW_PARAM_MONO = 28,          /* 1 = モノフォニック（重なったノートはレガート＋グライドでつなぐ） */
+    MDAW_PARAM_LFO_WAVE = 29,      /* LFO の波形 0 = 正弦、1 = 三角、2 = 矩形、3 = のこぎり */
+    MDAW_PARAM_LFO_SYNC = 30,      /* 1 = LFO をテンポ同期にする（速さは LFO_DIV、位相は曲位置） */
+    MDAW_PARAM_LFO_DIV = 31,       /* テンポ同期の分周 0 = 1小節、1 = 4分、2 = 付点8分、3 = 8分、4 = 16分 */
+    MDAW_PARAM_LFO_CUTOFF = 32,    /* LFO でカットオフを揺らす量 0〜1（最大 ±2 オクターブ） */
+    MDAW_PARAM_LFO_PITCH = 33,     /* LFO で音程を揺らす量 0〜1（最大 ±2 半音、ビブラート） */
+    MDAW_PARAM_COUNT = 34,
 
-    /* トラックのエフェクト（mdaw_set_track_param のみ） */
-    MDAW_FX_FIRST = 32,
-    MDAW_FX_LOWCUT_HZ = 32,        /* 20（なし）〜12000 */
-    MDAW_FX_SATURATION = 33,       /* 0〜1 */
-    MDAW_FX_CHORUS = 34,           /* 0〜1 */
-    MDAW_FX_OTT = 35,              /* 3帯域の上下圧縮の深さ 0〜1 */
-    MDAW_FX_DELAY = 36,            /* 付点8分ディレイの量 0〜1 */
-    MDAW_FX_DELAY_FEEDBACK = 37,   /* 0〜0.9 */
-    MDAW_FX_REVERB = 38,           /* 0〜1 */
-    MDAW_FX_REVERB_SIZE = 39,      /* 0〜1 */
-    MDAW_FX_SIDECHAIN = 40,        /* キックで引っ込む深さ 0〜1 */
-    MDAW_FX_SIDECHAIN_RELEASE_S = 41, /* 戻るまでの時間 0.03〜1 */
-    MDAW_FX_SIDECHAIN_SOURCE = 42, /* 1 = このトラックの発音で他を引っ込める（キック） */
-    MDAW_FX_END = 43,
+    /* トラックのエフェクト（mdaw_set_track_param のみ）。
+       番号はシンセ側の拡張（〜33）のあとに置く。保存ファイルは名前ベースなので番号変更の影響はない */
+    MDAW_FX_FIRST = 40,
+    MDAW_FX_LOWCUT_HZ = 40,        /* 20（なし）〜12000 */
+    MDAW_FX_SATURATION = 41,       /* 0〜1 */
+    MDAW_FX_CHORUS = 42,           /* 0〜1 */
+    MDAW_FX_OTT = 43,              /* 3帯域の上下圧縮の深さ 0〜1 */
+    MDAW_FX_DELAY = 44,            /* 付点8分ディレイの量 0〜1 */
+    MDAW_FX_DELAY_FEEDBACK = 45,   /* 0〜0.9 */
+    MDAW_FX_REVERB = 46,           /* 0〜1 */
+    MDAW_FX_REVERB_SIZE = 47,      /* 0〜1 */
+    MDAW_FX_SIDECHAIN = 48,        /* キックで引っ込む深さ 0〜1 */
+    MDAW_FX_SIDECHAIN_RELEASE_S = 49, /* 戻るまでの時間 0.03〜1 */
+    MDAW_FX_SIDECHAIN_SOURCE = 50, /* 1 = このトラックの発音で他を引っ込める（キック） */
+    MDAW_FX_END = 51,
 
     /* オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。
        mdaw_set_track_param では使わず、クリップのオートメーションの対象としてだけ使う */
-    MDAW_PARAM_TRACK_GAIN = 48
+    MDAW_PARAM_TRACK_GAIN = 56
 };
 
 /* 書き出しの状態（mdaw_export_state） */
