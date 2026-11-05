@@ -1,5 +1,6 @@
 #include "engine.h"
 
+#include "automation.h"
 #include "mdaw.h"
 
 #include <algorithm>
@@ -30,6 +31,7 @@ void Engine::prepare(double sampleRate) {
     for (auto& s : slots_) {
         s.synth.prepare(sampleRate, kMaxBlock);
         s.drums.prepare(sampleRate);
+        s.sampler.prepare(sampleRate);
         s.fx.prepare(sampleRate, kMaxBlock);
         s.held = {};
         s.tailSamples = 0;
@@ -59,13 +61,22 @@ void Engine::collectRetired() {
 void Engine::handle(const Event& e) noexcept {
     switch (e.type) {
         case Event::Type::NoteOn:
-            // 試聴：キットのトラックを選んでいればそのキットで、そうでなければ試聴用のシンセで
-            if (previewSlot_ >= 0 && slots_[static_cast<size_t>(previewSlot_)].kit != nullptr)
+            // 試聴：サンプラーのトラックを選んでいればそのサンプラーで、キットならそのキットで、
+            // そうでなければ試聴用のシンセで
+            if (previewSlot_ >= 0 && slots_[static_cast<size_t>(previewSlot_)].samplerSound != nullptr)
+                slots_[static_cast<size_t>(previewSlot_)].sampler.noteOn(e.index, e.value);
+            else if (previewSlot_ >= 0 && slots_[static_cast<size_t>(previewSlot_)].kit != nullptr)
                 slots_[static_cast<size_t>(previewSlot_)].drums.noteOn(e.index, e.value);
             else
                 preview_.noteOn(e.index, e.value);
             break;
-        case Event::Type::NoteOff:     preview_.noteOff(e.index); break;
+        case Event::Type::NoteOff:
+            // サンプラーの試聴はリリースで止める（キットはワンショットなので従来どおり何もしない）
+            if (previewSlot_ >= 0 && slots_[static_cast<size_t>(previewSlot_)].samplerSound != nullptr)
+                slots_[static_cast<size_t>(previewSlot_)].sampler.noteOff(e.index);
+            else
+                preview_.noteOff(e.index);
+            break;
         case Event::Type::AllNotesOff: preview_.allNotesOff(); break;
         case Event::Type::Param:       preview_.setParam(e.index, e.value); break;
         case Event::Type::TrackParam:
@@ -136,13 +147,64 @@ void Engine::rewindTo(double tick) noexcept {
     firedUpTo_ = tick - 0.5; // tick ちょうどのイベントはこれから鳴らす
     cursor_ = current_ != nullptr ? current_->firstEventAfter(firedUpTo_) : 0;
     playheadOut_.store(static_cast<int64_t>(position_), std::memory_order_relaxed);
+    // 位置が飛んだら、オートメーションの掛かり具合もその位置に合わせ直す
+    if (current_ != nullptr && !current_->automation.empty()) {
+        resetAutomatedSlots();
+        if (playing_)
+            applyAutomation(position_);
+    }
+}
+
+// オートメーションが付いているスロットだけ、音色・FX・音量をスナップショットの素の値へ戻す
+void Engine::resetAutomatedSlots() noexcept {
+    if (current_ == nullptr)
+        return;
+    bool done[kMaxSlots] = {};
+    for (const auto& lane : current_->automation) {
+        const int i = lane.slot;
+        if (i >= kMaxSlots || done[i])
+            continue;
+        done[i] = true;
+        if (i >= static_cast<int>(current_->tracks.size()))
+            continue;
+        auto& s = slots_[static_cast<size_t>(i)];
+        const auto& t = current_->tracks[static_cast<size_t>(i)];
+        s.synth.setParams(t.synth);
+        s.fx.setParams(t.fx);
+        s.autoGain = -1.0f;
+    }
+}
+
+// tick 時点のオートメーション値を、対象スロットのシンセ／FX／音量へその場で反映する。
+// ライブで音色を触る TrackParam と同じ経路（シンセは setParam、FX は丸ごと差し替え）。
+// 掛かっていない（最初のポイントより前）レーンは何もしない。素への復帰は resetAutomatedSlots が担う。
+void Engine::applyAutomation(double tick) noexcept {
+    if (current_ == nullptr)
+        return;
+    for (const auto& lane : current_->automation) {
+        float v = 0.0f;
+        if (!lane.valueAt(tick, v) || lane.slot >= kMaxSlots)
+            continue;
+        auto& s = slots_[lane.slot];
+        if (lane.paramId == MDAW_PARAM_TRACK_GAIN) {
+            s.autoGain = std::clamp(v, 0.0f, 2.0f);
+        } else if (lane.paramId >= MDAW_FX_FIRST) {
+            FxParams f = s.fx.params();
+            if (setFxParam(f, lane.paramId, v))
+                s.fx.setParams(f);
+        } else {
+            s.synth.setParam(lane.paramId, v);
+        }
+    }
 }
 
 void Engine::releaseSequencedNotes() noexcept {
     for (auto& s : slots_) {
         for (int p = 0; p < 128; ++p)
-            if (s.held.has(p))
+            if (s.held.has(p)) {
                 s.synth.noteOff(p);
+                s.sampler.noteOff(p); // 鳴っていない楽器には何もしない
+            }
         s.held = {};
     }
 }
@@ -169,8 +231,10 @@ void Engine::adoptPendingSnapshot() noexcept {
         if (s.trackId != id) {
             // 別のトラックになった：鳴っている音は離して、音色は丸ごと入れ替える
             for (int p = 0; p < 128; ++p)
-                if (s.held.has(p))
+                if (s.held.has(p)) {
                     s.synth.noteOff(p);
+                    s.sampler.noteOff(p);
+                }
             s.held = {};
             s.trackId = id;
             s.fx.reset();
@@ -197,6 +261,24 @@ void Engine::adoptPendingSnapshot() noexcept {
             s.drums.setKit(kit); // 鳴っていた古いキットの音はここで止まる
             s.kit = kit;
         }
+        // サンプラーの素材と設定（素材が差し替わったら鳴っていた音は止まる。設定だけなら鳴らしたまま）
+        const KitSound* wantSound = (t != nullptr && t->samplerKit != nullptr && t->samplerSound >= 0
+                                     && t->samplerSound < static_cast<int>(t->samplerKit->sounds.size()))
+                                        ? &t->samplerKit->sounds[static_cast<size_t>(t->samplerSound)]
+                                        : nullptr;
+        const SamplerSettings wantSettings = t != nullptr ? t->sampler : SamplerSettings{};
+        if (wantSound != s.samplerSound || wantSettings != s.snapSampler) {
+            s.sampler.setSound(wantSound, wantSettings.rootNote, wantSettings.gain, wantSettings.start);
+            s.samplerSound = wantSound;
+            s.snapSampler = wantSettings;
+        }
+    }
+
+    // オートメーションの状態は新しいスナップショットに合わせ直す（レーンを消す編集でも素に戻るように）
+    if ((old != nullptr && !old->automation.empty()) || !current_->automation.empty()) {
+        resetAutomatedSlots();
+        if (playing_)
+            applyAutomation(position_);
     }
 
     if (old != nullptr)
@@ -219,6 +301,7 @@ void Engine::adoptPendingSnapshot() noexcept {
             for (int p = 0; p < 128; ++p) {
                 if (s.held.has(p) && !should[i].has(p)) {
                     s.synth.noteOff(p);
+                    s.sampler.noteOff(p);
                     s.held.clear(p);
                 }
             }
@@ -234,7 +317,9 @@ void Engine::fireDueEvents() noexcept {
             continue;
         auto& s = slots_[e.slot];
         if (e.type == SeqEvent::Type::NoteOn) {
-            if (s.kit != nullptr)
+            if (s.samplerSound != nullptr)
+                s.sampler.noteOn(e.pitch, e.velocity);
+            else if (s.kit != nullptr)
                 s.drums.noteOn(e.pitch, e.velocity);
             else
                 s.synth.noteOn(e.pitch, e.velocity);
@@ -243,6 +328,7 @@ void Engine::fireDueEvents() noexcept {
                 sidechainTrigger_ = true;
         } else if (s.held.has(e.pitch)) {
             s.synth.noteOff(e.pitch);
+            s.sampler.noteOff(e.pitch); // サンプラーの音はリリースで止める（シンセには何もしない）
             s.held.clear(e.pitch);
         }
     }
@@ -284,11 +370,12 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         if (current_ != nullptr && si < static_cast<int>(current_->tracks.size())) {
             const auto& t = current_->tracks[static_cast<size_t>(si)];
             if (t.audible) {
-                targetL = t.gain * std::min(1.0f, 1.0f - t.pan);
-                targetR = t.gain * std::min(1.0f, 1.0f + t.pan);
+                const float g = s.autoGain >= 0.0f ? s.autoGain : t.gain; // オートメーション中はそちらが優先
+                targetL = g * std::min(1.0f, 1.0f - t.pan);
+                targetR = g * std::min(1.0f, 1.0f + t.pan);
             }
         }
-        const bool sounding = s.synth.activeVoices() > 0 || s.drums.activeVoices() > 0
+        const bool sounding = s.synth.activeVoices() > 0 || s.drums.activeVoices() > 0 || s.sampler.activeVoices() > 0
                               || (previewToSlot && previewSlot_ == si);
         if (sounding)
             s.tailSamples = static_cast<int64_t>(s.fx.tailSeconds() * sr);
@@ -303,6 +390,8 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         s.synth.render(bufL_.data(), bufR_.data(), n);
         if (s.drums.activeVoices() > 0)
             s.drums.render(bufL_.data(), bufR_.data(), n);
+        if (s.sampler.activeVoices() > 0)
+            s.sampler.render(bufL_.data(), bufR_.data(), n);
         if (previewToSlot && previewSlot_ == si) {
             for (size_t i = 0; i < un; ++i) {
                 bufL_[i] += prevL_[i];
@@ -378,12 +467,19 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
         double loopEnd = 0.0;
         if (sequencing) {
             fireDueEvents();
+            // この区間の頭の位置でオートメーションを掛ける（レーンが無ければ何もしない）
+            if (!current_->automation.empty())
+                applyAutomation(position_);
             ticksPerSample = current_->tempo * static_cast<double>(kPpq) / (60.0 * sr);
             loopEnd = this->loopEnd();
             // 次のイベント（かループの終わり）までで区切る：イベントはサンプル単位で正確に鳴る
             double next = loopEnd;
             if (cursor_ < current_->events.size())
                 next = std::min(next, static_cast<double>(current_->events[cursor_].tick));
+            // オートメーションのポイントでも区切る（補間がポイント単位で折れるように）
+            double nextAuto = 0.0;
+            if (current_->nextAutomationTick(position_ + kTickEpsilon, nextAuto))
+                next = std::min(next, nextAuto);
             const double until = std::ceil((next - position_) / ticksPerSample - 1e-9);
             n = static_cast<int>(std::clamp(until, 1.0, static_cast<double>(n)));
         }
@@ -402,7 +498,7 @@ void Engine::render(float* interleaved, int frames, int channels) noexcept {
 
     int voices = preview_.activeVoices();
     for (const auto& s : slots_)
-        voices += s.synth.activeVoices() + s.drums.activeVoices();
+        voices += s.synth.activeVoices() + s.drums.activeVoices() + s.sampler.activeVoices();
     framesRendered_.fetch_add(frames, std::memory_order_relaxed);
     activeVoices_.store(voices, std::memory_order_relaxed);
     playingOut_.store(playing_, std::memory_order_relaxed);

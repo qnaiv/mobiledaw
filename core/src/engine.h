@@ -86,12 +86,16 @@ private:
     struct Slot {
         Synth synth;
         DrumSampler drums;               // キットのトラックはこちらで鳴らす
+        MelodicSampler sampler;          // サンプラーのトラックはこちらで鳴らす
         const Kit* kit = nullptr;        // current_ のスナップショットが持っているキット
+        const KitSound* samplerSound = nullptr; // サンプラーが指している素材（スナップショットのキットが持つ）
+        SamplerSettings snapSampler;     // 直前のスナップショットのサンプラー設定（変わったときだけ反映する）
         TrackFx fx;
         Id trackId = kNoId;
         SynthParams snapParams;         // 直前のスナップショットの値（変わったときだけ反映する）
         FxParams snapFx;
         PlaybackSnapshot::NoteSet held; // シーケンサーが鳴らしている音
+        float autoGain = -1.0f;          // オートメーションが決めた音量（<0 = 掛かっていない。素の gain を使う）
         float gainL = 0.0f, gainR = 0.0f; // なめらかに追従させる現在値
         int64_t tailSamples = 0;        // 音が止まってからもエフェクトを回す残り
         float duck = 0.0f;              // サイドチェインで今引っ込んでいる量（0〜1）
@@ -101,6 +105,9 @@ private:
     bool push(const Event& e) noexcept { return queue_.push(e); }
     void handle(const Event& e) noexcept;
     void adoptPendingSnapshot() noexcept;
+    // オートメーション：tick 時点の値を全スロットへ反映する／掛かっているスロットを素の値へ戻す
+    void applyAutomation(double tick) noexcept;
+    void resetAutomatedSlots() noexcept;
     void fireDueEvents() noexcept;
     void releaseSequencedNotes() noexcept;
     void rewindTo(double tick) noexcept;

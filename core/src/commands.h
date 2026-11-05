@@ -170,6 +170,23 @@ private:
     int64_t oldLength_ = 0;
     std::vector<std::pair<Id, int>> oldPlacementBars_;
     std::vector<Note> removed_;
+    std::vector<AutomationLane> oldAutomation_; // 縮めたときに切り落とした分を Undo で戻すため
+};
+
+// クリップのオートメーションの1レーンを丸ごと差し替える（空のレーンなら削除）。
+// ポイントは apply の中で整える（並べ替え・範囲外の削除・値の丸め）。変わらなければ false。
+class SetClipAutomation final : public Command {
+public:
+    SetClipAutomation(Id clipId, AutomationLane lane) : clipId_(clipId), next_(std::move(lane)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetClipAutomation"; }
+
+private:
+    Id clipId_;
+    AutomationLane next_;
+    AutomationLane old_;
+    bool hadOld_ = false;
 };
 
 // ---- トラックと全体 -----------------------------------------------------------
@@ -200,6 +217,20 @@ private:
     Id trackId_;
     std::string kitId_;
     std::string old_;
+};
+
+// トラックの楽器をサンプラーにする（設定一式の差し替え。next.kitId が空ならサンプラーをやめる）
+class SetTrackSampler final : public Command {
+public:
+    SetTrackSampler(Id trackId, SamplerSettings next) : trackId_(trackId), next_(std::move(next)) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetTrackSampler"; }
+
+private:
+    Id trackId_;
+    SamplerSettings next_;
+    SamplerSettings old_;
 };
 
 // 曲の名前（1〜64バイト、前後の空白は落とす）

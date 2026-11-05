@@ -276,6 +276,13 @@ bool ResizeClip::apply(Project& p) {
             ++it;
         }
     }
+    // オートメーションも新しい長さに合わせて切り落とす（Undo で戻るよう控える）
+    oldAutomation_ = clip->automation;
+    for (auto& lane : clip->automation)
+        normalizeAutomationLane(lane, newLength);
+    clip->automation.erase(std::remove_if(clip->automation.begin(), clip->automation.end(),
+                                          [](const AutomationLane& l) { return l.points.empty(); }),
+                           clip->automation.end());
     clip->lengthTicks = newLength;
     return true;
 }
@@ -285,6 +292,7 @@ void ResizeClip::revert(Project& p) {
     if (clip == nullptr)
         return;
     clip->lengthTicks = oldLength_;
+    clip->automation = oldAutomation_;
     clip->notes.insert(clip->notes.end(), removed_.begin(), removed_.end());
     clip->sortNotes();
     for (const auto& [id, bars] : oldPlacementBars_)
@@ -337,6 +345,28 @@ bool SetTrackKit::apply(Project& p) {
 void SetTrackKit::revert(Project& p) {
     if (auto* t = p.findTrack(trackId_))
         t->kitId = old_;
+}
+
+bool SetTrackSampler::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    auto next = next_;
+    if (!next.kitId.empty() && !isValidKitId(next.kitId))
+        return false;
+    next.rootNote = std::clamp(next.rootNote, 0, 127);
+    next.gain = std::clamp(next.gain, 0.0f, 2.0f);
+    next.start = std::clamp(next.start, 0.0f, 1.0f);
+    if (t->sampler == next)
+        return false;
+    old_ = t->sampler;
+    t->sampler = next;
+    return true;
+}
+
+void SetTrackSampler::revert(Project& p) {
+    if (auto* t = p.findTrack(trackId_))
+        t->sampler = old_;
 }
 
 bool SetProjectTitle::apply(Project& p) {
@@ -428,6 +458,45 @@ bool SetTrackSynthParam::apply(Project& p) {
 void SetTrackSynthParam::revert(Project& p) {
     if (auto* t = p.findTrack(trackId_))
         setTrackParam(*t, paramId_, old_);
+}
+
+//==============================================================================
+bool SetClipAutomation::apply(Project& p) {
+    auto* clip = p.findClip(clipId_);
+    if (clip == nullptr || !isAutomationParam(next_.paramId))
+        return false;
+    AutomationLane next = next_;
+    normalizeAutomationLane(next, clip->lengthTicks);
+    auto* cur = clip->findAutomation(next_.paramId);
+    hadOld_ = cur != nullptr;
+    if (hadOld_)
+        old_ = *cur;
+    if (next.points.empty()) {
+        if (!hadOld_)
+            return false; // 元々無いレーンを消そうとした
+        clip->automation.erase(std::remove_if(clip->automation.begin(), clip->automation.end(),
+                                              [&](const AutomationLane& l) { return l.paramId == next_.paramId; }),
+                               clip->automation.end());
+        return true;
+    }
+    if (hadOld_ && old_ == next)
+        return false; // 変わらない
+    if (cur != nullptr)
+        *cur = next;
+    else
+        clip->automation.push_back(next);
+    return true;
+}
+
+void SetClipAutomation::revert(Project& p) {
+    auto* clip = p.findClip(clipId_);
+    if (clip == nullptr)
+        return;
+    clip->automation.erase(std::remove_if(clip->automation.begin(), clip->automation.end(),
+                                          [&](const AutomationLane& l) { return l.paramId == next_.paramId; }),
+                           clip->automation.end());
+    if (hadOld_)
+        clip->automation.push_back(old_);
 }
 
 //==============================================================================

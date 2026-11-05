@@ -73,7 +73,8 @@ set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/session.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/exporter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/kit.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sampler.cpp)
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sampler.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/automation.cpp)
 
 set(MDAW_WARNINGS -Wall -Wextra -Wno-unused-parameter)
 
@@ -120,6 +121,7 @@ if(MDAW_BUILD_TESTS)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/api_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/sound_tests.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/kit_tests.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/automation_tests.cpp
         $<TARGET_OBJECTS:mdaw_juce>)
     target_include_directories(mdaw_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include

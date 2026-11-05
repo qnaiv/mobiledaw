@@ -72,7 +72,11 @@ enum {
     MDAW_FX_SIDECHAIN = 40,        /* キックで引っ込む深さ 0〜1 */
     MDAW_FX_SIDECHAIN_RELEASE_S = 41, /* 戻るまでの時間 0.03〜1 */
     MDAW_FX_SIDECHAIN_SOURCE = 42, /* 1 = このトラックの発音で他を引っ込める（キック） */
-    MDAW_FX_END = 43
+    MDAW_FX_END = 43,
+
+    /* オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。
+       mdaw_set_track_param では使わず、クリップのオートメーションの対象としてだけ使う */
+    MDAW_PARAM_TRACK_GAIN = 48
 };
 
 /* 書き出しの状態（mdaw_export_state） */
@@ -122,6 +126,11 @@ MDAW_API void mdaw_set_kits_dir(mdaw_engine* engine, const char* kits_dir);
 MDAW_API void mdaw_reload_kits(mdaw_engine* engine); /* ダウンロード・削除したあとに呼ぶ */
 MDAW_API int32_t mdaw_set_track_kit(mdaw_engine* engine, mdaw_id track_id, const char* kit_id);
 MDAW_API const char* mdaw_kit_error(mdaw_engine* engine, const char* kit_id); /* 読めなければ理由、読めれば "" */
+/* サンプラー楽器。kit_id が空ならサンプラーをやめる（そのトラックのシンセ／キットの設定に戻る）。
+   sound_name は kit.json の音の名前、root_note は基準音程（0〜127）、gain は 0〜2、start は開始位置 0〜1。
+   設定一式の差し替えで Undo できる */
+MDAW_API int32_t mdaw_set_track_sampler(mdaw_engine* engine, mdaw_id track_id, const char* kit_id, const char* sound_name,
+                                        int32_t root_note, float gain, float start);
 MDAW_API mdaw_id mdaw_add_track(mdaw_engine* engine, const char* name, uint32_t color_argb);
 MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const char* name); /* 1〜64バイト */
 /* トラックの音量（0〜2、1 = そのまま）・パン（-1 左〜1 右）・ミュート・ソロ。変わらなければ 0 */
@@ -143,6 +152,11 @@ MDAW_API int32_t mdaw_move_notes(mdaw_engine* engine, mdaw_id clip_id, const mda
 MDAW_API int32_t mdaw_resize_notes(mdaw_engine* engine, mdaw_id clip_id, const mdaw_id* note_ids, int32_t count,
                                    int64_t delta_ticks);
 MDAW_API int32_t mdaw_set_tempo(mdaw_engine* engine, double bpm);
+/* クリップのオートメーション：param_id のレーンを丸ごと差し替える（Undo できる）。
+   ticks はクリップ先頭からの相対位置（昇順でなくてもよい。コアが整える）、values はパラメータの実値。
+   count が 0 ならレーンを消す。変わらなければ 0 */
+MDAW_API int32_t mdaw_set_clip_automation(mdaw_engine* engine, mdaw_id clip_id, int32_t param_id, const int64_t* ticks,
+                                          const float* values, int32_t count);
 /* 音色の確定（Undo できる）。動かしている最中は mdaw_set_track_param_live で音だけ変え、離した時にこれを呼ぶ */
 MDAW_API int32_t mdaw_set_track_param(mdaw_engine* engine, mdaw_id track_id, int32_t param_id, float value);
 MDAW_API int32_t mdaw_set_track_param_live(mdaw_engine* engine, mdaw_id track_id, int32_t param_id, float value);
