@@ -75,6 +75,50 @@ void main() {
     expect(lfoParams.map((p) => p.key), ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
   });
 
+  // 本格フューチャーベース・プリセット：エンジン拡張パラメータの使い方が設計どおりか
+  test('future bass pro presets use the engine expansion as designed', () {
+    final byName = {for (final p in soundPresets) p.name: p};
+    double v(String preset, String key) => byName[preset]!.values[key] ?? 0;
+
+    for (final name in [
+      'FB Chords 9th', 'FB Vocal Lead', 'FB Wobble Bass', 'FB Reese Bass', 'FB Pluck',
+      'FB Pad Air', 'FB Sparkle Arp', 'FB Talking Lead', 'FB Sub Clean',
+    ]) {
+      expect(byName, contains(name), reason: name);
+    }
+
+    // コード主力： 9声、OTT は定番の 20〜30% 帯、キートラッキング中量
+    expect(v('FB Chords 9th', 'unison'), 9);
+    expect(v('FB Chords 9th', 'ott'), inInclusiveRange(0.2, 0.3));
+    expect(v('FB Chords 9th', 'keyTrack'), inInclusiveRange(0.5, 0.7));
+
+    // ボーカルリード： モノ＋グライド 80〜120ms、スクープ +12 半音、ビブラート小量
+    expect(v('FB Vocal Lead', 'mono'), 1);
+    expect(v('FB Vocal Lead', 'glideS'), inInclusiveRange(0.08, 0.12));
+    expect(v('FB Vocal Lead', 'pitchEnv'), 12);
+    expect(v('FB Vocal Lead', 'lfoPitch'), inInclusiveRange(0.1, 0.3));
+
+    // ワブル： 付点8分（lfoDiv=2）に同期し、カットオフを大きく揺らす
+    expect(v('FB Wobble Bass', 'lfoSync'), 1);
+    expect(v('FB Wobble Bass', 'lfoDiv'), 2);
+    expect(v('FB Wobble Bass', 'lfoCutoff'), greaterThanOrEqualTo(0.5));
+
+    // リース： 1小節同期の微量ドリフト、サブは別建て（サイン加算）
+    expect(v('FB Reese Bass', 'lfoSync'), 1);
+    expect(v('FB Reese Bass', 'lfoDiv'), 0);
+    expect(v('FB Reese Bass', 'lfoCutoff'), inInclusiveRange(0.05, 0.2));
+    expect(v('FB Reese Bass', 'sub'), greaterThan(0));
+
+    // サブ専用： オシレーター無し・サインのみ・モノ
+    expect(v('FB Sub Clean', 'osc'), 0);
+    expect(v('FB Sub Clean', 'sub'), 1);
+    expect(v('FB Sub Clean', 'mono'), 1);
+
+    // 喋るリードは wtPos の動き主体（ビブラートに頼らない）
+    expect(v('FB Talking Lead', 'wtLfoAmount'), greaterThanOrEqualTo(0.5));
+    expect(v('FB Talking Lead', 'lfoPitch'), 0);
+  });
+
   test('format', () {
     final cutoff = allSoundParams.firstWhere((p) => p.key == 'cutoffHz');
     expect(cutoff.format(12000), '12.0 kHz');

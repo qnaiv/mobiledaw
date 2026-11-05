@@ -375,4 +375,90 @@ const soundPresets = <SoundPreset>[
     'lowCutHz': 250, 'chorus': 0.15, 'ott': 0.35, 'delay': 0.3, 'delayFeedback': 0.35, 'reverb': 0.35,
     'sidechain': 0.4,
   }),
+  // --- 本格フューチャーベース（エンジン拡張： keyTrack／グライド／モノ／LFO拡張を使用） ---
+  // コード主力： maj9 想定のスーパーソー。デチューンは両端 34ct（外側 ±17ct）と控えめ、
+  // OTT はコードバス定番の 30%、キートラッキングで高音域も明るさを保つ
+  SoundPreset('FB Chords 9th', 'コード', {
+    'unison': 9, 'detuneCents': 34, 'width': 0.95, 'blend': 0.7, 'noise': 0.02, 'drive': 0.12,
+    'cutoffHz': 10000, 'resonance': 0.8, 'keyTrack': 0.6, 'filterEnv': 0.2, 'filterEnvDecayS': 0.3,
+    'attackS': 0.006, 'decayS': 0.6, 'sustain': 0.78, 'releaseS': 0.4, 'masterGain': 0.55,
+    'lowCutHz': 180, 'saturation': 0.12, 'chorus': 0.3, 'ott': 0.3, 'reverb': 0.3, 'reverbSize': 0.7,
+    'sidechain': 0.9, 'sidechainReleaseS': 0.3,
+  }),
+  // 歌うリード： モノ＋グライド 90ms、発音直後に +12 半音から落ちるスクープ、5.5Hz のビブラート
+  SoundPreset('FB Vocal Lead', 'リード', {
+    'wtTable': 3, 'wtPos': 0.5, 'wtWarp': 1, 'wtWarpAmount': 0.25,
+    'mono': 1, 'glideS': 0.09, 'pitchEnv': 12, 'pitchEnvDecayS': 0.08,
+    'wtLfoRate': 5.5, 'lfoPitch': 0.18,
+    'unison': 2, 'detuneCents': 10, 'width': 0.3, 'blend': 0.9,
+    'cutoffHz': 6000, 'resonance': 1.0, 'keyTrack': 0.5, 'filterEnv': 0.2, 'filterEnvDecayS': 0.2,
+    'attackS': 0.004, 'decayS': 0.3, 'sustain': 0.7, 'releaseS': 0.15, 'masterGain': 0.7,
+    'lowCutHz': 250, 'saturation': 0.1, 'ott': 0.35, 'delay': 0.35, 'delayFeedback': 0.4,
+    'reverb': 0.3, 'reverbSize': 0.65, 'sidechain': 0.45,
+  }),
+  // ワブル： 付点8分に同期した矩形 LFO がカットオフと WT 位置を一緒に開閉する。
+  // サブはフィルター後のサイン加算なので LFO でも汚れない
+  SoundPreset('FB Wobble Bass', 'ベース', {
+    'wtTable': 5, 'wtPos': 0.6, 'wtWarp': 1, 'wtWarpAmount': 0.4,
+    'mono': 1, 'glideS': 0.02,
+    'lfoSync': 1, 'lfoDiv': 2, 'lfoWave': 2, 'lfoCutoff': 0.65, 'wtLfoAmount': 0.45,
+    'unison': 3, 'detuneCents': 22, 'width': 0.25, 'blend': 0.85, 'sub': 0.5, 'drive': 0.45,
+    'cutoffHz': 850, 'resonance': 2.8, 'keyTrack': 0.3, 'filterEnv': 0.35, 'filterEnvDecayS': 0.15,
+    'attackS': 0.003, 'decayS': 0.35, 'sustain': 0.85, 'releaseS': 0.08, 'masterGain': 0.75,
+    'saturation': 0.5, 'ott': 0.5, 'sidechain': 0.8, 'sidechainReleaseS': 0.25,
+  }),
+  // リース： ±12ct に開いたソー（中央声が芯）、低い LP、1小節周期の遅いカットオフ揺れ
+  SoundPreset('FB Reese Bass', 'ベース', {
+    'unison': 3, 'detuneCents': 24, 'width': 0.1, 'blend': 1.0, 'sub': 0.45, 'drive': 0.25,
+    'mono': 1, 'glideS': 0.03,
+    'lfoSync': 1, 'lfoDiv': 0, 'lfoWave': 0, 'lfoCutoff': 0.12,
+    'cutoffHz': 750, 'resonance': 1.4, 'keyTrack': 0.2,
+    'attackS': 0.005, 'decayS': 0.3, 'sustain': 0.95, 'releaseS': 0.1, 'masterGain': 0.72,
+    'saturation': 0.35, 'chorus': 0.15, 'ott': 0.35, 'sidechain': 0.7, 'sidechainReleaseS': 0.3,
+  }),
+  // プラック： キートラッキング高めで、9th アルペジオがどの音域でも抜ける
+  SoundPreset('FB Pluck', 'リード', {
+    'unison': 2, 'detuneCents': 10, 'width': 0.45, 'blend': 0.85,
+    'cutoffHz': 1600, 'resonance': 1.1, 'keyTrack': 0.85, 'filterEnv': 0.72, 'filterEnvDecayS': 0.09,
+    'attackS': 0.001, 'decayS': 0.16, 'sustain': 0, 'releaseS': 0.12, 'masterGain': 0.68,
+    'lowCutHz': 250, 'chorus': 0.15, 'ott': 0.35, 'delay': 0.32, 'delayFeedback': 0.38,
+    'reverb': 0.3, 'reverbSize': 0.6, 'sidechain': 0.45,
+  }),
+  // 厚いパッド： 12声ユニゾン＋1小節同期の微ドリフト（カットオフと WT 位置）
+  SoundPreset('FB Pad Air', 'コード', {
+    'wtTable': 5, 'wtPos': 0.3, 'noise': 0.015,
+    'unison': 12, 'detuneCents': 30, 'width': 1.0, 'blend': 0.75,
+    'lfoSync': 1, 'lfoDiv': 0, 'lfoWave': 0, 'lfoCutoff': 0.1, 'wtLfoAmount': 0.18,
+    'cutoffHz': 5200, 'resonance': 0.8, 'keyTrack': 0.45,
+    'attackS': 0.6, 'decayS': 1.2, 'sustain': 0.85, 'releaseS': 1.8, 'masterGain': 0.30,
+    'lowCutHz': 200, 'saturation': 0.08, 'chorus': 0.45, 'ott': 0.25, 'reverb': 0.6, 'reverbSize': 0.85,
+    'sidechain': 0.5, 'sidechainReleaseS': 0.35,
+  }),
+  // キラキラ・アルペジオ： 矩形波、低域を大きく空けて付点ディレイで跳ねる（音量は控えめ）
+  SoundPreset('FB Sparkle Arp', 'リード', {
+    'wave': 1, 'unison': 2, 'detuneCents': 6, 'width': 0.55, 'blend': 0.9,
+    'cutoffHz': 8500, 'resonance': 0.9, 'keyTrack': 0.6, 'filterEnv': 0.35, 'filterEnvDecayS': 0.07,
+    'attackS': 0.001, 'decayS': 0.13, 'sustain': 0.05, 'releaseS': 0.09, 'masterGain': 0.45,
+    'lowCutHz': 800, 'chorus': 0.1, 'ott': 0.25, 'delay': 0.45, 'delayFeedback': 0.45,
+    'reverb': 0.35, 'reverbSize': 0.7, 'sidechain': 0.35,
+  }),
+  // 喋るリード： フォルマント WT をフリー LFO で大きく往復させ、グライド 120ms でつなぐ
+  // （Vocal Lead との違い： スクープとビブラート無し、動きは WT 位置主体）
+  SoundPreset('FB Talking Lead', 'リード', {
+    'wtTable': 3, 'wtPos': 0.45, 'wtWarp': 1, 'wtWarpAmount': 0.35,
+    'mono': 1, 'glideS': 0.12, 'wtLfoRate': 2.2, 'wtLfoAmount': 0.55,
+    'unison': 1, 'width': 0.15, 'blend': 1.0,
+    'cutoffHz': 4200, 'resonance': 1.8, 'keyTrack': 0.35, 'filterEnv': 0.3, 'filterEnvDecayS': 0.25,
+    'attackS': 0.005, 'decayS': 0.3, 'sustain': 0.7, 'releaseS': 0.12, 'masterGain': 0.6,
+    'lowCutHz': 250, 'saturation': 0.15, 'ott': 0.35, 'delay': 0.3, 'delayFeedback': 0.35,
+    'reverb': 0.28, 'sidechain': 0.45,
+  }),
+  // クリーンなサブ専用： オシレーターを切り、フィルター後のサインだけをモノで鳴らす
+  SoundPreset('FB Sub Clean', 'ベース', {
+    'osc': 0, 'sub': 1.0, 'unison': 1, 'width': 0, 'blend': 1.0,
+    'mono': 1, 'glideS': 0.02,
+    'cutoffHz': 300, 'resonance': 0.9,
+    'attackS': 0.004, 'decayS': 0.2, 'sustain': 0.95, 'releaseS': 0.05, 'masterGain': 0.9,
+    'saturation': 0.12,
+  }),
 ];
