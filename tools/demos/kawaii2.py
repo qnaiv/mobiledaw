@@ -12,10 +12,10 @@
 ウェーブテーブル強化（テーブル5/6/7、wtPos の LFO）とクリップの
 オートメーション（"automation" のレーン）を使った曲。
   小節   0– 3  イントロ   クワイアパッド（音量フェードインのレーン付き）とプラックのアルペジオ
-         4–11  Aメロ      ハーフタイムのドラム、刻むコード、フォルマントリード、サブベース
-        12–15  ビルド     4つ打ち → スネアロール、ライザー。コードの cutoff が開いていくレーン
+         4–11  Aメロ      ハーフタイムのドラム（3拍目にクラップ、スネアのゴースト入り）、刻むコード、フォルマントリード、サブベース
+        12–15  ビルド     4つ打ち＋スネアの2・4拍 → スネアロール＋タムフィル、ライザー。コードの cutoff が開いていくレーン
         16–27  サビ       跳ねるキックでスーパーソーが弾む。グロウルベースは wtPos のレーンでうねる
-        28–35  ブレイク   ドラムなし。クワイアとボーカルコード、プラック、柔らかいリード
+        28–35  ブレイク   ドラムは薄いハットとマラカスだけ（最後に小さいフィル）。クワイアとボーカルコード、プラック、柔らかいリード
         36–39  ビルド2    ビルドと同じ（カットオフのレーンも同じ動き）
         40–51  ラストサビ サビ＋ベルがメロディを1オクターブ上で重ねる
         52–55  アウトロ   パッド（音量フェードアウトのレーン付き）とプラック。最後に D の一発
@@ -261,9 +261,12 @@ CHORUS_MELODY_B_END = [(b - 16, l, p) for b, l, p in CHORUS_MELODY_END if b >= 1
 # kits/future-bass の番号（future_bass.py と同じ）
 KICK = 36          # Kick Punchy
 CLAP = [28, 41]    # Clap Wide＋Snare Cute Tight
-SNARE = 41         # Snare Cute Tight（ロール）
+SNARE = 41         # Snare Cute Tight（単独のバックビート／ゴースト／ロール）
 HAT_C, HAT_O = 42, 58  # 808 Hihat Closed / Open Short
 CRASH = 49         # 808 Cymbal
+TOM_H, TOM_M, TOM_L = 50, 47, 45  # 808 Tom High / Mid / Low（フィル用）
+MARACAS = 70       # 808 Maracas（シェイカー代わり。ごく薄く敷く）
+FINGER = 57        # Perc Finger Cymbal（ラストサビ頭の決めに1発だけ、控えめに）
 
 
 def bounce_kicks(bars=4):
@@ -318,6 +321,67 @@ def hats(bars, sixteenths, crash=False):
     return out
 
 
+def verse_backbeat(bars=4):
+    # Aメロ：ハーフタイムの3拍目にクラップ（28＋41のレイヤー）。
+    # 41単独のゴースト（14拍目）と、4小節目終わりの小さな拾いで「スネア」を聞かせる
+    out = []
+    for b in range(bars):
+        out += steps(b, [8], S16, CLAP, 0.95)
+        if b % 2 == 1:
+            out += steps(b, [14], S16, [SNARE], 0.5)
+        if b == bars - 1:
+            out += steps(b, [12], S16, [SNARE], 0.6)
+            out += steps(b, [15], S16, [SNARE], 0.65)
+    return out
+
+
+def build_snare(bars=2):
+    # ビルド前半（ロールの前）：スネア単独で2・4拍の基本パターンを刻む
+    out = []
+    for b in range(bars):
+        out += steps(b, [4, 12], S16, [SNARE], 0.85)
+    return out
+
+
+def build_roll_fill():
+    # ビルド後半：スネアロール＋最終小節の後半にタムフィル（高→低）でサビへ落とす
+    out = snare_roll(2)
+    for pos, pitch, vel in [(8, TOM_H, 0.7), (10, TOM_H, 0.7), (12, TOM_M, 0.8),
+                            (13, TOM_M, 0.8), (14, TOM_L, 0.9), (15, TOM_L, 0.9)]:
+        out.append(n(BAR + pos * S16, S16, pitch, vel))
+    return out
+
+
+def break_fill():
+    # ブレイク明けの小さなフィル：スネアの8分を少しずつ強く、最後に低いタム
+    out = [n(pos * S16, S16, SNARE, 0.4 + 0.08 * k) for k, pos in enumerate([8, 10, 12, 14])]
+    out.append(n(15 * S16, S16, TOM_L, 0.6))
+    return out
+
+
+def hats_verse(bars=4):
+    # Aメロのハット：8分を土台に厚みを足す（小節終わりで短く開く＋裏の拾い）
+    out = []
+    for b in range(bars):
+        for k in range(8):
+            out.append(n(b * BAR + k * 2 * S16, S16, HAT_C, 0.85 if k % 2 == 1 else 0.5))
+        out.append(n(b * BAR + 14 * S16, S16, HAT_O, 0.6))
+        if b % 2 == 1:
+            out.append(n(b * BAR + 15 * S16, S16, HAT_C, 0.4))
+    return out
+
+
+def break_hats(bars=4):
+    # ブレイク：完全無音にせず、4分の閉ハットとごく薄いマラカスで脈だけ残す
+    out = []
+    for b in range(bars):
+        out += steps(b, [0, 4, 8, 12], S16, [HAT_C], 0.3)
+        for k in range(8):
+            out.append(n(b * BAR + k * 2 * S16, S16, MARACAS, 0.18))
+        out.append(n(b * BAR + 14 * S16, S16, HAT_O, 0.22))
+    return out
+
+
 # ---- project.json に組み立てる ----------------------------------------------------
 
 class AutoBuilder(Builder):
@@ -363,7 +427,8 @@ def build(solo=None):
     b.clip(L, 8, melody(VERSE_MELODY, vel=0.8), [4])
     b.clip(SU, 4, sub_line(VERSE), [4, 8])
     b.clip(K, 4, halftime_kicks(), [4, 8])
-    b.clip(H, 4, hats(4, False), [4, 8])
+    b.clip(CL, 4, verse_backbeat(), [4, 8])
+    b.clip(H, 4, hats_verse(), [4, 8])
 
     # ビルド（12–15）とビルド2（36–39）：コードはカットオフのレーン付き
     b.clip(C, 4, held(BUILD, 0.7), [12], automation=BUILD_CUTOFF)
@@ -371,7 +436,8 @@ def build(solo=None):
     b.clip(SU, 4, sub_line(BUILD), [12, 36])
     b.clip(K, 4, four_floor(), [12, 36])
     b.clip(H, 4, hats(4, True), [12, 36])
-    b.clip(CL, 2, snare_roll(2), [14, 38])
+    b.clip(CL, 2, build_snare(2), [12, 36])
+    b.clip(CL, 2, build_roll_fill(), [14, 38])
     b.clip(R, 4, [n(0, BAR * 4 - 200, 60, 0.9)], [12, 36])
 
     # サビ（16–27）とラストサビ（40–51）：8小節＋4小節の2クリップ構成
@@ -387,9 +453,13 @@ def build(solo=None):
     b.clip(BA, 4, growl_line(CHORUS_B), [24, 48], automation=GROWL_WT_B)
     b.clip(K, 4, bounce_kicks(), [16, 20, 24, 40, 44, 48])
     b.clip(CL, 4, claps(4, [4, 12], extra_last=[15]), [16, 20, 24, 40, 44, 48])
-    b.clip(H, 4, hats(4, True, crash=True), [16, 20, 24, 40, 44, 48])
+    b.clip(H, 4, hats(4, True, crash=True), [16, 20, 24, 44, 48])
+    # ラストサビ頭だけ、フィンガーシンバルを1発重ねた別クリップにする
+    b.clip(H, 4, hats(4, True, crash=True) + [n(0, S16 * 2, FINGER, 0.35)], [40])
 
-    # ブレイク（28–35）：ドラムなし。パッド（レーンなし）とボーカルコードとプラック
+    # ブレイク（28–35）：ドラムは薄いハット＋マラカスだけ。パッド（レーンなし）とボーカルコードとプラック
+    b.clip(H, 4, break_hats(), [28, 32])
+    b.clip(CL, 1, break_fill(), [35])
     b.clip(PD, 4, held(VERSE, 0.5), [28, 32])
     b.clip(VX, 4, held(VERSE, 0.45), [28, 32])
     b.clip(PL, 4, pluck_arp(VERSE), [28, 32])
@@ -401,6 +471,7 @@ def build(solo=None):
     b.clip(C, 1, [n(0, BAR - 60, p, 0.85) for p in V["D"][0]], [55])
     b.clip(SU, 1, [n(0, PPQ * 2, V["D"][1], 0.9)], [55])
     b.clip(K, 1, [n(0, S16 * 2, KICK, 1.0)], [55])
+    b.clip(H, 1, [n(0, BAR, CRASH, 0.8)], [55])  # 最後の一発にシンバルを重ねる
 
     return dict(format="mobiledaw-project", version=1, tempo=155.0, timeSig=[4, 4],
                 key=dict(root=2, scale="major"), tracks=b.tracks, clips=b.clips, placements=b.placements)
