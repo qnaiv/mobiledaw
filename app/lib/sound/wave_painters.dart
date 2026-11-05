@@ -191,7 +191,7 @@ class WtStripPainter extends CustomPainter {
       for (final (_, a, _) in wtHarmonics(table, i / 31)) {
         e += a.abs();
       }
-      final h = 4 + math.min(18.0, e * 5.5);
+      final h = (4 + math.min(18.0, e * 5.5)).toDouble();
       final paint = Paint()..color = i == cur ? color : dim.withValues(alpha: 0.4 + 0.4 * math.exp(-(i - cur).abs() / 6));
       canvas.drawRRect(
         RRect.fromRectAndRadius(Rect.fromLTWH(i * w + 0.6, size.height - h, w - 1.2, h), const Radius.circular(1)),

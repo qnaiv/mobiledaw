@@ -401,7 +401,7 @@ class _WavetablePanel extends StatelessWidget {
                 warp: warp,
                 warpAmt: warpAmtParam.valueOf(track),
                 color: color,
-                dim: DawColors.muted,
+                ghost: DawColors.muted,
               ),
             ),
             CustomPaint(
