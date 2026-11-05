@@ -1215,6 +1215,11 @@ class _SelectionBar extends StatelessWidget {
                 Row(
                   children: [
                     _BarAction(icon: Icons.copy_all_outlined, label: '下に複製', onPressed: song.duplicateSelected),
+                    _BarAction(
+                        icon: Icons.file_copy_outlined,
+                        label: '別パターン複製',
+                        fontSize: 9,
+                        onPressed: song.duplicateSelectedAsNewPattern),
                     _BarAction(icon: Icons.delete_outline, label: '削除', onPressed: song.deleteSelected),
                     _BarAction(icon: Icons.piano, label: 'ノート', onPressed: () => openPianoRoll(context, song, sel.id)),
                   ],
