@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
+import '../piano_roll/automation_params.dart';
 import '../music/voicing.dart';
 import '../kits/kit_store.dart';
 import '../project/library.dart';
@@ -222,6 +223,49 @@ class SongController extends ChangeNotifier {
   /// [points] は (tick, 値) の組。空ならレーンを消す
   bool setClipAutomation(int clipId, int paramId, List<(int, double)> points) =>
       _edit(() => engine.setClipAutomation(clipId, paramId, points));
+
+  // ---- オートメーションのコピペ（アレンジ画面の選択バーから） ---------------------
+
+  List<AutomationLaneData>? _automationClipboard;
+
+  /// コピーしたオートメーションがあるか（貼り付けボタンの有効・無効に使う）
+  bool get hasAutomationClipboard => _automationClipboard?.isNotEmpty ?? false;
+
+  /// クリップのレーン一式を覚える（コピー）。レーンが無ければ false
+  bool copyAutomation(int clipId) {
+    final clip = project.clip(clipId);
+    if (clip == null || clip.automation.isEmpty) return false;
+    _automationClipboard = copyAutomationLanes(clip);
+    notifyListeners(); // 貼り付けボタンが押せるようになる
+    return true;
+  }
+
+  /// 覚えたレーン一式をクリップへ貼る。対象のレーンは丸ごと差し替えで、1つの Undo。
+  /// クリップの長さが違う場合の切り詰め等はコア側の正規化に任せる
+  bool pasteAutomation(int clipId) {
+    final clipboard = _automationClipboard;
+    final clip = project.clip(clipId);
+    if (clipboard == null || clipboard.isEmpty || clip == null) return false;
+    return _applyAutomationPlan(clipId, automationPastePlan(current: clip.automation, clipboard: clipboard));
+  }
+
+  /// クリップのレーンを全部消す（1つの Undo）
+  bool clearAutomation(int clipId) {
+    final clip = project.clip(clipId);
+    if (clip == null || clip.automation.isEmpty) return false;
+    return _applyAutomationPlan(clipId, automationClearPlan(clip.automation));
+  }
+
+  bool _applyAutomationPlan(int clipId, AutomationPlan plan) {
+    if (plan.isEmpty) return false;
+    return _edit(() => engine.editGroup(() {
+          var ok = true;
+          for (final (paramId, points) in plan) {
+            ok = engine.setClipAutomation(clipId, paramId, points) && ok;
+          }
+          return ok;
+        }));
+  }
 
   /// 指定したものだけ変える（他は今の値のまま）
   bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
