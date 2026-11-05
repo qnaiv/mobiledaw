@@ -25,12 +25,15 @@ Future<void> showSoundSheet(BuildContext context, SongController song, int track
 const _kAnalog = 'analog';
 const _kWavetable = 'wt';
 const _kKit = 'kit';
+const _kSampler = 'sampler';
 
-const _instNames = {_kAnalog: 'アナログ・シンセ', _kWavetable: 'ウェーブテーブル', _kKit: 'ドラムキット'};
-const _instColors = {_kAnalog: Color(0xFFF0A13C), _kWavetable: Color(0xFF35C4B5), _kKit: Color(0xFFE879C6)};
+const _instNames = {_kAnalog: 'アナログ・シンセ', _kWavetable: 'ウェーブテーブル', _kKit: 'ドラムキット', _kSampler: 'サンプラー'};
+const _instColors = {_kAnalog: Color(0xFFF0A13C), _kWavetable: Color(0xFF35C4B5), _kKit: Color(0xFFE879C6), _kSampler: Color(0xFF7FB2F0)};
 
 /// トラックが今どの楽器か（キット優先、シンセは wtTable で判定）
+/// トラックが今どの楽器か（サンプラー優先、次にキット、シンセは wtTable で判定）
 String _instrumentOf(TrackData t) {
+  if (t.isSampler) return _kSampler;
   if (t.isKit) return _kKit;
   return (t.synth['wtTable'] ?? 0) >= 1 ? _kWavetable : _kAnalog;
 }
@@ -44,6 +47,12 @@ class _SoundSheet extends StatelessWidget {
   final int trackId;
 
   void _audition(TrackData track) {
+    if (track.isSampler) {
+      // サンプラーは基準音程を中心に短い和音で試聴（エンジン側でスロットのサンプラーが鳴る）
+      final root = track.samplerRootNote;
+      song.auditionChord([root, root + 4, root + 7]);
+      return;
+    }
     song.previewTrack(trackId);
     final kit = track.isKit ? song.kits.installed(track.kitId) : null;
     if (kit != null) {
@@ -61,6 +70,23 @@ class _SoundSheet extends StatelessWidget {
 
   void _selectInstrument(BuildContext context, TrackData track, String inst) {
     if (inst == _instrumentOf(track)) return;
+    if (inst == _kSampler) {
+      // 入っているキットがあれば最初のキットの最初の音、無ければ探す画面へ
+      final have = song.kits.installedKits();
+      if (have.isEmpty) {
+        _pickKit(context);
+      } else {
+        final kit = have.first;
+        song.setTrackSampler(trackId, kit.id, kit.sounds.isEmpty ? '' : kit.sounds.first.name, 60, 1.0, 0.0);
+        song.previewTrack(trackId);
+      }
+      return;
+    }
+    // サンプラーから他の楽器へ移るときはサンプラーを外す（設定はコア側に残らないので注意：
+    // 再度サンプラーを選ぶと既定値から。キット／シンセの設定は従来どおり残る）
+    if (track.isSampler) {
+      song.setTrackSampler(trackId, '', '', 60, 1.0, 0.0);
+    }
     if (inst == _kKit) {
       // 入っているキットがあれば最初のもの、無ければ探す画面へ
       final have = song.kits.installedKits();
@@ -160,10 +186,24 @@ class _SoundSheet extends StatelessWidget {
                       selected: inst == _kKit,
                       onTap: () => _selectInstrument(context, track, _kKit),
                     ),
+                    const SizedBox(width: 8),
+                    _InstCard(
+                      icon: Icons.music_note,
+                      name: 'サンプラー',
+                      sub: '音を鍵盤で',
+                      color: _instColors[_kSampler]!,
+                      selected: inst == _kSampler,
+                      onTap: () => _selectInstrument(context, track, _kSampler),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
-                if (inst == _kKit) ...[
+                if (inst == _kSampler) ...[
+                  _SamplerPanel(song: song, track: track, onBrowse: () => _pickKit(context)),
+                  const SizedBox(height: 8),
+                  for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(song: song, track: track, macro: m),
+                  _DetailSection(title: '詳しく：エフェクト', song: song, track: track, params: fxParams),
+                ] else if (inst == _kKit) ...[
                   _KitPanel(song: song, track: track, onBrowse: () => _pickKit(context)),
                   const SizedBox(height: 8),
                   for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(song: song, track: track, macro: m),
@@ -733,6 +773,205 @@ class _ParamRow extends StatelessWidget {
                   textAlign: TextAlign.right,
                   style: const TextStyle(fontSize: 12, fontFeatures: [FontFeature.tabularFigures()])),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 音名（C4 = 60）
+String _noteName(int note) {
+  const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  final n = note.clamp(0, 127);
+  return '${names[n % 12]}${n ~/ 12 - 1}';
+}
+
+/// サンプラーのトラック：素材キットと音の選択、基準音程、音量、開始位置
+class _SamplerPanel extends StatelessWidget {
+  const _SamplerPanel({required this.song, required this.track, required this.onBrowse});
+
+  final SongController song;
+  final TrackData track;
+  final VoidCallback onBrowse;
+
+  void _commit(String kitId, String soundName, int rootNote, double gain, double start) {
+    song.setTrackSampler(track.id, kitId, soundName, rootNote, gain, start);
+    song.previewTrack(track.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _instColors[_kSampler]!;
+    final kit = song.kits.installed(track.samplerKitId);
+    final installed = song.kits.installedKits();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('SAMPLER', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: installed.isEmpty
+                  ? const Text('ダウンロード済みのキットがありません', style: TextStyle(color: DawColors.muted))
+                  : DropdownButton<String>(
+                      isExpanded: true,
+                      value: kit != null ? track.samplerKitId : null,
+                      hint: Text('「${track.samplerKitId}」（未ダウンロード）', style: const TextStyle(color: DawColors.danger)),
+                      items: [
+                        for (final k in installed) DropdownMenuItem(value: k.id, child: Text('${k.name}（${k.sounds.length}音）')),
+                      ],
+                      onChanged: (id) {
+                        if (id == null) return;
+                        final next = song.kits.installed(id);
+                        _commit(id, next == null || next.sounds.isEmpty ? '' : next.sounds.first.name,
+                            track.samplerRootNote, track.samplerGain, track.samplerStart);
+                      },
+                    ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+                onPressed: onBrowse, icon: const Icon(Icons.cloud_download_outlined, size: 18), label: const Text('キットを探す')),
+          ],
+        ),
+        if (kit == null)
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text('素材のキットはまだこの端末にありません。「キットを探す」から入れると鳴ります',
+                style: TextStyle(fontSize: 12, color: DawColors.danger)),
+          )
+        else ...[
+          const SizedBox(height: 8),
+          const _Caption('素材の音（タップで選択＆試聴）'),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final snd in kit.sounds)
+                _MiniChip(
+                  label: snd.name,
+                  color: color,
+                  selected: track.samplerSoundName == snd.name,
+                  onTap: () {
+                    _commit(track.samplerKitId, snd.name, track.samplerRootNote, track.samplerGain, track.samplerStart);
+                    song.audition(track.samplerRootNote);
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const _Caption('基準音程（この音程で原音の速さで鳴る）'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: '1オクターブ下',
+                icon: const Icon(Icons.keyboard_double_arrow_down),
+                onPressed: () => _commit(track.samplerKitId, track.samplerSoundName,
+                    track.samplerRootNote - 12, track.samplerGain, track.samplerStart),
+              ),
+              IconButton(
+                tooltip: '半音下',
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: () => _commit(track.samplerKitId, track.samplerSoundName,
+                    track.samplerRootNote - 1, track.samplerGain, track.samplerStart),
+              ),
+              SizedBox(
+                width: 76,
+                child: Text('${_noteName(track.samplerRootNote)}（${track.samplerRootNote}）',
+                    textAlign: TextAlign.center, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              ),
+              IconButton(
+                tooltip: '半音上',
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: () => _commit(track.samplerKitId, track.samplerSoundName,
+                    track.samplerRootNote + 1, track.samplerGain, track.samplerStart),
+              ),
+              IconButton(
+                tooltip: '1オクターブ上',
+                icon: const Icon(Icons.keyboard_double_arrow_up),
+                onPressed: () => _commit(track.samplerKitId, track.samplerSoundName,
+                    track.samplerRootNote + 12, track.samplerGain, track.samplerStart),
+              ),
+            ],
+          ),
+          _CommitSlider(
+            label: '音量',
+            value: track.samplerGain,
+            min: 0,
+            max: 2,
+            format: (v) => '${(v * 100).round()}%',
+            onCommit: (v) =>
+                _commit(track.samplerKitId, track.samplerSoundName, track.samplerRootNote, v, track.samplerStart),
+          ),
+          _CommitSlider(
+            label: '開始位置',
+            value: track.samplerStart,
+            min: 0,
+            max: 0.95,
+            format: (v) => '${(v * 100).round()}%',
+            onCommit: (v) =>
+                _commit(track.samplerKitId, track.samplerSoundName, track.samplerRootNote, track.samplerGain, v),
+          ),
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Text('ループはしません。素材が終わるかノートオフ（リリース 60ms）で消えます',
+                style: TextStyle(fontSize: 11, color: DawColors.muted)),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// ドラッグ中は手元で値を保持し、離したときに1回だけ確定するスライダー
+/// （サンプラーの設定はコマンド単位で確定するため、シンセの live 経路を使わない）
+class _CommitSlider extends StatefulWidget {
+  const _CommitSlider(
+      {required this.label, required this.value, required this.min, required this.max, required this.format, required this.onCommit});
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final String Function(double) format;
+  final void Function(double) onCommit;
+
+  @override
+  State<_CommitSlider> createState() => _CommitSliderState();
+}
+
+class _CommitSliderState extends State<_CommitSlider> {
+  late double _value = widget.value;
+
+  @override
+  void didUpdateWidget(_CommitSlider old) {
+    super.didUpdateWidget(old);
+    _value = widget.value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          SizedBox(width: 76, child: Text(widget.label, style: const TextStyle(fontSize: 12))),
+          Expanded(
+            child: Slider(
+              value: _value.clamp(widget.min, widget.max),
+              min: widget.min,
+              max: widget.max,
+              onChanged: (v) => setState(() => _value = v),
+              onChangeEnd: (v) => widget.onCommit(v),
+            ),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(widget.format(_value),
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 12, fontFeatures: [FontFeature.tabularFigures()])),
           ),
         ],
       ),

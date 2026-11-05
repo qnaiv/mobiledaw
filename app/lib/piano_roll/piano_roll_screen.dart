@@ -13,6 +13,7 @@ import '../music/voicing.dart';
 import '../music/scale.dart';
 import '../ui/scale_keyboard.dart';
 import '../ui/theme.dart';
+import 'automation_sheet.dart';
 import 'chord_tools.dart';
 import 'progression_sheet.dart';
 import 'roll_math.dart';
@@ -222,6 +223,12 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ],
             ),
           ),
+          _RoundIcon(
+            icon: Icons.show_chart,
+            label: 'オートメーション',
+            onPressed: () => showAutomationSheet(context, song, clip.id),
+          ),
+          const SizedBox(width: 6),
           _RoundIcon(icon: Icons.undo, label: '元に戻す', onPressed: song.canUndo ? song.undo : null),
           const SizedBox(width: 6),
           _RoundIcon(icon: Icons.redo, label: 'やり直す', onPressed: song.canRedo ? song.redo : null),
