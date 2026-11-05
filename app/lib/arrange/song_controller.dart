@@ -309,7 +309,8 @@ class SongController extends ChangeNotifier {
 
   // ---- トラックとクリップ -------------------------------------------------------
 
-  bool get canAddTrack => project.tracks.length < 8;
+  // 上限はコアの Project::kMaxTracks と合わせる
+  bool get canAddTrack => project.tracks.length < 32;
 
   void addTrack() {
     if (!canAddTrack) return;

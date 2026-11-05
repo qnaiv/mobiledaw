@@ -92,7 +92,7 @@ struct Track {
 
 struct Project {
     static constexpr int kVersion = 1;
-    static constexpr int kMaxTracks = 8;
+    static constexpr int kMaxTracks = 32;
 
     std::string title = "無題の曲";
     double tempo = 120.0;

@@ -95,6 +95,55 @@ TEST(json_drops_broken_parts_but_keeps_the_rest) {
     CHECK(q.placements.size() == 1);
 }
 
+// 旧上限（8本）を超えるトラックが読み込みで消えないこと（kMaxTracks = 32 の回帰防止）
+TEST(json_round_trip_keeps_more_than_eight_tracks) {
+    Project p = makeDefaultProject();
+    History h(p);
+    for (int i = 2; i <= 11; ++i)
+        CHECK(h.execute(std::make_unique<AddTrack>("Track " + std::to_string(i), 0xFF000000u)));
+    CHECK(p.tracks.size() == 11);
+    const auto json = projectToJson(p);
+    Project q;
+    std::string error;
+    CHECK(projectFromJson(json, q, error));
+    CHECK(q.tracks.size() == 11);
+    CHECK(q.tracks[8].name == "Track 9");
+    CHECK(q.tracks[9].name == "Track 10");
+    CHECK(q.tracks[10].name == "Track 11");
+}
+
+// 実物のデモ曲 kawaii2（11トラック）が丸ごと読めること。9本目以降が消えると
+// Clap／Hats／Riser が鳴らない（実際に起きた不具合）。
+TEST(json_loads_kawaii2_demo_with_all_eleven_tracks) {
+    const auto demo = juce::File(__FILE__)
+                          .getParentDirectory()
+                          .getParentDirectory()
+                          .getParentDirectory()
+                          .getChildFile("app")
+                          .getChildFile("assets")
+                          .getChildFile("demos")
+                          .getChildFile("kawaii2.json");
+    if (!demo.existsAsFile()) {
+        std::printf("  kawaii2.json がないので省略\n");
+        return;
+    }
+    Project q;
+    std::string error;
+    CHECK(projectFromJson(demo.loadFileAsString().toStdString(), q, error));
+    CHECK(q.tracks.size() == 11);
+    if (q.tracks.size() == 11) {
+        CHECK(q.tracks[8].name == "Clap");
+        CHECK(q.tracks[9].name == "Hats");
+        CHECK(q.tracks[10].name == "Riser");
+        // Hats のクリップとノートも残っている
+        bool hatsHasNotes = false;
+        for (const auto& c : q.clips)
+            if (c.trackId == q.tracks[9].id && !c.notes.empty())
+                hatsHasNotes = true;
+        CHECK(hatsHasNotes);
+    }
+}
+
 TEST(json_file_save_and_load) {
     const auto dir = juce::File::getSpecialLocation(juce::File::tempDirectory)
                          .getChildFile("mdaw-test-" + juce::String::toHexString(juce::Random::getSystemRandom().nextInt64()));
