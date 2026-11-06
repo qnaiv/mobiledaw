@@ -2,9 +2,11 @@
 // → 楽器専用パネル → 大きいつまみ → 必要なら「詳しく」。
 // つまみは再生しながら動かせて、離すまでが1回の Undo。
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../arrange/mixer_sheet.dart';
 import '../arrange/song_controller.dart';
+import '../arrange/timeline_math.dart';
 import '../engine/mdaw_ffi.dart';
 import '../kits/kits_screen.dart';
 import '../model/project.dart';
@@ -19,6 +21,98 @@ Future<void> showSoundSheet(BuildContext context, SongController song, int track
     backgroundColor: DawColors.panel,
     builder: (context) => _SoundSheet(song: song, trackId: trackId),
   );
+}
+
+/// シートの先頭に置く小さな再生バー：シートを開いたまま曲全体を再生・停止して、
+/// つまみの効きをその場で確かめられるようにする（操作は SongController の従来どおり）
+class _SheetTransport extends StatefulWidget {
+  const _SheetTransport({required this.song});
+
+  final SongController song;
+
+  @override
+  State<_SheetTransport> createState() => _SheetTransportState();
+}
+
+class _SheetTransportState extends State<_SheetTransport> with SingleTickerProviderStateMixin {
+  final _position = ValueNotifier<int>(0);
+  final _playing = ValueNotifier<bool>(false);
+  late final Ticker _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker((_) {
+      _position.value = widget.song.engine.positionTicks;
+      _playing.value = widget.song.engine.isPlaying;
+    })
+      ..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _position.dispose();
+    _playing.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final song = widget.song;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      decoration: BoxDecoration(
+        color: DawColors.background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: DawColors.line),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            tooltip: '先頭へ',
+            onPressed: song.rewind,
+            icon: const Icon(Icons.skip_previous, size: 20),
+          ),
+          Expanded(
+            child: SizedBox(
+              height: 40,
+              child: ListenableBuilder(
+                listenable: Listenable.merge([_position, _playing]),
+                builder: (context, _) => FilledButton(
+                  onPressed: song.togglePlay,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(_playing.value ? Icons.stop : Icons.play_arrow,
+                          size: 18, semanticLabel: _playing.value ? '止める' : '再生'),
+                      const SizedBox(width: 6),
+                      Text(formatPosition(_position.value, song.project.ticksPerBar),
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700, fontFeatures: [FontFeature.tabularFigures()])),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: '元に戻す',
+            onPressed: song.canUndo ? song.undo : null,
+            icon: const Icon(Icons.undo, size: 20),
+          ),
+          IconButton(
+            tooltip: 'やり直す',
+            onPressed: song.canRedo ? song.redo : null,
+            icon: const Icon(Icons.redo, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 楽器の識別子と見た目（モックアップで決めた色分け）
@@ -123,6 +217,9 @@ class _SoundSheet extends StatelessWidget {
               shrinkWrap: true,
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
               children: [
+                // シートを開いたまま曲を再生・停止できる小さな再生バー
+                _SheetTransport(song: song),
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Container(
