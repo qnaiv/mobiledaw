@@ -11,6 +11,11 @@
 //  7. 前後（直前のコード・このあとのコード・ループの頭）へのつながり、繰り返しの少なさ、
 //     最近出した案との違いで点数をつけ、形の違う案を選ぶ
 //
+// セクション（Aメロ・Bメロ・サビ・イントロ）を指定すると、その役割に合う制約を上乗せする：
+// 先頭コードや使えるコード・色づけを絞り、モチーフは頭からだけ使い、味付けを止め、
+// 最後に制約チェック（progressionSatisfiesSection）で違反した案を候補から外す。
+// 「指定なし」は従来の生成そのまま（制約オブジェクトを使わない経路を通る）。
+//
 // コードはすべて「長調の中での位置（ローマ数字）」で持つ。短調の曲は平行調（短3度上の長調）として扱う
 // （C minor の i は E♭ major の vi）。画面に出すときにキーの音名にする。
 import 'dart:math' as math;
@@ -155,6 +160,137 @@ const Map<String, Map<String, double>> _flow = {
 const Map<String, double> _fallbackFlow = {'I': .8, 'IV': 1.0, 'V': .8, 'vi': .8, 'ii': .5, 'iii': .4};
 
 double flowWeight(String from, String to) => (_flow[from] ?? _fallbackFlow)[to] ?? 0.0;
+
+// ---- セクション ------------------------------------------------------------------------
+
+/// 進行の役割。生成の制約の強さが変わる（[GenSection.none] は従来どおり制約なし）
+enum GenSection {
+  none('指定なし'),
+  verseA('Aメロ'),
+  verseB('Bメロ'),
+  chorus('サビ'),
+  intro('イントロ');
+
+  const GenSection(this.label);
+  final String label;
+}
+
+/// セクションごとの制約（null の項目は制限なし）。コードはすべて長調換算のローマ数字
+class _SectionRules {
+  const _SectionRules({
+    this.first,
+    this.bases,
+    this.maxIv,
+    this.suffixes,
+    this.headMotifOnly = false,
+    this.noSeasoning = false,
+    this.borrowOnlySeasoning = false,
+    this.noSplit = false,
+    this.longBoost = 0.0,
+    this.preferFirst,
+    this.preferLastDominant = false,
+  });
+
+  final Set<String>? first; // 先頭コードの許可
+  final Set<String>? bases; // 使えるコード（全体）
+  final int? maxIv; // 借用 iv の上限（bases に無くてもこの数まで許可）
+  final Map<String, Set<String>>? suffixes; // 色づけの許可（_color の kind ごと）
+  final bool headMotifOnly; // モチーフをずらさず・途中から使わず、頭からだけ置く
+  final bool noSeasoning; // 味付け（代理・借用・押し出し・sus・dim）を全部止める
+  final bool borrowOnlySeasoning; // 味付けは借用 iv だけ残す
+  final bool noSplit; // 小節の中の分割（2拍刻み・3+1）を出さない
+  final double longBoost; // 2小節伸ばす確率の下限
+  final Set<String>? preferFirst; // 先頭がこれならスコア加点（サビ）
+  final bool preferLastDominant; // 最後が V ならスコア加点（Bメロ）
+}
+
+/// ダイアトニック（長調換算）。vii° は減和音なのでセクション制約では使わない
+const _diatonicPlain = {'I', 'ii', 'iii', 'IV', 'V', 'vi'};
+
+/// Aメロ・イントロの色づけ：トライアド中心（M7・m7・add9 まで。9th・11th・dim 系は出さない）
+const _suffixesVerseA = <String, Set<String>>{
+  'maj': {'', 'M7', 'add9', 'sus2'},
+  'min': {'', '7', 'add9'},
+  'dom': {'', '7', 'sus4', '7sus4'},
+  'sec': {'7'},
+};
+
+/// Bメロの色づけ：Aメロより少し自由（M9・9・6 まで。11th・dim 系は出さない）
+const _suffixesVerseB = <String, Set<String>>{
+  'maj': {'', 'M7', 'M9', 'add9', '6', 'sus2', 'sus4'},
+  'min': {'', '7', '9', 'add9'},
+  'dom': {'', '7', '9', 'sus4', '7sus4'},
+  'sec': {'7', '9'},
+};
+
+_SectionRules? _rulesFor(GenSection section) => switch (section) {
+      GenSection.none => null,
+      GenSection.verseA => const _SectionRules(
+          first: {'I', 'vi'},
+          bases: _diatonicPlain,
+          suffixes: _suffixesVerseA,
+          headMotifOnly: true,
+          noSeasoning: true,
+          noSplit: true,
+        ),
+      GenSection.verseB => const _SectionRules(
+          first: {'I', 'vi', 'IV'},
+          bases: _diatonicPlain,
+          maxIv: 1,
+          suffixes: _suffixesVerseB,
+          headMotifOnly: true,
+          borrowOnlySeasoning: true,
+          preferLastDominant: true,
+        ),
+      // サビは従来の自由な生成のまま。先頭が IV・I の案をスコアで少し優先するだけ
+      GenSection.chorus => const _SectionRules(preferFirst: {'IV', 'I'}),
+      GenSection.intro => const _SectionRules(
+          first: {'I'},
+          bases: _diatonicPlain,
+          suffixes: _suffixesVerseA,
+          headMotifOnly: true,
+          noSeasoning: true,
+          noSplit: true,
+          longBoost: 0.3,
+        ),
+    };
+
+/// コードの種類（色づけの表を引くための分類。[_color] と同じ振り分け）
+String _kindOf(String base) {
+  final b = parseBase(base);
+  if (b == null || b.dim) return 'dim';
+  if (b.minor) return 'min';
+  if (base == 'V') return 'dom';
+  if (base == 'II' || base == 'III' || base == 'VI' || base == 'VII') return 'sec';
+  return 'maj';
+}
+
+/// その案がセクションの制約（先頭・使えるコード・借用 iv の数・色づけ）を満たすか。
+/// リズム（2拍刻みの有無）は生成の段階で担保するので、ここでは見ない
+bool progressionSatisfiesSection(GenProgression p, GenSection section) {
+  final rules = _rulesFor(section);
+  if (rules == null) return true;
+  if (p.chords.isEmpty) return false;
+  if (rules.first != null && !rules.first!.contains(p.chords.first.base)) return false;
+  var ivs = 0;
+  for (var i = 0; i < p.chords.length; i++) {
+    final c = p.chords[i];
+    if (c.base == 'iv' && rules.maxIv != null) {
+      ivs++;
+    } else if (rules.bases != null && !rules.bases!.contains(c.base)) {
+      return false;
+    }
+    final suffixes = rules.suffixes;
+    if (suffixes != null) {
+      final kind = _kindOf(c.base);
+      if (kind == 'dim') return false;
+      final allow = suffixes[kind];
+      if (allow != null && !allow.contains(c.suffix)) return false;
+    }
+  }
+  if (rules.maxIv != null && ivs > rules.maxIv!) return false;
+  return true;
+}
 
 // ---- スタイル --------------------------------------------------------------------------
 
@@ -458,6 +594,8 @@ class ProgressionGenerator {
 
   /// [count] 案作る。[style] が null なら案ごとにスタイルもランダム。
   /// [locked] はその位置（拍の頭→コード）を残す（同じ長さの並びで作り直す）
+  /// [section] を指定すると、その役割の制約を満たす案だけを返す。制約を満たす候補が
+  /// 揃うまで追加で生成を試み（上限は [tries] の6倍）、不足すれば満たした分だけ返す
   List<GenProgression> generate({
     GenStyle? style,
     int bars = 4,
@@ -467,13 +605,22 @@ class ProgressionGenerator {
     List<GenChord>? keepRhythmOf,
     Map<int, GenChord> locked = const {},
     int tries = 260,
+    GenSection section = GenSection.none,
   }) {
+    final rules = _rulesFor(section);
     final scored = <(double, GenProgression)>[];
-    for (var t = 0; t < tries; t++) {
+    // 指定なしは従来どおり tries 回だけ作る。セクション指定時は、制約を満たす候補が
+    // 選別に足る数（count の6倍）集まるか、上限回数に達するまで作り続ける
+    final maxAttempts = rules == null ? tries : tries * 6;
+    final wantPool = rules == null ? tries : count * 6;
+    var attempts = 0;
+    while (attempts < maxAttempts && scored.length < wantPool) {
+      attempts++;
       final s = style ?? genStyles[rng.nextInt(genStyles.length)];
-      final p = _one(s, bars, minorKey || s.minorTonic, context, keepRhythmOf, locked);
+      final p = _one(s, bars, minorKey || s.minorTonic, context, keepRhythmOf, locked, rules: rules);
       if (p == null) continue;
-      scored.add((_score(p, context, minorKey || s.minorTonic) + rng.nextDouble() * 0.6, p));
+      if (rules != null && !progressionSatisfiesSection(p, section)) continue;
+      scored.add((_score(p, context, minorKey || s.minorTonic, section) + rng.nextDouble() * 0.6, p));
     }
     scored.sort((a, b) => b.$1.compareTo(a.$1));
     final picked = <GenProgression>[];
@@ -499,9 +646,9 @@ class ProgressionGenerator {
   // ---- 1案 ----
 
   GenProgression? _one(GenStyle s, int bars, bool minorTonic, GenContext ctx, List<GenChord>? rhythmOf,
-      Map<int, GenChord> locked) {
+      Map<int, GenChord> locked, {_SectionRules? rules}) {
     final tags = <String>[];
-    final beats = rhythmOf != null ? [for (final c in rhythmOf) c.beats] : _rhythm(s, bars, tags);
+    final beats = rhythmOf != null ? [for (final c in rhythmOf) c.beats] : _rhythm(s, bars, tags, rules: rules);
     final n = beats.length;
     final tonic = minorTonic ? 'vi' : 'I';
 
@@ -518,18 +665,36 @@ class ProgressionGenerator {
     fixedAt.forEach((i, c) => bases[i] = c.base);
 
     // 種：モチーフを、ずらしたり途中から使ったりして置く
+    // セクション制約があるときは、制約に収まるモチーフだけを種にし、
+    // headMotifOnly（Aメロ・Bメロ・イントロ）ではずらさず途中からも使わず、頭から置く
     if (rng.nextDouble() < 0.7 && s.motifs.isNotEmpty) {
-      var motif = s.motifs[rng.nextInt(s.motifs.length)];
-      if (rng.nextDouble() < 0.35) {
-        final shift = rng.nextInt(motif.length);
-        motif = [...motif.sublist(shift), ...motif.sublist(0, shift)];
-        tags.add('お決まりをずらして');
-      } else {
-        tags.add('お決まりの並びから');
+      var pool = s.motifs;
+      if (rules?.bases != null) {
+        final allow = {...rules!.bases!, if (rules.maxIv != null) 'iv'};
+        pool = [
+          for (final m in s.motifs)
+            if (m.every(allow.contains) && (rules.first == null || rules.first!.contains(m.first))) m
+        ];
       }
-      final start = n > motif.length && rng.nextDouble() < 0.4 ? rng.nextInt(n - motif.length + 1) : 0;
-      for (var i = 0; i < motif.length && start + i < n; i++) {
-        bases[start + i] ??= motif[i];
+      if (pool.isEmpty) {
+        tags.add('自由な流れ');
+      } else {
+        var motif = pool[rng.nextInt(pool.length)];
+        if (rules?.headMotifOnly != true && rng.nextDouble() < 0.35) {
+          final shift = rng.nextInt(motif.length);
+          motif = [...motif.sublist(shift), ...motif.sublist(0, shift)];
+          tags.add('お決まりをずらして');
+        } else {
+          tags.add('お決まりの並びから');
+        }
+        final start = rules?.headMotifOnly == true
+            ? 0
+            : n > motif.length && rng.nextDouble() < 0.4
+                ? rng.nextInt(n - motif.length + 1)
+                : 0;
+        for (var i = 0; i < motif.length && start + i < n; i++) {
+          bases[start + i] ??= motif[i];
+        }
       }
     } else {
       tags.add('自由な流れ');
@@ -540,6 +705,8 @@ class ProgressionGenerator {
     final repeatHalf = bars >= 8 && n.isEven && rng.nextDouble() < 0.45;
 
     // 残りを流れの表で（前の2つを見る。ばらつきも毎回変える）
+    // セクション制約があるときは、候補を使えるコードに絞る（借用 iv は上限まで）
+    final allowedBases = rules?.bases == null ? null : {...rules!.bases!, if (rules.maxIv != null) 'iv'};
     final temperature = 0.7 + rng.nextDouble() * 0.9;
     for (var i = 0; i < n; i++) {
       if (bases[i] != null) continue;
@@ -550,31 +717,40 @@ class ProgressionGenerator {
       final prev = i > 0 ? bases[i - 1] : ctx.before;
       final prev2 = i > 1 ? bases[i - 2] : null;
       final next = i + 1 < n ? bases[i + 1] : (ctx.after ?? ctx.loopHead);
-      bases[i] = _pick(s, prev, prev2, next, i == 0, i == n - 1, tonic, temperature);
+      var allow = allowedBases;
+      if (allow != null && rules?.maxIv != null && bases.contains('iv')) {
+        allow = {...allow}..remove('iv'); // 借用 iv は上限まで（既に使っていたら候補から外す）
+      }
+      bases[i] = _pick(s, prev, prev2, next, i == 0, i == n - 1, tonic, temperature,
+          allowed: allow, firstOnly: i == 0 ? rules?.first : null);
     }
     if (repeatHalf) tags.add('前半をくり返して後半で変化');
 
     // 色づけと味付け
     var chords = <GenChord>[
-      for (var i = 0; i < n; i++) fixedAt[i] ?? GenChord(bases[i]!, _color(s, bases[i]!), beats[i]),
+      for (var i = 0; i < n; i++) fixedAt[i] ?? GenChord(bases[i]!, _color(s, bases[i]!, rules: rules), beats[i]),
     ];
-    chords = _season(s, chords, fixedAt.keys.toSet(), tags);
+    chords = _season(s, chords, fixedAt.keys.toSet(), tags, rules: rules);
     return GenProgression(s, chords, tags);
   }
 
   /// コードの変わる間隔（拍の並び）
-  List<int> _rhythm(GenStyle s, int bars, List<String> tags) {
+  /// セクション制約の noSplit では小節内の分割を出さず、longBoost では2小節伸ばしを増やす
+  List<int> _rhythm(GenStyle s, int bars, List<String> tags, {_SectionRules? rules}) {
+    final splitP = rules?.noSplit == true ? 0.0 : s.split;
+    final splitLastP = rules?.noSplit == true ? 0.0 : s.splitLast;
+    final longP = math.max(s.longChord, rules?.longBoost ?? 0.0);
     final out = <int>[];
     var bar = 0;
     var split = false;
     while (bar < bars) {
       final last = bar == bars - 1;
-      if (!last && bar + 1 < bars && rng.nextDouble() < s.longChord) {
+      if (!last && bar + 1 < bars && rng.nextDouble() < longP) {
         out.add(8);
         bar += 2;
         continue;
       }
-      if ((last && rng.nextDouble() < s.splitLast) || rng.nextDouble() < s.split) {
+      if ((last && rng.nextDouble() < splitLastP) || rng.nextDouble() < splitP) {
         out.addAll(rng.nextDouble() < 0.85 ? [2, 2] : [3, 1]);
         split = true;
       } else {
@@ -587,9 +763,11 @@ class ProgressionGenerator {
   }
 
   String _pick(GenStyle s, String? prev, String? prev2, String? next, bool first, bool last, String tonic,
-      double temperature) {
+      double temperature, {Set<String>? allowed, Set<String>? firstOnly}) {
     final w = <String, double>{};
     final candidates = {..._flow.keys};
+    if (allowed != null) candidates.retainAll(allowed);
+    if (first && firstOnly != null) candidates.retainAll(firstOnly);
     for (final c in candidates) {
       var x = prev == null
           ? (first ? (c == tonic ? 1.0 : (c == 'IV' || c == 'vi' || c == 'ii' ? 0.8 : 0.25)) : 0.5)
@@ -606,47 +784,54 @@ class ProgressionGenerator {
       if ((c == 'vii°' || c == 'v' || c == '♭III' || c == 'VI') && temperature < 1.1) x *= 0.3;
       w[c] = math.pow(x, 1 / temperature).toDouble();
     }
-    return _choose(w) ?? tonic;
+    final chosen = _choose(w);
+    if (chosen != null) return chosen;
+    // 制約で候補が尽きたときの保険：制約の内側から返す（先頭制約 → 全体制約 → 主和音）
+    if (first && firstOnly != null && firstOnly.isNotEmpty) return firstOnly.first;
+    if (allowed != null && allowed.isNotEmpty && !allowed.contains(tonic)) return allowed.first;
+    return tonic;
   }
 
-  String _color(GenStyle s, String base) {
+  String _color(GenStyle s, String base, {_SectionRules? rules}) {
     final b = parseBase(base);
     if (b == null) return '';
-    if (b.dim) return rng.nextDouble() < 0.5 ? 'ø' : '';
-    final kind = b.minor
-        ? 'min'
-        : base == 'V'
-            ? 'dom'
-            : (base == 'II' || base == 'III' || base == 'VI' || base == 'VII')
-                ? 'sec'
-                : 'maj';
-    return _choose(s.colors[kind] ?? const {'': 1.0}) ?? '';
+    if (b.dim) {
+      // セクション制約があるときは dim 系の色づけ（ø）を出さない
+      if (rules?.suffixes != null) return '';
+      return rng.nextDouble() < 0.5 ? 'ø' : '';
+    }
+    final kind = _kindOf(base);
+    var table = s.colors[kind] ?? const {'': 1.0};
+    final allow = rules?.suffixes?[kind];
+    if (allow != null) {
+      table = {for (final e in table.entries) if (allow.contains(e.key)) e.key: e.value};
+      if (table.isEmpty) return '';
+    }
+    return _choose(table) ?? '';
   }
 
   /// 味付け（ランダム）。固定した位置は触らない
-  List<GenChord> _season(GenStyle s, List<GenChord> chords, Set<int> fixed, List<String> tags) {
+  /// セクション制約：Aメロ・イントロは味付けなし、Bメロは借用 iv だけ残す
+  List<GenChord> _season(GenStyle s, List<GenChord> chords, Set<int> fixed, List<String> tags,
+      {_SectionRules? rules}) {
     var out = [...chords];
+    if (rules?.noSeasoning == true) return out;
+    if (rules?.borrowOnlySeasoning == true) {
+      if (rng.nextDouble() < s.borrow) out = _borrowIv(s, out, fixed, tags, rules: rules);
+      return out;
+    }
     // 代理：I↔vi、IV↔ii、I↔iii（たまに）
     for (var i = 1; i < out.length - 1; i++) {
       if (fixed.contains(i) || rng.nextDouble() >= s.substitute * 0.5) continue;
       final sub = switch (out[i].base) { 'I' => 'vi', 'IV' => 'ii', 'vi' => 'IV', 'ii' => 'IV', _ => null };
       if (sub == null || sub == out[i - 1].base || sub == out[i + 1].base) continue;
-      out[i] = GenChord(sub, _color(s, sub), out[i].beats);
+      out[i] = GenChord(sub, _color(s, sub, rules: rules), out[i].beats);
       tags.add('代理コード');
       break;
     }
     // 短調から借りる iv：2回目の IV（無ければ IV の次）を iv に
     if (rng.nextDouble() < s.borrow) {
-      final ivs = [for (var i = 0; i < out.length; i++) if (out[i].base == 'IV' && !fixed.contains(i)) i];
-      if (ivs.length >= 2) {
-        out[ivs[1]] = GenChord('iv', _color(s, 'iv'), out[ivs[1]].beats);
-        tags.add('切なさの iv');
-      } else if (ivs.length == 1 && out[ivs[0]].beats >= 4) {
-        final i = ivs[0];
-        final half = out[i].beats ~/ 2;
-        out = [...out.sublist(0, i), out[i].withBeats(half), GenChord('iv', _color(s, 'iv'), out[i].beats - half), ...out.sublist(i + 1)];
-        tags.add('IV → iv');
-      }
+      out = _borrowIv(s, out, fixed, tags, rules: rules);
     }
     // 次のコードの前にドミナントを挟む（4拍以上のコードの後ろ半分を使う）
     const toward = {'ii': 'VI', 'iii': 'VII', 'IV': 'I', 'V': 'II', 'vi': 'III'};
@@ -656,7 +841,7 @@ class ProgressionGenerator {
       final d = toward[target];
       if (d == null || out[i].base == d) continue;
       final half = out[i].beats ~/ 2;
-      final suffix = d == 'I' ? '7' : _color(s, d);
+      final suffix = d == 'I' ? '7' : _color(s, d, rules: rules);
       out = [...out.sublist(0, i), out[i].withBeats(half), GenChord(d, suffix.isEmpty ? '7' : suffix, out[i].beats - half), ...out.sublist(i + 1)];
       tags.add('${d == 'I' ? 'I7' : '${d}7'} で押し出す');
       break;
@@ -682,9 +867,30 @@ class ProgressionGenerator {
     return out;
   }
 
+  /// 短調から借りる iv：2回目の IV を iv に（無ければ IV を半分に割って後半を iv に）
+  List<GenChord> _borrowIv(GenStyle s, List<GenChord> out, Set<int> fixed, List<String> tags,
+      {_SectionRules? rules}) {
+    final ivs = [for (var i = 0; i < out.length; i++) if (out[i].base == 'IV' && !fixed.contains(i)) i];
+    if (ivs.length >= 2) {
+      out[ivs[1]] = GenChord('iv', _color(s, 'iv', rules: rules), out[ivs[1]].beats);
+      tags.add('切なさの iv');
+    } else if (ivs.length == 1 && out[ivs[0]].beats >= 4) {
+      final i = ivs[0];
+      final half = out[i].beats ~/ 2;
+      out = [
+        ...out.sublist(0, i),
+        out[i].withBeats(half),
+        GenChord('iv', _color(s, 'iv', rules: rules), out[i].beats - half),
+        ...out.sublist(i + 1)
+      ];
+      tags.add('IV → iv');
+    }
+    return out;
+  }
+
   // ---- 点数 ----
 
-  double _score(GenProgression p, GenContext ctx, bool minorTonic) {
+  double _score(GenProgression p, GenContext ctx, bool minorTonic, GenSection section) {
     final b = p.bases;
     var score = 0.0;
     for (var i = 1; i < b.length; i++) {
@@ -702,6 +908,10 @@ class ProgressionGenerator {
     // 主役のコードがどこかにある（迷子にならない）
     final tonic = minorTonic ? 'vi' : 'I';
     if (!b.contains(tonic) && !b.contains(minorTonic ? 'I' : 'vi')) score -= 0.4;
+    // セクションの好み：サビは IV・I 始まり、Bメロは V で止まる案を少し優先
+    final rules = _rulesFor(section);
+    if (rules?.preferFirst?.contains(b.first) ?? false) score += 0.5;
+    if (rules?.preferLastDominant == true && b.last == 'V') score += 0.6;
     // 最近出したものに似ていたら下げる
     for (final r in _recent.reversed.take(30)) {
       if (r == p.signature) score -= 1.5;
