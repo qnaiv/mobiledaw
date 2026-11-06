@@ -82,4 +82,49 @@ void main() {
     expect(gridSteps.map(gridLabel), ['1/4', '1/8', '1/16']);
     expect(snapDown(719, 240), 480);
   });
+
+  group('rollTapAction: タップ判定の組み合わせ', () {
+    RollTapAction tap({
+      bool pasteReady = false,
+      bool hasHit = false,
+      bool outside = false,
+      bool chordMode = false,
+      bool hasSelection = false,
+    }) =>
+        rollTapAction(
+          pasteReady: pasteReady,
+          hasHit: hasHit,
+          outside: outside,
+          chordMode: chordMode,
+          hasSelection: hasSelection,
+        );
+
+    test('貼り付け待ちは何より優先（選択があっても空きマスでも貼る）', () {
+      expect(tap(pasteReady: true, hasSelection: true), RollTapAction.paste);
+      expect(tap(pasteReady: true, hasHit: true, hasSelection: true), RollTapAction.paste);
+    });
+
+    test('既存ノートのタップは選択＋試聴（選択の有無によらない）', () {
+      expect(tap(hasHit: true), RollTapAction.selectNote);
+      expect(tap(hasHit: true, hasSelection: true), RollTapAction.selectNote);
+    });
+
+    test('選択あり＋空きマス → 選択解除だけ（置かない）', () {
+      expect(tap(hasSelection: true), RollTapAction.clearSelectionOnly);
+    });
+
+    test('選択なし＋空きマス → 従来どおりノートを置く', () {
+      expect(tap(), RollTapAction.placeNote);
+    });
+
+    test('グリッド外は選択解除だけ（選択の有無によらない）', () {
+      expect(tap(outside: true), RollTapAction.clearSelectionOnly);
+      expect(tap(outside: true, hasSelection: true), RollTapAction.clearSelectionOnly);
+    });
+
+    test('コードモードは選択があってもコード配置を優先する', () {
+      expect(tap(chordMode: true), RollTapAction.placeChord);
+      expect(tap(chordMode: true, hasSelection: true), RollTapAction.placeChord);
+    });
+  });
 }

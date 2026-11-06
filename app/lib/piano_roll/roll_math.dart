@@ -128,6 +128,43 @@ enum NoteHandle { start, end }
   return best;
 }
 
+/// ノート画面のタップで起きること（判定の優先順位は [rollTapAction] 参照）
+enum RollTapAction {
+  /// 貼り付け待ち：タップしたマスへ貼る
+  paste,
+
+  /// 既存ノートをタップ：そのノートを選んで試聴する
+  selectNote,
+
+  /// 選択解除だけ（ノートは置かず、試聴音も鳴らさない）。タップは消費される
+  clearSelectionOnly,
+
+  /// コードモード：コードを置く
+  placeChord,
+
+  /// 空きマス：ノートを置いて試聴する
+  placeNote,
+}
+
+/// ノート画面のタップ判定（画面に依存しない純粋関数）。
+/// 優先順位：貼り付け待ち → 既存ノート → グリッド外 → コード配置 → 選択解除 → ノート配置。
+/// 選択があるときに空きマスをタップしてもノートを置かず、選択解除だけで済ませる
+/// （選択と無関係な場所をタップして誤ってノートを増やさないため）
+RollTapAction rollTapAction({
+  required bool pasteReady,
+  required bool hasHit,
+  required bool outside,
+  required bool chordMode,
+  required bool hasSelection,
+}) {
+  if (pasteReady) return RollTapAction.paste;
+  if (hasHit) return RollTapAction.selectNote;
+  if (outside) return RollTapAction.clearSelectionOnly;
+  if (chordMode) return RollTapAction.placeChord;
+  if (hasSelection) return RollTapAction.clearSelectionOnly;
+  return RollTapAction.placeNote;
+}
+
 /// 範囲選択（2点で囲んだ四角）に入るノート
 List<int> notesInRect(ClipData clip, RollGeometry g, double x0, double y0, double x1, double y1) {
   final left = math.min(x0, x1), right = math.max(x0, x1);
