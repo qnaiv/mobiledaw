@@ -228,11 +228,15 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
 
   List<Chord> _chordsOf(GenProgression p) => [for (final c in p.chords) realize(c, _majorRoot)].whereType<Chord>().toList();
 
-  void _listen(GenProgression p) {
+  void _stopTimers() {
     for (final t in _timers) {
       t.cancel();
     }
     _timers.clear();
+  }
+
+  void _listen(GenProgression p) {
+    _stopTimers();
     final voiced = voiceProgression(_chordsOf(p));
     // 試聴は少し速め（1拍 0.15〜0.35 秒）
     final beatMs = (60000 / song.project.tempo).clamp(150, 350).toInt();
@@ -242,6 +246,16 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
       _timers.add(Timer(Duration(milliseconds: at), () => song.auditionChord(pitches)));
       at += p.chords[i].beats * beatMs;
     }
+  }
+
+  /// コード1つだけの試聴。全体試聴と同じボイシング（voiceProgression）で、
+  /// そのコードの分だけを単発で鳴らす。全体試聴の途中なら残りのタイマーを
+  /// 止めてから鳴らすので、続きが重なって鳴ることはない。
+  void _listenChord(GenProgression p, int index) {
+    _stopTimers();
+    final voiced = voiceProgression(_chordsOf(p));
+    if (index < 0 || index >= voiced.length) return;
+    song.auditionChord(voiced[index]);
   }
 
   Future<void> _insert() async {
@@ -465,7 +479,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
                     ),
                   ),
                 if (selected)
-                  const Text('コードをタップで固定 →「ほかの案」で残りだけ作り直す',
+                  const Text('コードをタップで試聴、長押しで固定 →「ほかの案」で残りだけ作り直す',
                       style: TextStyle(fontSize: 10, color: DawColors.muted)),
               ],
             ),
@@ -493,7 +507,9 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
   Widget _chordCell(int card, int index, GenChord c, bool selected) {
     final locked = selected && _locked.contains(index);
     return GestureDetector(
-      onTap: selected
+      // タップ＝そのコードだけ試聴、長押し＝固定／固定解除
+      onTap: selected ? () => _listenChord(_props[card], index) : null,
+      onLongPress: selected
           ? () => setState(() => _locked.contains(index) ? _locked.remove(index) : _locked.add(index))
           : null,
       child: Container(
