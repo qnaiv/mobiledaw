@@ -100,4 +100,54 @@ void main() {
     expect(second.map((n) => n.tick), [0, 1920]);
     expect(second.map((n) => n.pitch), [60, 64]);
   });
+
+  test('loop range is normalized from either drag direction', () {
+    expect(loopRangeBars(8, 15, 56), (start: 8, end: 16));
+    expect(loopRangeBars(15, 8, 56), (start: 8, end: 16)); // 逆向きでも同じ
+    expect(loopRangeBars(3, 3, 56), (start: 3, end: 4)); // 1小節だけ
+  });
+
+  test('loop range is clamped to the song length', () {
+    expect(loopRangeBars(-2, 100, 56), (start: 0, end: 56));
+    expect(loopRangeBars(60, 70, 56), (start: 55, end: 56));
+    expect(loopRangeBars(0, 5, 0), (start: 0, end: 1)); // 長さ0でも最低1小節
+  });
+
+  test('loop range converts to engine ticks', () {
+    expect(loopRangeTicks(8, 16, 3840), (startTick: 8 * 3840, endTick: 16 * 3840));
+    expect(loopRangeTicks(0, 1, 3840), (startTick: 0, endTick: 3840));
+  });
+
+  test('follow does nothing while the head is visible', () {
+    expect(followScrollTarget(headY: 100, offset: 0, viewportHeight: 300, maxExtent: 2000), isNull);
+    expect(followScrollTarget(headY: 299, offset: 0, viewportHeight: 300, maxExtent: 2000), isNull);
+    expect(followScrollTarget(headY: 0, offset: 0, viewportHeight: 300, maxExtent: 2000), isNull);
+  });
+
+  test('follow pages to the head when it leaves the viewport', () {
+    // 下端からはみ出した
+    expect(followScrollTarget(headY: 300, offset: 0, viewportHeight: 300, maxExtent: 2000), 300);
+    expect(followScrollTarget(headY: 640, offset: 0, viewportHeight: 300, maxExtent: 2000), 640);
+    // ループで先頭へ戻った（ヘッドが画面より上）
+    expect(followScrollTarget(headY: 40, offset: 600, viewportHeight: 300, maxExtent: 2000), 40);
+    // 末尾ではスクロール量の上限に収める
+    expect(followScrollTarget(headY: 5000, offset: 0, viewportHeight: 300, maxExtent: 2000), 2000);
+  });
+
+  test('edge scroll is still in the middle and fastest at the very edge', () {
+    final mid = edgeScrollVelocity(posX: 100, posY: 200, width: 200, height: 400);
+    expect(mid.dx, 0);
+    expect(mid.dy, 0);
+    final corner = edgeScrollVelocity(posX: 0, posY: 400, width: 200, height: 400);
+    expect(corner.dx, -420);
+    expect(corner.dy, 420);
+    // 端から半分（24px）入ったところでは半分の速さ
+    final half = edgeScrollVelocity(posX: 24, posY: 376, width: 200, height: 400);
+    expect(half.dx, -210);
+    expect(half.dy, 210);
+    // 画面の外にはみ出しても上限を超えない
+    final out = edgeScrollVelocity(posX: -30, posY: 999, width: 200, height: 400);
+    expect(out.dx, -420);
+    expect(out.dy, 420);
+  });
 }

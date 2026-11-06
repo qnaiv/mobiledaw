@@ -91,6 +91,7 @@ class SongController extends ChangeNotifier {
     engine.stopPlayback();
     _playbackWake.stopped();
     engine.clearLoop();
+    _forgetLoopRange();
     _projectPath = library.pathFor(id);
     selectedPlacementId = null;
     open();
@@ -102,6 +103,7 @@ class SongController extends ChangeNotifier {
     engine.stopPlayback();
     _playbackWake.stopped();
     engine.clearLoop();
+    _forgetLoopRange();
     _projectPath = library.pathFor(library.newId());
     engine.newProject();
     _startFresh(title);
@@ -329,6 +331,7 @@ class SongController extends ChangeNotifier {
     engine.stopPlayback();
     _playbackWake.stopped();
     engine.clearLoop();
+    _forgetLoopRange();
     final id = demoProjectId(demo);
     final path = library.pathFor(id);
     try {
@@ -553,12 +556,53 @@ class SongController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// アレンジ画面の再生：曲全体をループ。始まりと止めたあとは [startTick]
+  int? _loopStartBar;
+  int? _loopEndBar;
+
+  /// アレンジ画面で指定したループ範囲（小節）。[loopEndBar] は含まない。無ければ null
+  int? get loopStartBar => _loopStartBar;
+  int? get loopEndBar => _loopEndBar;
+  bool get hasLoopRange => _loopStartBar != null && _loopEndBar != null;
+
+  void _forgetLoopRange() {
+    _loopStartBar = null;
+    _loopEndBar = null;
+  }
+
+  /// ループ範囲を小節で指定する（小節ルーラーのドラッグの両端を渡せばよい。正規化は [loopRangeBars]）。
+  /// 再生中ならエンジンの範囲もすぐ差し替える
+  void setLoopRangeBars(int a, int b) {
+    final range = loopRangeBars(a, b, math.max(project.lengthBars, 1));
+    _loopStartBar = range.start;
+    _loopEndBar = range.end;
+    if (engine.isPlaying) {
+      final t = loopRangeTicks(range.start, range.end, project.ticksPerBar);
+      engine.setLoop(t.startTick, t.endTick);
+    }
+    notifyListeners();
+  }
+
+  /// ループ範囲をやめる（エンジン側の範囲も消す）
+  void clearLoopRange() {
+    if (!hasLoopRange) return;
+    _forgetLoopRange();
+    engine.clearLoop();
+    notifyListeners();
+  }
+
+  /// アレンジ画面の再生：範囲指定があればその範囲、無ければ曲全体をループ。
+  /// 始まりと止めたあとは [startTick]（範囲指定のときは範囲の頭）
   void togglePlay() {
     if (engine.isPlaying) {
       engine.stopPlayback();
       _playbackWake.stopped();
       engine.seek(_startTick); // 止めたら再生を始めた位置に戻る
+    } else if (hasLoopRange) {
+      final t = loopRangeTicks(_loopStartBar!, _loopEndBar!, project.ticksPerBar);
+      engine.setLoop(t.startTick, t.endTick);
+      engine.seek(t.startTick);
+      engine.play();
+      _playbackWake.started();
     } else {
       engine.clearLoop();
       engine.seek(_startTick);
