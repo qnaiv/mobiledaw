@@ -37,6 +37,9 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
   final _playing = ValueNotifier<bool>(false);
   late final Ticker _ticker;
 
+  /// 再生ヘッドに画面を追従させるか（ヘッダーのボタンで切り替え）
+  bool _follow = true;
+
   SongController get song => widget.song;
 
   @override
@@ -74,14 +77,31 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
         final p = song.project;
         return Scaffold(
           body: SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+            child: Stack(
               children: [
-                _Header(song: song, onMenu: _openMenu, onMixer: () => showMixerSheet(context, song)),
-                const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: UpdateBanner()),
-                Expanded(child: _Timeline(song: song, position: _position)),
-                _SelectionBar(song: song),
-                _Transport(song: song, position: _position, playing: _playing, ticksPerBar: p.ticksPerBar),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Header(
+                      song: song,
+                      onMenu: _openMenu,
+                      onMixer: () => showMixerSheet(context, song),
+                      follow: _follow,
+                      onToggleFollow: () => setState(() => _follow = !_follow),
+                    ),
+                    const Padding(padding: EdgeInsets.symmetric(horizontal: 16), child: UpdateBanner()),
+                    Expanded(child: _Timeline(song: song, position: _position, follow: _follow)),
+                    _SelectionBar(song: song),
+                    const SizedBox(height: 84), // 下に浮く再生バーのぶん
+                  ],
+                ),
+                // 再生バーは画面の下に浮かせて常駐させる（グリッドの上にも重なる）
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  bottom: 10,
+                  child: _Transport(song: song, position: _position, playing: _playing, ticksPerBar: p.ticksPerBar),
+                ),
               ],
             ),
           ),
@@ -242,11 +262,14 @@ void openPianoRoll(BuildContext context, SongController song, int placementId) {
 // ---- ヘッダー ------------------------------------------------------------------
 
 class _Header extends StatelessWidget {
-  const _Header({required this.song, required this.onMenu, required this.onMixer});
+  const _Header(
+      {required this.song, required this.onMenu, required this.onMixer, required this.follow, required this.onToggleFollow});
 
   final SongController song;
   final VoidCallback onMenu;
   final VoidCallback onMixer;
+  final bool follow; // 再生ヘッド追従が入っているか
+  final VoidCallback onToggleFollow;
 
   @override
   Widget build(BuildContext context) {
@@ -295,6 +318,13 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
+          _SquareButton(
+            icon: Icons.my_location,
+            label: follow ? '再生ヘッドに追従：ON' : '再生ヘッドに追従：OFF',
+            active: follow,
+            onPressed: onToggleFollow,
+          ),
+          const SizedBox(width: 8),
           _SquareButton(icon: Icons.tune, label: 'ミキサー', onPressed: onMixer),
           const SizedBox(width: 8),
           _SquareButton(icon: Icons.menu, label: 'メニュー', onPressed: onMenu),
@@ -351,10 +381,11 @@ class _Grid {
 }
 
 class _Timeline extends StatefulWidget {
-  const _Timeline({required this.song, required this.position});
+  const _Timeline({required this.song, required this.position, required this.follow});
 
   final SongController song;
   final ValueNotifier<int> position;
+  final bool follow; // 再生ヘッドに画面を追従させるか
 
   @override
   State<_Timeline> createState() => _TimelineState();
@@ -388,10 +419,80 @@ class _ArrDrag {
 /// ・選んだクリップの下のつまみを上下に → 伸ばす・縮める
 /// ・選んだクリップの真ん中を上下に → 移動
 /// ・クリップを長押ししてなぞる → 複製を置く
-class _TimelineState extends State<_Timeline> {
+class _TimelineState extends State<_Timeline> with SingleTickerProviderStateMixin {
   final _scroll = ScrollController(); // 縦
   final _hscroll = ScrollController(); // 横（ヘッダーとグリッドで共有して連動させる）
   _ArrDrag? _drag;
+
+  // 小節ルーラーでループ範囲をドラッグしている間（長押しドラッグ）
+  ({int anchor, int current, double rowHeight})? _loopDrag;
+
+  // 追従とドラッグ端の自動スクロールに使う、直近の描画寸法と指の位置
+  double _gridViewportH = 0;
+  double _gridViewportW = 0;
+  double _rowHeight = baseBarHeight;
+  Offset _dragViewport = Offset.zero; // グリッドの中の指の位置（画面座標）
+  late final Ticker _edgeTicker;
+  Duration? _lastEdgeElapsed;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.position.addListener(_followHead);
+    _edgeTicker = createTicker(_onEdgeTick)..start();
+  }
+
+  /// 再生ヘッドが見えなくなったら、ヘッドが画面の先頭に来るようページ送りする
+  void _followHead() {
+    if (!widget.follow || !_scroll.hasClients || !widget.song.engine.isPlaying) return;
+    final target = followScrollTarget(
+      headY: widget.position.value / widget.song.project.ticksPerBar * _rowHeight,
+      offset: _offset,
+      viewportHeight: _gridViewportH,
+      maxExtent: _scroll.position.maxScrollExtent,
+    );
+    if (target != null) _scroll.jumpTo(target);
+  }
+
+  /// クリップを掴んだまま端に留まっている間、その方向へ自動でスクロールする
+  void _onEdgeTick(Duration elapsed) {
+    final last = _lastEdgeElapsed;
+    _lastEdgeElapsed = elapsed;
+    final d = _drag;
+    if (last == null || d == null || _zooming || _loopDrag != null) return;
+    if (d.kind == _ArrDragKind.scroll) return; // スクロール自体のなぞりは対象外
+    final dt = (elapsed - last).inMicroseconds / 1e6;
+    if (dt <= 0 || dt > 0.1) return;
+    final vel = edgeScrollVelocity(
+      posX: _dragViewport.dx,
+      posY: _dragViewport.dy,
+      width: _gridViewportW,
+      height: _gridViewportH,
+    );
+    if (vel.dx == 0 && vel.dy == 0) return;
+    var moved = false;
+    if (_scroll.hasClients && vel.dy != 0) {
+      final to = (_scroll.offset + vel.dy * dt).clamp(0, _scroll.position.maxScrollExtent).toDouble();
+      if (to != _scroll.offset) {
+        _scroll.jumpTo(to);
+        moved = true;
+      }
+    }
+    if (_hscroll.hasClients && vel.dx != 0) {
+      final pos = _hscroll.positions.first;
+      final to = (pos.pixels + vel.dx * dt).clamp(0, pos.maxScrollExtent).toDouble();
+      if (to != pos.pixels) {
+        _hscroll.jumpTo(to);
+        moved = true;
+      }
+    }
+    // 縦に流れたぶん、掴んでいるクリップの行き先も一緒に進める（指の下に置いたままにする）
+    if (moved && vel.dy != 0) {
+      final bars = d.resultBars;
+      setState(() => d.currentY += vel.dy * dt);
+      if (d.resultBars != bars) HapticFeedback.selectionClick();
+    }
+  }
 
   // ピンチズーム（ピアノロールと同じ分け方・焦点の合わせ方）。
   // 縦は小節の高さ、横は列幅を、それぞれピンチの拡縮に合わせて変える
@@ -406,6 +507,8 @@ class _TimelineState extends State<_Timeline> {
 
   @override
   void dispose() {
+    _edgeTicker.dispose();
+    widget.position.removeListener(_followHead);
     _scroll.dispose();
     _hscroll.dispose();
     super.dispose();
@@ -429,6 +532,13 @@ class _TimelineState extends State<_Timeline> {
           final grid = _Grid(width: box.maxWidth, trackCount: p.tracks.length, rowZoom: _rowZoom, colZoom: _colZoom);
           final contentW = grid.contentWidth;
           final gridH = math.max(0.0, box.maxHeight - 56 - 8); // ヘッダー 56 + すき間 8
+          _gridViewportW = box.maxWidth;
+          _gridViewportH = gridH;
+          _rowHeight = grid.rowHeight;
+          // ループ範囲の帯：ドラッグ中はその途中経過、無ければ確定済みの範囲
+          final dragRange = _loopDrag == null ? null : loopRangeBars(_loopDrag!.anchor, _loopDrag!.current, rows);
+          final bandStart = dragRange?.start ?? song.loopStartBar;
+          final bandEnd = dragRange?.end ?? song.loopEndBar;
           return Stack(
             children: [
               Column(
@@ -451,6 +561,7 @@ class _TimelineState extends State<_Timeline> {
                       onTapUp: (d) => _onTap(grid, d.localPosition),
                       // 1本指はなぞり（スクロール・編集）、2本指はピンチで縮尺（ピアノロールと同じ分け方）
                       onScaleStart: (d) {
+                        _dragViewport = d.localFocalPoint;
                         if (d.pointerCount >= 2) {
                           _startZoom(grid, d.localFocalPoint);
                         } else {
@@ -462,6 +573,7 @@ class _TimelineState extends State<_Timeline> {
                           if (!_zooming) _startZoom(grid, d.localFocalPoint);
                           _updateZoom(d);
                         } else if (!_zooming) {
+                          _dragViewport = d.localFocalPoint;
                           _onDragMove(d.focalPointDelta);
                         }
                       },
@@ -472,9 +584,15 @@ class _TimelineState extends State<_Timeline> {
                         }
                         _onDragEnd(d.velocity);
                       },
-                      onLongPressStart: (d) => _onLongPressStart(grid, d.localPosition),
-                      onLongPressMoveUpdate: (d) => _onLongPressMove(_content(d.localPosition)),
-                      onLongPressEnd: (_) => _onDragEnd(Velocity.zero),
+                      onLongPressStart: (d) {
+                        _dragViewport = d.localPosition;
+                        _onLongPressStart(grid, d.localPosition);
+                      },
+                      onLongPressMoveUpdate: (d) {
+                        _dragViewport = d.localPosition;
+                        _onLongPressMove(_content(d.localPosition));
+                      },
+                      onLongPressEnd: (_) => _onLongPressEnd(),
                       child: SingleChildScrollView(
                         controller: _hscroll,
                         scrollDirection: Axis.horizontal,
@@ -514,7 +632,7 @@ class _TimelineState extends State<_Timeline> {
                                         painter: _PlayheadPainter(
                                           position: widget.position,
                                           ticksPerBar: p.ticksPerBar,
-                                          loopEndBar: math.max(p.lengthBars, 1),
+                                          loopEndBar: song.loopEndBar ?? math.max(p.lengthBars, 1),
                                           rowHeight: grid.rowHeight,
                                         ),
                                       ),
@@ -573,11 +691,42 @@ class _TimelineState extends State<_Timeline> {
                         position: widget.position,
                         ticksPerBar: p.ticksPerBar,
                         rowHeight: grid.rowHeight,
+                        loopStart: bandStart,
+                        loopEnd: bandEnd,
                       ),
                     ),
                   ),
                 ),
               ),
+              // ループ範囲が指定されていたら、右上に範囲と解除ボタン（ドラッグ中は帯だけでよい）
+              if (song.hasLoopRange && _loopDrag == null)
+                Positioned(
+                  top: 70,
+                  right: 2,
+                  child: Material(
+                    color: DawColors.accent,
+                    borderRadius: BorderRadius.circular(999),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(999),
+                      onTap: song.clearLoopRange,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.repeat, size: 13, color: DawColors.background),
+                            const SizedBox(width: 4),
+                            Text('ループ ${song.loopStartBar! + 1}–${song.loopEndBar}小節',
+                                style: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w700, color: DawColors.background)),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.close, size: 13, color: DawColors.background),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
             ],
           );
         },
@@ -691,7 +840,14 @@ class _TimelineState extends State<_Timeline> {
   }
 
   void _onLongPressStart(_Grid grid, Offset viewport) {
-    if (_onRuler(viewport)) return; // 小節番号の長押しは何もしない（複製と間違えないように）
+    if (_onRuler(viewport)) {
+      // 小節番号を長押ししてなぞる → ループ範囲の指定。
+      // 通常のなぞり（スクロール）と競合しないよう、長押しに割り当てる
+      final bar = grid.barAt(viewport.dy + _offset);
+      HapticFeedback.selectionClick();
+      setState(() => _loopDrag = (anchor: bar, current: bar, rowHeight: grid.rowHeight));
+      return;
+    }
     final at = _content(viewport);
     final hit = _hitPlacement(grid, at);
     if (hit == null) return;
@@ -701,11 +857,32 @@ class _TimelineState extends State<_Timeline> {
   }
 
   void _onLongPressMove(Offset at) {
+    final ld = _loopDrag;
+    if (ld != null) {
+      final bar = (at.dy / ld.rowHeight).floor();
+      if (bar != ld.current) {
+        HapticFeedback.selectionClick(); // 1小節広がるごとにコツッと
+        setState(() => _loopDrag = (anchor: ld.anchor, current: bar, rowHeight: ld.rowHeight));
+      }
+      return;
+    }
     final d = _drag;
     if (d == null || d.kind != _ArrDragKind.duplicate) return;
     final bars = d.resultBars;
     setState(() => d.currentY = at.dy);
     if (d.resultBars != bars) HapticFeedback.selectionClick();
+  }
+
+  /// 長押しを離した：ループ範囲のドラッグなら範囲を確定し、それ以外は従来のドラッグ終了
+  void _onLongPressEnd() {
+    final ld = _loopDrag;
+    if (ld != null) {
+      setState(() => _loopDrag = null);
+      widget.song.setLoopRangeBars(ld.anchor, ld.current);
+      HapticFeedback.selectionClick();
+      return;
+    }
+    _onDragEnd(Velocity.zero);
   }
 
   void _onDragMove(Offset delta) {
@@ -887,6 +1064,8 @@ class _RulerPainter extends CustomPainter {
     required this.position,
     required this.ticksPerBar,
     required this.rowHeight,
+    required this.loopStart,
+    required this.loopEnd,
   }) : super(repaint: Listenable.merge([scroll, position]));
 
   final int rows;
@@ -896,6 +1075,8 @@ class _RulerPainter extends CustomPainter {
   final ValueNotifier<int> position;
   final int ticksPerBar;
   final double rowHeight; // 1小節の高さ（ズームで変わる）
+  final int? loopStart; // ループ範囲の帯（[loopEnd] は含まない）。ドラッグ中はその途中経過
+  final int? loopEnd;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -905,6 +1086,18 @@ class _RulerPainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     canvas.translate(0, -dy);
+    // ループ範囲の帯（番号の下に敷く）
+    final ls = loopStart, le = loopEnd;
+    if (ls != null && le != null && le > ls) {
+      final band = Rect.fromLTWH(0, ls * rowHeight + 3, _Grid.labelWidth - 4, (le - ls) * rowHeight - 6);
+      canvas.drawRRect(RRect.fromRectAndRadius(band, const Radius.circular(6)),
+          Paint()..color = DawColors.accent.withValues(alpha: 0.30));
+      canvas.drawRect(Rect.fromLTWH(0, band.top, 3, band.height), Paint()..color = DawColors.accent);
+      // 両端のつまみ印
+      for (final y in [band.top, band.bottom - 3]) {
+        canvas.drawRect(Rect.fromLTWH(0, y, _Grid.labelWidth - 4, 3), Paint()..color = DawColors.accent);
+      }
+    }
     for (var bar = 0; bar < rows; bar++) {
       final y = bar * rowHeight;
       if (y + rowHeight < dy) continue;
@@ -958,7 +1151,9 @@ class _RulerPainter extends CustomPainter {
       old.startBar != startBar ||
       old.lengthBars != lengthBars ||
       old.ticksPerBar != ticksPerBar ||
-      old.rowHeight != rowHeight;
+      old.rowHeight != rowHeight ||
+      old.loopStart != loopStart ||
+      old.loopEnd != loopEnd;
 }
 
 class _GridPainter extends CustomPainter {
@@ -1300,8 +1495,15 @@ class _Transport extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+    // 丸角のバーとして画面の下に浮かせる（中身は従来の再生操作そのまま）
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: DawColors.panel,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: DawColors.line),
+        boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 14, offset: Offset(0, 5))],
+      ),
       child: Row(
         children: [
           _SquareButton(icon: Icons.skip_previous, label: '先頭へ', onPressed: song.rewind),
@@ -1341,11 +1543,12 @@ class _Transport extends StatelessWidget {
 }
 
 class _SquareButton extends StatelessWidget {
-  const _SquareButton({required this.icon, required this.label, required this.onPressed});
+  const _SquareButton({required this.icon, required this.label, required this.onPressed, this.active = false});
 
   final IconData icon;
   final String label;
   final VoidCallback? onPressed;
+  final bool active; // 入っている切替ボタン（追従など）は色を付ける
 
   @override
   Widget build(BuildContext context) {
@@ -1355,9 +1558,10 @@ class _SquareButton extends StatelessWidget {
       icon: Icon(icon, size: 20),
       style: IconButton.styleFrom(
         minimumSize: const Size(48, 48),
-        backgroundColor: DawColors.panel,
+        backgroundColor: active ? DawColors.accent : DawColors.panel,
+        foregroundColor: active ? DawColors.background : DawColors.text,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        side: const BorderSide(color: DawColors.line),
+        side: BorderSide(color: active ? DawColors.accent : DawColors.line),
       ),
     );
   }
