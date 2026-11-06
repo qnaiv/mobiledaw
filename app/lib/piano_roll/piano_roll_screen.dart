@@ -1603,56 +1603,60 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   void _onTap(ClipData clip, RollGeometry g, Offset at) {
-    // 貼り付け待ち：タップしたマス（tick・音程）にコピーの原点を合わせて貼る。
-    // 貼り付けは続けてできる（やめるときは「貼り付け」ボタンをもう一度押す）
-    if (_pasteReady && song.hasNoteClipboard) {
-      final col = g.colAt(at.dx);
-      if (col != null && at.dy < g.height) {
-        final ids = song.pasteNotes(clip.id, anchorTick: g.tickAt(at.dy), anchorPitch: g.columns[col]);
-        if (ids.isEmpty) {
-          HapticFeedback.heavyImpact(); // はみ出して1つも貼れなかった
-        } else {
-          setState(() => _selection
-            ..clear()
-            ..addAll(ids));
-          final fresh = song.clip(clip.id);
-          final pasted = fresh?.notes.where((n) => ids.contains(n.id)).toList() ?? const [];
-          if (pasted.isNotEmpty) {
-            final first = pasted.map((n) => n.tick).reduce(math.min);
-            song.auditionChord({for (final n in pasted) if (n.tick == first) n.pitch}.toList());
+    final hit = noteAt(clip, g, at.dx, at.dy);
+    final col = g.colAt(at.dx);
+    // 何をするかは rollTapAction の判定表に寄せる（テストで固定）
+    final action = rollTapAction(
+      pasteReady: _pasteReady && song.hasNoteClipboard,
+      hasHit: hit != null,
+      outside: col == null || at.dy >= g.height,
+      chordMode: _chordMode,
+      hasSelection: _selection.isNotEmpty,
+    );
+    switch (action) {
+      case RollTapAction.paste:
+        // 貼り付け待ち：タップしたマス（tick・音程）にコピーの原点を合わせて貼る。
+        // 貼り付けは続けてできる（やめるときは「貼り付け」ボタンをもう一度押す）
+        if (col != null && at.dy < g.height) {
+          final ids = song.pasteNotes(clip.id, anchorTick: g.tickAt(at.dy), anchorPitch: g.columns[col]);
+          if (ids.isEmpty) {
+            HapticFeedback.heavyImpact(); // はみ出して1つも貼れなかった
+          } else {
+            setState(() => _selection
+              ..clear()
+              ..addAll(ids));
+            final fresh = song.clip(clip.id);
+            final pasted = fresh?.notes.where((n) => ids.contains(n.id)).toList() ?? const [];
+            if (pasted.isNotEmpty) {
+              final first = pasted.map((n) => n.tick).reduce(math.min);
+              song.auditionChord({for (final n in pasted) if (n.tick == first) n.pitch}.toList());
+            }
           }
         }
-      }
-      return;
+      case RollTapAction.selectNote:
+        setState(() {
+          _selection
+            ..clear()
+            ..add(hit!.id);
+        });
+        song.audition(hit!.pitch, velocity: hit.velocity);
+      case RollTapAction.clearSelectionOnly:
+        // グリッド外、または選択があるときの空きマス：選択を外すだけ。
+        // ノートは置かず試聴も鳴らさない（選択と無関係なタップで誤って増やさない）
+        setState(_selection.clear);
+      case RollTapAction.placeChord:
+        _placeChord(clip, g.tickAt(at.dy), g.columns[col!]);
+      case RollTapAction.placeNote:
+        // 何もないところ：ノートを置いて選ぶ（すぐつまみで伸ばせる）
+        final tick = g.tickAt(at.dy);
+        final pitch = g.columns[col!];
+        final id = song.addNote(clip.id, tick: tick, length: math.min(_step, clip.lengthTicks - tick), pitch: pitch);
+        song.audition(pitch);
+        setState(() {
+          _selection.clear();
+          if (id != 0) _selection.add(id);
+        });
     }
-    final hit = noteAt(clip, g, at.dx, at.dy);
-    if (hit != null) {
-      setState(() {
-        _selection
-          ..clear()
-          ..add(hit.id);
-      });
-      song.audition(hit.pitch, velocity: hit.velocity);
-      return;
-    }
-    final col = g.colAt(at.dx);
-    if (col == null || at.dy >= g.height) {
-      setState(_selection.clear);
-      return;
-    }
-    final tick = g.tickAt(at.dy);
-    final pitch = g.columns[col];
-    if (_chordMode) {
-      _placeChord(clip, tick, pitch);
-      return;
-    }
-    // 何もないところ：ノートを置いて選ぶ（すぐつまみで伸ばせる）
-    final id = song.addNote(clip.id, tick: tick, length: math.min(_step, clip.lengthTicks - tick), pitch: pitch);
-    song.audition(pitch);
-    setState(() {
-      _selection.clear();
-      if (id != 0) _selection.add(id);
-    });
   }
 
   /// 長押し：ノートの上なら持ち上げて移動、何もないところなら範囲選択
