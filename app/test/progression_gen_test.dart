@@ -203,6 +203,110 @@ void main() {
       }
     });
 
+    // 着地の型（実装側の分類と同じ物差し）
+    String cadenceOf(GenProgression p) {
+      final b = p.bases;
+      if (b.length >= 2 && b[b.length - 2] == 'iii' && b.last == 'vi') return 'iii-vi';
+      if (b.length >= 2 && b[b.length - 2] == 'IV' && b.last == 'I') return 'plagal';
+      return switch (b.last) {
+        'I' => 'toI',
+        'vi' => 'toVi',
+        'V' => 'half',
+        _ => 'other',
+      };
+    }
+
+    test('verse A: sus colors appear, only on major-side chords, banned suffixes stay out', () {
+      final gen = ProgressionGenerator(rng: math.Random(123));
+      var sus = 0;
+      for (final style in genStyles) {
+        for (var i = 0; i < 12; i++) {
+          for (final p in gen.generate(style: style, bars: 4, section: GenSection.verseA, tries: 60)) {
+            for (final c in p.chords) {
+              expect(bannedSuffixA.contains(c.suffix), isFalse, reason: '${style.id} ${c.roman}');
+              if (c.suffix == 'sus2' || c.suffix == 'sus4') {
+                sus++;
+                // sus は長調側（I・IV・V）にだけ付く。短調側（ii・iii・vi）には付かない
+                expect(['I', 'IV', 'V'].contains(c.base), isTrue, reason: '${style.id} ${c.roman}');
+              }
+            }
+          }
+        }
+      }
+      expect(sus, greaterThan(0));
+    });
+
+    test('verse A: sus reaches styles whose color tables have none (jpop I/IV)', () {
+      final gen = ProgressionGenerator(rng: math.Random(124));
+      var susOnMaj = 0;
+      for (var i = 0; i < 40; i++) {
+        for (final p in gen.generate(style: styleById('jpop'), bars: 4, section: GenSection.verseA, tries: 60)) {
+          for (final c in p.chords) {
+            if ((c.base == 'I' || c.base == 'IV') && (c.suffix == 'sus2' || c.suffix == 'sus4')) susOnMaj++;
+          }
+        }
+      }
+      expect(susOnMaj, greaterThan(0));
+    });
+
+    test('second-half substitution: fires in sections, never leaks into no-section/chorus', () {
+      final gen = ProgressionGenerator(rng: math.Random(125));
+      var tagged = 0;
+      for (var i = 0; i < 40; i++) {
+        for (final p in gen.generate(style: styleById('jpop'), bars: 8, section: GenSection.verseA, tries: 60)) {
+          // 置換が起きてもセクション制約と先頭は崩れない
+          expect(progressionSatisfiesSection(p, GenSection.verseA), isTrue, reason: p.signature);
+          expect(p.chords.first.base, anyOf('I', 'vi'), reason: p.signature);
+          if (p.tags.contains('後半で代理コード')) tagged++;
+        }
+      }
+      expect(tagged, greaterThan(0));
+      final gen2 = ProgressionGenerator(rng: math.Random(126));
+      for (var i = 0; i < 20; i++) {
+        for (final p in gen2.generate(tries: 60)) {
+          expect(p.tags.contains('後半で代理コード'), isFalse);
+        }
+        for (final p in gen2.generate(section: GenSection.chorus, tries: 60)) {
+          expect(p.tags.contains('後半で代理コード'), isFalse);
+        }
+      }
+    });
+
+    test('verse A: returned proposals spread across cadence types', () {
+      final gen = ProgressionGenerator(rng: math.Random(127));
+      final counts = <String, int>{};
+      var total = 0;
+      var spreadCalls = 0;
+      for (var i = 0; i < 40; i++) {
+        final props = gen.generate(style: styleById('jpop'), bars: 4, section: GenSection.verseA, tries: 60);
+        if (props.map(cadenceOf).toSet().length >= 3) spreadCalls++;
+        for (final p in props) {
+          counts[cadenceOf(p)] = (counts[cadenceOf(p)] ?? 0) + 1;
+          total++;
+        }
+      }
+      expect(counts.keys.length, greaterThanOrEqualTo(4), reason: '$counts');
+      expect(counts['half']! / total, lessThan(0.45), reason: '$counts');
+      expect(spreadCalls, greaterThan(20), reason: '$counts');
+    });
+
+    test('section motifs: new stock patterns seed verse A proposals', () {
+      final gen = ProgressionGenerator(rng: math.Random(128));
+      var hit4 = 0; // I vi IV V（どのスタイルのモチーフ表にも無い形）
+      var hit6 = 0; // I V vi iii IV V で始まる形
+      for (final style in genStyles) {
+        for (var i = 0; i < 15; i++) {
+          for (final p in gen.generate(style: style, bars: 4, section: GenSection.verseA, tries: 60)) {
+            if (p.bases.length == 4 && p.bases.join(' ') == 'I vi IV V') hit4++;
+          }
+          for (final p in gen.generate(style: style, bars: 8, section: GenSection.verseA, tries: 60)) {
+            if (p.bases.length >= 6 && p.bases.sublist(0, 6).join(' ') == 'I V vi iii IV V') hit6++;
+          }
+        }
+      }
+      expect(hit4 + hit6, greaterThan(0), reason: 'hit4=$hit4 hit6=$hit6');
+    });
+
     test('no section: generation stays diverse (borrowings etc. still appear)', () {
       final gen = ProgressionGenerator(rng: math.Random(9));
       final bases = <String>{};
