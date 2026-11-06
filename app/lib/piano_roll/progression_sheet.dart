@@ -79,6 +79,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
   late final List<PlacedChord> _placed = placedChords(widget.clip);
 
   String? _styleId; // null ならおまかせ（案ごとにスタイルもランダム）
+  GenSection _section = GenSection.none; // 指定なしなら従来どおりの生成
   int _bars = 4;
   _Place _place = _Place.head;
   ChordRhythm _rhythm = ChordRhythm.block;
@@ -202,6 +203,7 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
       context: _context,
       keepRhythmOf: base?.chords,
       locked: locked,
+      section: _section,
     );
   }
 
@@ -328,6 +330,17 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                _label('セクション'),
+                SizedBox(
+                  height: 36,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      for (final s in GenSection.values) _sectionChip(s),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     for (final b in [4, 8])
@@ -406,6 +419,18 @@ class _ProgressionSheetState extends State<_ProgressionSheet> {
           selected: _styleId == id,
           onSelected: (_) {
             _styleId = id;
+            _regenerate(keepLocks: false);
+          },
+        ),
+      );
+
+  Widget _sectionChip(GenSection s) => Padding(
+        padding: const EdgeInsets.only(right: 6),
+        child: ChoiceChip(
+          label: Text(s.label),
+          selected: _section == s,
+          onSelected: (_) {
+            _section = s;
             _regenerate(keepLocks: false);
           },
         ),

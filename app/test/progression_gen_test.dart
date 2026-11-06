@@ -88,4 +88,130 @@ void main() {
     final c = realize(const GenChord('ii', '9', 4), 0)!;
     expect(chordNameOf(c.pitchesNear(62)), 'Dm9');
   });
+
+  group('sections', () {
+    const diatonic = {'I', 'ii', 'iii', 'IV', 'V', 'vi'};
+    const bannedSuffixA = {'M9', '9', '11', '6', '69', '°', 'ø', '°7'};
+    const bannedSuffixB = {'11', '69', '°', 'ø', '°7'}; // Bメロは M9・9・6 まで許可
+
+    GenProgression fake(List<GenChord> chords) => GenProgression(genStyles.first, chords, const []);
+
+    test('validator catches section violations', () {
+      // 先頭コード
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('IV', '', 4), const GenChord('V', '', 4)]), GenSection.verseA),
+          isFalse);
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('I', '', 4), const GenChord('V', '', 4)]), GenSection.verseA),
+          isTrue);
+      // ダイアトニック外のコード
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('I', '', 4), const GenChord('♭VII', '', 4)]), GenSection.verseA),
+          isFalse);
+      // 色づけの上限（9th は Aメロ不可、M7・m7 は可）
+      expect(progressionSatisfiesSection(fake([const GenChord('I', '9', 4)]), GenSection.verseA), isFalse);
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('I', 'M7', 4), const GenChord('vi', '7', 4)]), GenSection.verseA),
+          isTrue);
+      // Bメロ：借用 iv は1つまで
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('I', '', 4), const GenChord('iv', '7', 4), const GenChord('V', '7', 4)]),
+              GenSection.verseB),
+          isTrue);
+      expect(
+          progressionSatisfiesSection(
+              fake([const GenChord('I', '', 4), const GenChord('iv', '7', 2), const GenChord('iv', '7', 2)]),
+              GenSection.verseB),
+          isFalse);
+      // イントロは I 始まりのみ
+      expect(progressionSatisfiesSection(fake([const GenChord('vi', '', 4)]), GenSection.intro), isFalse);
+      expect(progressionSatisfiesSection(fake([const GenChord('I', '', 4)]), GenSection.intro), isTrue);
+      // 指定なし・サビは制約なし
+      expect(progressionSatisfiesSection(fake([const GenChord('♭VI', '9', 4)]), GenSection.none), isTrue);
+      expect(progressionSatisfiesSection(fake([const GenChord('♭VI', '9', 4)]), GenSection.chorus), isTrue);
+    });
+
+    test('verse A: first chord, diatonic only, plain colors, no 2-beat changes', () {
+      final gen = ProgressionGenerator(rng: math.Random(42));
+      for (final style in genStyles) {
+        for (final bars in [4, 8]) {
+          final props = gen.generate(style: style, bars: bars, section: GenSection.verseA, tries: 60);
+          expect(props.length, 4, reason: '${style.id} ${bars}bars');
+          for (final p in props) {
+            expect(p.beats, bars * 4, reason: '${style.id} ${p.signature}');
+            expect(progressionSatisfiesSection(p, GenSection.verseA), isTrue,
+                reason: '${style.id} ${p.signature}');
+            expect(p.chords.first.base, anyOf('I', 'vi'), reason: '${style.id} ${p.signature}');
+            for (final c in p.chords) {
+              expect(diatonic.contains(c.base), isTrue, reason: '${style.id} ${c.roman}');
+              expect(bannedSuffixA.contains(c.suffix), isFalse, reason: '${style.id} ${c.roman}');
+              expect(c.beats, greaterThanOrEqualTo(4), reason: '${style.id} ${p.signature}');
+            }
+          }
+        }
+      }
+    });
+
+    test('verse B: first chord, diatonic plus at most one borrowed iv', () {
+      final gen = ProgressionGenerator(rng: math.Random(43));
+      for (final style in genStyles) {
+        final props = gen.generate(style: style, section: GenSection.verseB, tries: 60);
+        expect(props.length, 4, reason: style.id);
+        for (final p in props) {
+          expect(progressionSatisfiesSection(p, GenSection.verseB), isTrue,
+              reason: '${style.id} ${p.signature}');
+          expect(p.chords.first.base, anyOf('I', 'vi', 'IV'), reason: '${style.id} ${p.signature}');
+          expect(p.chords.where((c) => c.base == 'iv').length, lessThanOrEqualTo(1),
+              reason: '${style.id} ${p.signature}');
+          for (final c in p.chords) {
+            expect(diatonic.contains(c.base) || c.base == 'iv', isTrue, reason: '${style.id} ${c.roman}');
+            expect(bannedSuffixB.contains(c.suffix), isFalse, reason: '${style.id} ${c.roman}');
+          }
+        }
+      }
+    });
+
+    test('intro: starts on I only, diatonic, slow changes', () {
+      final gen = ProgressionGenerator(rng: math.Random(44));
+      for (final style in genStyles) {
+        final props = gen.generate(style: style, section: GenSection.intro, tries: 60);
+        expect(props.length, 4, reason: style.id);
+        for (final p in props) {
+          expect(progressionSatisfiesSection(p, GenSection.intro), isTrue,
+              reason: '${style.id} ${p.signature}');
+          expect(p.chords.first.base, 'I', reason: '${style.id} ${p.signature}');
+          for (final c in p.chords) {
+            expect(diatonic.contains(c.base), isTrue, reason: '${style.id} ${c.roman}');
+            expect(c.beats, greaterThanOrEqualTo(4), reason: '${style.id} ${p.signature}');
+          }
+        }
+      }
+    });
+
+    test('chorus: still generates full proposals', () {
+      final gen = ProgressionGenerator(rng: math.Random(45));
+      final props = gen.generate(style: styleById('jpop'), section: GenSection.chorus, tries: 60);
+      expect(props.length, 4);
+      for (final p in props) {
+        expect(p.beats, 16);
+        expect(progressionSatisfiesSection(p, GenSection.chorus), isTrue);
+      }
+    });
+
+    test('no section: generation stays diverse (borrowings etc. still appear)', () {
+      final gen = ProgressionGenerator(rng: math.Random(9));
+      final bases = <String>{};
+      for (var i = 0; i < 30; i++) {
+        for (final p in gen.generate(tries: 60)) {
+          bases.addAll(p.bases);
+        }
+      }
+      expect(bases.intersection({'♭VII', '♭VI', 'iv', 'II', 'III'}), isNotEmpty);
+    });
+  });
 }
