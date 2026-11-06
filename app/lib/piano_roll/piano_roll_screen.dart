@@ -83,6 +83,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   (int, int)? _loop; // いま繰り返している範囲（曲頭からの tick）
   int _startInClip = 0;
   final _rollKey = GlobalKey(); // コードをドラッグで置くとき、画面の位置をロールの位置に直すため
+  Offset? _dragViewport; // ドラッグ中の指の位置（ロール画面の座標）。ルーペと端スクロール用
+  int? _snapKey; // スナップの振動を鳴らした吸着先（変わったときだけ鳴らす）
+  Duration? _lastEdgeElapsed;
   ({int tick, int length, List<int> pitches, String label})? _dropAt; // ドラッグ中の置き先（薄く出す） // 再生を始める位置（クリップの頭からの tick）。左の目盛りをタップで変える
   late final Ticker _ticker;
 
@@ -131,9 +134,10 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     _h.addListener(() {
       if (_hKeys.hasClients && _hKeys.offset != _h.offset) _hKeys.jumpTo(_h.offset);
     });
-    _ticker = createTicker((_) {
+    _ticker = createTicker((elapsed) {
       _playhead.value = _localPlayhead();
       _playing.value = song.engine.isPlaying;
+      _edgeScrollTick(elapsed);
     })
       ..start();
   }
@@ -1021,6 +1025,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   RollGeometry? _g;
   double _viewportWidth = 0;
+  double _viewportHeight = 0;
   int? _pendingCenterPitch;
 
   int? _centerPitch() {
@@ -1042,6 +1047,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
           final viewportW = box.maxWidth - _labelWidth;
           final keyboardH = _chordMode ? 0.0 : _keyboardHeight + 6;
           final viewportH = box.maxHeight - keyboardH;
+          _viewportHeight = viewportH;
           final rows = math.max(1, (clip.lengthTicks + _step - 1) ~/ _step);
           final rowHeight = _rowHeightFor(viewportH, rows);
           final g = RollGeometry(
@@ -1092,7 +1098,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
                   behavior: HitTestBehavior.opaque,
                   onTapUp: (d) => _onTap(clip, g, _toContent(d.localPosition)),
                   onLongPressStart: (d) => _onLongPressStart(clip, g, _toContent(d.localPosition)),
-                  onLongPressMoveUpdate: (d) => _onLongPressMove(g, _toContent(d.localPosition)),
+                  onLongPressMoveUpdate: (d) => _onLongPressMove(g, _toContent(d.localPosition), d.localPosition),
                   onLongPressEnd: (_) => _onLongPressEnd(clip, g),
                   // 1本指はなぞり（スクロール・編集）、2本指はピンチで縮尺
                   onScaleStart: (d) {
@@ -1173,6 +1179,8 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
               ),
               // 選んだノートがコードなら、そのすぐ下（入らなければ上）に道具の帯を浮かべる（案A）
               if (_drag == null) ..._chordToolsOverlay(clip, g, viewportH),
+              // ノートをドラッグしている間は、指の上に拡大鏡（ルーペ）を出す
+              if (_drag != null && !_zooming) ..._loupeOverlay(clip, g, scale, color),
               // 試聴鍵盤（ロールと一緒に横へ動く）。コード入力中はコードのボタンに置き換わる
               if (!_chordMode)
               Positioned(
@@ -1488,6 +1496,103 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     }
   }
 
+  /// ノートを掴んだまま端に留まっている間、その方向へ自動でスクロールする。
+  /// スクロールしたぶん [_Drag.current] も進めるので、ノートは指の下に置いたままになる
+  void _edgeScrollTick(Duration elapsed) {
+    final last = _lastEdgeElapsed;
+    _lastEdgeElapsed = elapsed;
+    final d = _drag;
+    final g = _g;
+    final pos = _dragViewport;
+    if (last == null || d == null || g == null || pos == null || _autoMode || _zooming) return;
+    if (d.kind != _DragKind.move &&
+        d.kind != _DragKind.resizeEnd &&
+        d.kind != _DragKind.resizeStart &&
+        d.kind != _DragKind.clipLength) {
+      return; // スクロール・範囲選択のなぞりは対象外
+    }
+    final dt = (elapsed - last).inMicroseconds / 1e6;
+    if (dt <= 0 || dt > 0.1) return;
+    final vel = edgeScrollVelocity(posX: pos.dx, posY: pos.dy, width: _viewportWidth, height: _viewportHeight);
+    if (vel.dx == 0 && vel.dy == 0) return;
+    var sx = 0.0, sy = 0.0;
+    if (_h.hasClients && vel.dx != 0) {
+      final to = (_h.offset + vel.dx * dt).clamp(0, _h.position.maxScrollExtent).toDouble();
+      sx = to - _h.offset;
+      if (sx != 0) _h.jumpTo(to);
+    }
+    if (_v.hasClients && vel.dy != 0) {
+      final to = (_v.offset + vel.dy * dt).clamp(0, _v.position.maxScrollExtent).toDouble();
+      sy = to - _v.offset;
+      if (sy != 0) _v.jumpTo(to);
+    }
+    if (sx == 0 && sy == 0) return;
+    d.current = Offset(d.current.dx + sx, d.current.dy + sy);
+    if (d.kind == _DragKind.move) _auditionMove(d, g);
+    _snapHaptic(d, g);
+    setState(() {});
+  }
+
+  /// 吸着先（グリッド位置・音程）が変わった瞬間だけ軽く振動させる。同じ吸着先では鳴らさない
+  void _snapHaptic(_Drag d, RollGeometry g) {
+    final key = switch (d.kind) {
+      _DragKind.move => _deltaTicks(d, g) * 1000 + _deltaPitch(d, g),
+      _DragKind.resizeEnd || _DragKind.resizeStart => _deltaTicks(d, g),
+      _ => null,
+    };
+    if (key != null && key != _snapKey) {
+      _snapKey = key;
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// ドラッグ中の拡大鏡（ルーペ）：指で隠れる周辺を、指の少し上に円く拡大して出す。
+  /// ノートの移動・伸縮のときだけ（スクロールや範囲選択では出さない）
+  List<Widget> _loupeOverlay(ClipData clip, RollGeometry g, Scale scale, Color color) {
+    final d = _drag;
+    if (d == null) return const [];
+    if (d.kind != _DragKind.move && d.kind != _DragKind.resizeEnd && d.kind != _DragKind.resizeStart) {
+      return const [];
+    }
+    const size = 116.0;
+    final hOff = _h.hasClients ? _h.offset : 0.0;
+    final vOff = _v.hasClients ? _v.offset : 0.0;
+    final finger = Offset(d.current.dx - hOff, d.current.dy - vOff);
+    // 指の上に置く。ロールの端では内側へ寄せる
+    final cx = finger.dx.clamp(size / 2, math.max(size / 2, _viewportWidth - size / 2)).toDouble();
+    final cy = (finger.dy - 96).clamp(size / 2, math.max(size / 2, _viewportHeight - size / 2)).toDouble();
+    return [
+      Positioned(
+        left: _labelWidth + cx - size / 2,
+        top: cy - size / 2,
+        width: size,
+        height: size,
+        child: IgnorePointer(
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFF16181B),
+              border: Border.all(color: DawColors.accent, width: 2),
+              boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 10, offset: Offset(0, 4))],
+            ),
+            child: ClipOval(
+              child: CustomPaint(
+                painter: _LoupePainter(
+                  clip: clip,
+                  g: g,
+                  drag: d,
+                  noteColor: color,
+                  scale: scale,
+                  ticksPerBar: song.project.ticksPerBar,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
+
   // ---- 操作 ---------------------------------------------------------------------
 
   Iterable<NoteData> _selectedNotes(ClipData clip) => clip.notes.where((n) => _selection.contains(n.id));
@@ -1552,6 +1657,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
 
   /// 長押し：ノートの上なら持ち上げて移動、何もないところなら範囲選択
   void _onLongPressStart(ClipData clip, RollGeometry g, Offset at) {
+    _snapKey = null;
+    _dragViewport =
+        Offset(at.dx - (_h.hasClients ? _h.offset : 0), at.dy - (_v.hasClients ? _v.offset : 0));
     final hit = noteAt(clip, g, at.dx, at.dy);
     if (hit != null) {
       HapticFeedback.mediumImpact();
@@ -1573,17 +1681,21 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
     setState(() => _drag = _Drag(kind: _DragKind.marquee, start: at));
   }
 
-  void _onLongPressMove(RollGeometry g, Offset at) {
+  void _onLongPressMove(RollGeometry g, Offset at, Offset viewport) {
     final d = _drag;
     if (d == null) return;
     d.current = at;
+    _dragViewport = viewport;
     if (d.kind == _DragKind.move) _auditionMove(d, g);
+    _snapHaptic(d, g);
     setState(() {});
   }
 
   void _onLongPressEnd(ClipData clip, RollGeometry g) {
     final d = _drag;
     if (d == null) return;
+    _snapKey = null;
+    _dragViewport = null;
     setState(() => _drag = null);
     if (d.kind == _DragKind.marquee) {
       final ids = notesInRect(clip, g, d.start.dx, d.start.dy, d.current.dx, d.current.dy);
@@ -1605,6 +1717,9 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
   }
 
   void _onPanStart(ClipData clip, RollGeometry g, Offset at) {
+    _snapKey = null;
+    _dragViewport =
+        Offset(at.dx - (_h.hasClients ? _h.offset : 0), at.dy - (_v.hasClients ? _v.offset : 0));
     // 1. 選んでいるノートのつまみ
     final handle = handleAt(_selectedNotes(clip), g, at.dx, at.dy);
     if (handle != null) {
@@ -1649,12 +1764,16 @@ class _PianoRollScreenState extends State<PianoRollScreen> with SingleTickerProv
       return;
     }
     d.current = _toContent(viewportPos);
+    _dragViewport = viewportPos;
     if (d.kind == _DragKind.move) _auditionMove(d, g);
+    _snapHaptic(d, g);
     setState(() {});
   }
 
   void _onPanEnd(ClipData clip, RollGeometry g, Velocity velocity) {
     final d = _drag;
+    _snapKey = null;
+    _dragViewport = null;
     setState(() => _drag = null);
     if (d == null) return;
     if (d.kind == _DragKind.scroll) {
@@ -1972,6 +2091,134 @@ class _RollPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RollPainter old) => true; // 指で動かしている間は毎回描き直す
+}
+
+/// 拡大鏡（ルーペ）の中身：ドラッグしている指の周辺を [zoom] 倍で描く。
+/// ノートの行き先は本体の _RollPainter と同じ計算で先行表示し、下端に行き先の音名を出す
+class _LoupePainter extends CustomPainter {
+  _LoupePainter({
+    required this.clip,
+    required this.g,
+    required this.drag,
+    required this.noteColor,
+    required this.scale,
+    required this.ticksPerBar,
+  });
+
+  final ClipData clip;
+  final RollGeometry g;
+  final _Drag drag;
+  final Color noteColor;
+  final Scale scale;
+  final int ticksPerBar;
+
+  static const double zoom = 1.7;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = drag.current;
+    final c = Offset(size.width / 2, size.height / 2);
+    final half = size.width / 2 / zoom; // 中身の座標で見える半径
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Offset.zero & size));
+    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF16181B));
+    canvas.translate(c.dx, c.dy);
+    canvas.scale(zoom);
+    canvas.translate(-center.dx, -center.dy);
+
+    // 列の色分け（ルート音の列だけ、本体と同じ考え方）
+    for (var col = 0; col < g.columns.length; col++) {
+      final x = g.colX(col);
+      if (x + g.colWidth < center.dx - half || x > center.dx + half) continue;
+      if (g.columns[col] % 12 == scale.root) {
+        canvas.drawRect(Rect.fromLTWH(x, center.dy - half, g.colWidth, half * 2),
+            Paint()..color = const Color(0xFF1C1F23));
+      }
+    }
+
+    // 横線：小節（明）、拍（中）、グリッド（暗）。本体と同じ
+    final r0 = math.max(0, ((center.dy - half) / g.rowHeight).floor());
+    final r1 = math.min(g.rows, ((center.dy + half) / g.rowHeight).ceil());
+    for (var r = r0; r <= r1; r++) {
+      final tick = r * g.step;
+      final isBar = tick % ticksPerBar == 0;
+      final isBeat = tick % ticksPerBeat == 0;
+      canvas.drawRect(
+        Rect.fromLTWH(center.dx - half, g.tickY(tick), half * 2, isBar ? 1.5 : 1),
+        Paint()..color = isBar ? const Color(0xFF4A4F58) : (isBeat ? const Color(0xFF2A2D33) : const Color(0xFF1F2125)),
+      );
+    }
+
+    // ノート（ドラッグ中の行き先を反映）
+    final d = drag;
+    final dyTicks = ((d.current.dy - d.start.dy) / g.rowHeight).round() * g.step;
+    var dp = 0;
+    if (d.kind == _DragKind.move) {
+      final col = g.colAt(d.current.dx.clamp(0, g.width - 1).toDouble());
+      dp = col == null || col == d.anchorCol ? 0 : g.columns[col] - d.anchorPitch;
+    }
+    var startDt = 0;
+    if (d.kind == _DragKind.resizeStart) {
+      startDt = clampStartDelta(clip.notes.where((n) => d.ids.contains(n.id)), dyTicks, g.step);
+    }
+    for (final n in clip.notes) {
+      var tick = n.tick, length = n.length, pitch = n.pitch;
+      final active = d.ids.contains(n.id);
+      if (active) {
+        switch (d.kind) {
+          case _DragKind.move:
+            tick += dyTicks;
+            pitch += dp;
+          case _DragKind.resizeEnd:
+            length = math.max(60, length + dyTicks);
+          case _DragKind.resizeStart:
+            tick += startDt;
+            length -= startDt;
+          default:
+            break;
+        }
+      }
+      final col = g.columnOf(pitch);
+      if (col == null) continue;
+      final rect = Rect.fromLTRB(
+        g.colX(col) + 2,
+        g.tickY(tick) + 1,
+        g.colX(col) + g.colWidth - 2,
+        g.tickY(tick + length) - 1,
+      );
+      if (rect.right < center.dx - half ||
+          rect.left > center.dx + half ||
+          rect.bottom < center.dy - half ||
+          rect.top > center.dy + half) {
+        continue;
+      }
+      final rr = RRect.fromRectAndRadius(rect, const Radius.circular(6));
+      canvas.drawRRect(rr, Paint()..color = noteColor.withValues(alpha: active ? 1 : 0.45));
+      if (active) {
+        canvas.drawRRect(
+          rr,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2
+            ..color = DawColors.text,
+        );
+      }
+    }
+    canvas.restore();
+
+    // 行き先の音名（下端の真ん中）
+    final tp = TextPainter(
+      text: TextSpan(
+        text: noteName(d.anchorPitch + dp),
+        style: const TextStyle(color: DawColors.accent, fontSize: 13, fontWeight: FontWeight.w800),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(size.width / 2 - tp.width / 2, size.height - tp.height - 7));
+  }
+
+  @override
+  bool shouldRepaint(_LoupePainter old) => true; // ドラッグ中は毎回描き直す
 }
 
 /// オートメーションモードの描画：ノートと同じ背景・グリッドの上にゴーストノート（淡色）、
