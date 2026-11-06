@@ -14,6 +14,8 @@
 // セクション（Aメロ・Bメロ・サビ・イントロ）を指定すると、その役割に合う制約を上乗せする：
 // 先頭コードや使えるコード・色づけを絞り、モチーフは頭からだけ使い、味付けを止め、
 // 最後に制約チェック（progressionSatisfiesSection）で違反した案を候補から外す。
+// 制約で画一的にならないよう、多様性は別の軸で戻す：セクション専用の種（モチーフ）、
+// 返す案の着地の型の分散、フレーズ後半だけの代理置換、sus の解禁（長調側のみ）。
 // 「指定なし」は従来の生成そのまま（制約オブジェクトを使わない経路を通る）。
 //
 // コードはすべて「長調の中での位置（ローマ数字）」で持つ。短調の曲は平行調（短3度上の長調）として扱う
@@ -208,10 +210,12 @@ class _SectionRules {
 const _diatonicPlain = {'I', 'ii', 'iii', 'IV', 'V', 'vi'};
 
 /// Aメロ・イントロの色づけ：トライアド中心（M7・m7・add9 まで。9th・11th・dim 系は出さない）
+/// sus2・sus4 は「溜める」地味な色として長調側（maj・dom）にだけ入れる。短調側（min）は
+/// [_quality] に sus の形が無く（渡すと素の短和音に落ちて、表示名と食い違う）ため許可しない
 const _suffixesVerseA = <String, Set<String>>{
-  'maj': {'', 'M7', 'add9', 'sus2'},
+  'maj': {'', 'M7', 'add9', 'sus2', 'sus4'},
   'min': {'', '7', 'add9'},
-  'dom': {'', '7', 'sus4', '7sus4'},
+  'dom': {'', '7', 'sus2', 'sus4', '7sus4'},
   'sec': {'7'},
 };
 
@@ -219,9 +223,25 @@ const _suffixesVerseA = <String, Set<String>>{
 const _suffixesVerseB = <String, Set<String>>{
   'maj': {'', 'M7', 'M9', 'add9', '6', 'sus2', 'sus4'},
   'min': {'', '7', '9', 'add9'},
-  'dom': {'', '7', '9', 'sus4', '7sus4'},
+  'dom': {'', '7', 'sus2', 'sus4', '7sus4'},
   'sec': {'7', '9'},
 };
+
+/// セクション指定時だけ種に足す定番の型（生成時にセクションの制約に合うものだけが
+/// スタイルのモチーフへ混ざる）。すべてダイアトニックで、先頭は Aメロ（I/vi）・
+/// Bメロ（I/vi/IV）・イントロ（I）の各制約に収まる。「指定なし」の生成には一切使わない
+const _sectionMotifs = <List<String>>[
+  // Aメロ向け：頭が I/vi の定番
+  ['I', 'vi', 'IV', 'V'],
+  ['I', 'iii', 'IV', 'V'],
+  ['I', 'IV', 'vi', 'V'],
+  ['vi', 'IV', 'ii', 'V'],
+  ['vi', 'iii', 'IV', 'V'],
+  ['I', 'V', 'vi', 'iii', 'IV', 'V'],
+  // Bメロ向け：V で着地してサビへ押す型
+  ['IV', 'iii', 'ii', 'V'],
+  ['I', 'IV', 'ii', 'V'],
+];
 
 _SectionRules? _rulesFor(GenSection section) => switch (section) {
       GenSection.none => null,
@@ -624,9 +644,24 @@ class ProgressionGenerator {
     }
     scored.sort((a, b) => b.$1.compareTo(a.$1));
     final picked = <GenProgression>[];
+    // セクション指定時は、返す案の「着地の型」も散らす（形の違いだけで選ぶと、
+    // 着地が半終止ばかりに偏って同じ響きに聞こえるため）。Aメロ・イントロは同じ着地を
+    // 1案まで、Bメロは V 終わりが持ち味なので2案まで。指定なし・サビは従来どおり
+    final cadenceCap = switch (section) {
+      GenSection.verseA || GenSection.intro => 1,
+      GenSection.verseB => 2,
+      _ => null,
+    };
+    final cadences = <String, int>{};
     for (final (_, p) in scored) {
       if (picked.any((q) => q.signature == p.signature || _similarity(q, p) > 0.55)) continue;
+      String? cadence;
+      if (cadenceCap != null) {
+        cadence = _cadenceOf(p);
+        if ((cadences[cadence] ?? 0) >= cadenceCap) continue;
+      }
       picked.add(p);
+      if (cadence != null) cadences[cadence] = (cadences[cadence] ?? 0) + 1;
       if (picked.length == count) break;
     }
     // 似たものしか残らなければ、似ていても違うものを足す
@@ -671,9 +706,14 @@ class ProgressionGenerator {
       var pool = s.motifs;
       if (rules?.bases != null) {
         final allow = {...rules!.bases!, if (rules.maxIv != null) 'iv'};
+        bool fits(List<String> m) =>
+            m.every(allow.contains) && (rules.first == null || rules.first!.contains(m.first));
         pool = [
           for (final m in s.motifs)
-            if (m.every(allow.contains) && (rules.first == null || rules.first!.contains(m.first))) m
+            if (fits(m)) m,
+          // セクション専用の定番型も種に足す（多様性の底上げ。指定なしでは使わない）
+          for (final m in _sectionMotifs)
+            if (fits(m)) m,
         ];
       }
       if (pool.isEmpty) {
@@ -730,6 +770,11 @@ class ProgressionGenerator {
     var chords = <GenChord>[
       for (var i = 0; i < n; i++) fixedAt[i] ?? GenChord(bases[i]!, _color(s, bases[i]!, rules: rules), beats[i]),
     ];
+    // セクション指定時：フレーズ後半だけ代理置換でもバリエーションを付ける
+    // （コードの長さは変えないので、この後の味付けで使う固定位置はずれない）
+    if (rules?.bases != null) {
+      chords = _halfSubstitute(s, chords, fixedAt.keys.toSet(), tags, rules: rules);
+    }
     chords = _season(s, chords, fixedAt.keys.toSet(), tags, rules: rules);
     return GenProgression(s, chords, tags);
   }
@@ -805,9 +850,45 @@ class ProgressionGenerator {
     final allow = rules?.suffixes?[kind];
     if (allow != null) {
       table = {for (final e in table.entries) if (allow.contains(e.key)) e.key: e.value};
+      // セクション指定時だけ：スタイルの表に sus が無くても、許可されている sus は
+      // 控えめな重みで足す（大半のスタイルは maj の色づけに sus を持たず、
+      // 許可表に入れただけでは永遠に出てこないため）
+      for (final sus in const ['sus2', 'sus4']) {
+        if (allow.contains(sus) && !table.containsKey(sus)) table[sus] = 0.12;
+      }
       if (table.isEmpty) return '';
     }
     return _choose(table) ?? '';
+  }
+
+  /// フレーズ後半だけの代理置換（セクション指定時専用のバリエーション）。
+  /// 機能が同じダイアトニック同士（iii↔vi＝トニック機能、IV↔ii＝サブドミナント機能）で
+  /// 入れ替え、色づけは置換先に合わせて付け直すので、セクションの制約は崩れない。
+  /// 先頭コードと最終コード（着地）は触らず、固定した位置も触らない
+  List<GenChord> _halfSubstitute(GenStyle s, List<GenChord> chords, Set<int> fixed, List<String> tags,
+      {_SectionRules? rules}) {
+    const subs = {'iii': 'vi', 'vi': 'iii', 'IV': 'ii', 'ii': 'IV'};
+    final total = chords.fold(0, (a, c) => a + c.beats);
+    final out = [...chords];
+    var done = 0;
+    var at = 0; // そのコードが始まる拍
+    for (var i = 0; i < out.length; i++) {
+      final start = at;
+      at += out[i].beats;
+      if (done >= 2) break;
+      // 後半（全体の半分以降に始まるコード）だけ。先頭と着地は除く
+      if (i == 0 || i == out.length - 1 || start < total / 2) continue;
+      if (fixed.contains(i)) continue;
+      final sub = subs[out[i].base];
+      if (sub == null) continue;
+      // 置換で同じコードが隣と連続するのは避ける
+      if (sub == out[i - 1].base || (i + 1 < out.length && sub == out[i + 1].base)) continue;
+      if (rng.nextDouble() >= 0.45) continue;
+      out[i] = GenChord(sub, _color(s, sub, rules: rules), out[i].beats);
+      done++;
+    }
+    if (done > 0) tags.add('後半で代理コード');
+    return out;
   }
 
   /// 味付け（ランダム）。固定した位置は触らない
@@ -917,6 +998,22 @@ class ProgressionGenerator {
       if (r == p.signature) score -= 1.5;
     }
     return score;
+  }
+
+  /// 着地の型（最後の2コードの並びで分類）。セクション指定時に返す案を散らすために使う
+  String _cadenceOf(GenProgression p) {
+    final b = p.bases;
+    if (b.isEmpty) return 'なし';
+    if (b.length >= 2) {
+      if (b[b.length - 2] == 'iii' && b.last == 'vi') return 'iii→vi';
+      if (b[b.length - 2] == 'IV' && b.last == 'I') return '変終止';
+    }
+    return switch (b.last) {
+      'I' => 'I 解決',
+      'vi' => 'vi 解決',
+      'V' => '半終止',
+      _ => 'その他',
+    };
   }
 
   double _similarity(GenProgression a, GenProgression b) {
