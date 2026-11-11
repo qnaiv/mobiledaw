@@ -22,7 +22,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # ccache が入れられない（ランナーの apt が一時的に名前解決できない等）でも、
+      # テスト自体は ccache なしで進める
       - uses: hendrikmuhs/ccache-action@v1.2
+        continue-on-error: true
         with:
           key: core-linux
       - name: Configure
@@ -48,6 +51,7 @@ jobs:
           cache: gradle
           cache-dependency-path: app/android/app/build.gradle.kts
       - uses: hendrikmuhs/ccache-action@v1.2
+        continue-on-error: true
         with:
           key: android-arm64
       - uses: subosito/flutter-action@v2
