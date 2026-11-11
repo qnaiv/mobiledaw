@@ -81,7 +81,26 @@ enum {
     MDAW_FX_SIDECHAIN = 48,        /* キックで引っ込む深さ 0〜1 */
     MDAW_FX_SIDECHAIN_RELEASE_S = 49, /* 戻るまでの時間 0.03〜1 */
     MDAW_FX_SIDECHAIN_SOURCE = 50, /* 1 = このトラックの発音で他を引っ込める（キック） */
-    MDAW_FX_END = 51,
+    MDAW_FX_EQ_LOW_DB = 51,        /* ローシェルフ -18〜+18 dB（0 = なし） */
+    MDAW_FX_EQ_LOW_HZ = 52,        /* 40〜400 */
+    MDAW_FX_EQ_MID_DB = 53,        /* ピーク -18〜+18 dB */
+    MDAW_FX_EQ_MID_HZ = 54,        /* 200〜8000 */
+    MDAW_FX_EQ_MID_Q = 55,         /* 0.4〜6 */
+    /* 56 は MDAW_PARAM_TRACK_GAIN（オートメーション専用） */
+    MDAW_FX_EQ_HIGH_DB = 57,       /* ハイシェルフ -18〜+18 dB */
+    MDAW_FX_EQ_HIGH_HZ = 58,       /* 1500〜16000 */
+    MDAW_FX_COMP = 59,             /* コンプの混ぜ 0〜1（0 = なし） */
+    MDAW_FX_COMP_THRESHOLD_DB = 60,/* -40〜0 */
+    MDAW_FX_COMP_RATIO = 61,       /* 1〜20 */
+    MDAW_FX_COMP_ATTACK_MS = 62,   /* 0.2〜80 */
+    MDAW_FX_COMP_RELEASE_MS = 63,  /* 20〜400 */
+    MDAW_FX_COMP_MAKEUP_DB = 64,   /* 0〜18 */
+    MDAW_FX_SEND_REVERB = 65,      /* AUX リバーブへのセンド 0〜1 */
+    MDAW_FX_SEND_DELAY = 66,       /* AUX ディレイへのセンド 0〜1 */
+    MDAW_FX_BITCRUSH = 67,         /* ビットクラッシュ 0〜1（0 = なし） */
+    MDAW_FX_STUTTER = 68,          /* テンポ同期スタッター 0〜1（0 = なし） */
+    MDAW_FX_STUTTER_DIV = 69,      /* 0=2分 1=4分 2=付点8分 3=8分 4=16分 */
+    MDAW_FX_END = 70,
 
     /* オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。
        mdaw_set_track_param では使わず、クリップのオートメーションの対象としてだけ使う */
@@ -145,6 +164,13 @@ MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const 
 /* トラックの音量（0〜2、1 = そのまま）・パン（-1 左〜1 右）・ミュート・ソロ。変わらなければ 0 */
 MDAW_API int32_t mdaw_set_track_mixer(mdaw_engine* engine, mdaw_id track_id, float gain, float pan, int32_t mute,
                                       int32_t solo);
+/* マスターバス。gain は直線（既定 3.2）、glue は 0〜1、threshold_db / ratio はグルーコンプ、
+   soft_clip は 0〜1、ceiling は直線の天井（既定 0.944）。欠けている古い曲は既定＝従来の音 */
+MDAW_API int32_t mdaw_set_master(mdaw_engine* engine, float gain, float glue, float threshold_db, float ratio,
+                                 float soft_clip, float ceiling);
+/* AUX（リバーブとディレイのリターン）。センドが 0 のあいだは音に足さない */
+MDAW_API int32_t mdaw_set_aux(mdaw_engine* engine, float reverb_return, float reverb_size, float delay_return,
+                              float delay_feedback);
 /* 新しいクリップを作って置く。out_placement_id は NULL でもよい */
 MDAW_API mdaw_id mdaw_create_clip(mdaw_engine* engine, mdaw_id track_id, int32_t start_bar, int32_t length_bars,
                                   mdaw_id* out_placement_id);

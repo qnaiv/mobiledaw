@@ -94,4 +94,22 @@ void main() {
     if (!f.existsSync()) return;
     expect(kitsInProjectJson(f.readAsStringSync()), ['acoustic-live']);
   });
+
+  test('bundled technopop demo uses the house kit', () {
+    final f = File('assets/demos/technopop.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['house']);
+  });
+
+  test('bundled rock demo uses the acoustic-live kit', () {
+    final f = File('assets/demos/rock.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['acoustic-live']);
+  });
+
+  test('bundled electronica demo uses the future-bass-pro kit', () {
+    final f = File('assets/demos/electronica.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass-pro']);
+  });
 }

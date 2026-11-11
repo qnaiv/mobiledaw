@@ -24,10 +24,12 @@ Engine::~Engine() {
 
 void Engine::prepare(double sampleRate) {
     sampleRate_.store(sampleRate, std::memory_order_relaxed);
-    for (auto* b : {&bufL_, &bufR_, &prevL_, &prevR_, &mixL_, &mixR_})
+    for (auto* b : {&bufL_, &bufR_, &prevL_, &prevR_, &mixL_, &mixR_, &sendRevL_, &sendRevR_, &sendDlyL_, &sendDlyR_})
         b->assign(kMaxBlock, 0.0f);
     preview_.prepare(sampleRate, kMaxBlock);
     master_.prepare(sampleRate);
+    aux_.prepare(sampleRate, kMaxBlock);
+    auxTailSamples_ = 0;
     for (auto& s : slots_) {
         s.synth.prepare(sampleRate, kMaxBlock);
         s.drums.prepare(sampleRate);
@@ -146,6 +148,8 @@ void Engine::rewindTo(double tick) noexcept {
     position_ = tick;
     firedUpTo_ = tick - 0.5; // tick ちょうどのイベントはこれから鳴らす
     cursor_ = current_ != nullptr ? current_->firstEventAfter(firedUpTo_) : 0;
+    aux_.reset();
+    auxTailSamples_ = 0;
     playheadOut_.store(static_cast<int64_t>(position_), std::memory_order_relaxed);
     // 位置が飛んだら、オートメーションの掛かり具合もその位置に合わせ直す
     if (current_ != nullptr && !current_->automation.empty()) {
@@ -273,6 +277,11 @@ void Engine::adoptPendingSnapshot() noexcept {
             s.snapSampler = wantSettings;
         }
     }
+    if (current_ != nullptr) {
+        master_.setParams(current_->master);
+        aux_.setParams(current_->aux);
+        aux_.setTempo(current_->tempo);
+    }
 
     // オートメーションの状態は新しいスナップショットに合わせ直す（レーンを消す編集でも素に戻るように）
     if ((old != nullptr && !old->automation.empty()) || !current_->automation.empty()) {
@@ -339,6 +348,11 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
     const auto un = static_cast<size_t>(n);
     std::fill(mixL_.begin(), mixL_.begin() + n, 0.0f);
     std::fill(mixR_.begin(), mixR_.begin() + n, 0.0f);
+    std::fill(sendRevL_.begin(), sendRevL_.begin() + n, 0.0f);
+    std::fill(sendRevR_.begin(), sendRevR_.begin() + n, 0.0f);
+    std::fill(sendDlyL_.begin(), sendDlyL_.begin() + n, 0.0f);
+    std::fill(sendDlyR_.begin(), sendDlyR_.begin() + n, 0.0f);
+    bool fedAux = false;
     const double sr = sampleRate();
 
     // 試聴の音。トラックを選んでいればそのトラックのエフェクトに通す
@@ -411,6 +425,10 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         const auto& fx = s.fx.params();
         const float depth = fx.sidechainSource >= 0.5f ? 0.0f : fx.sidechain;
         const auto release = static_cast<int64_t>(std::max(0.03f, fx.sidechainReleaseS) * sr);
+        const float sendR = fx.sendReverb;
+        const float sendD = fx.sendDelay;
+        if (sendR > 0.0f || sendD > 0.0f)
+            fedAux = true;
         for (size_t i = 0; i < un; ++i) {
             float g = 1.0f;
             if (depth > 0.0f) {
@@ -426,8 +444,18 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
                 s.duck = env;
                 g = 1.0f - depth * env;
             }
-            mixL_[i] += bufL_[i] * gl * g;
-            mixR_[i] += bufR_[i] * gr * g;
+            const float sl = bufL_[i] * gl * g;
+            const float srgt = bufR_[i] * gr * g;
+            mixL_[i] += sl;
+            mixR_[i] += srgt;
+            if (sendR > 0.0f) {
+                sendRevL_[i] += sl * sendR;
+                sendRevR_[i] += srgt * sendR;
+            }
+            if (sendD > 0.0f) {
+                sendDlyL_[i] += sl * sendD;
+                sendDlyR_[i] += srgt * sendD;
+            }
             gl += stepL;
             gr += stepR;
         }
@@ -435,6 +463,18 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         s.gainR = endR;
     }
     sidechainAge_ = std::min<int64_t>(sidechainAge_ + n, int64_t{1} << 40);
+
+    // センドが一度でも乗ったら、トラックが止まっても AUX の尾を回し続ける。
+    // センドが全部 0 の曲（従来のプロジェクト）はここを通らない。
+    if (fedAux)
+        auxTailSamples_ = static_cast<int64_t>(aux_.tailSeconds() * sr);
+    if (auxTailSamples_ > 0) {
+        aux_.process(sendRevL_.data(), sendRevR_.data(), sendDlyL_.data(), sendDlyR_.data(), mixL_.data(), mixR_.data(),
+                     n);
+        auxTailSamples_ = std::max<int64_t>(0, auxTailSamples_ - n);
+        if (auxTailSamples_ == 0)
+            aux_.reset();
+    }
 
     if (masterEnabled_)
         master_.process(mixL_.data(), mixR_.data(), n);

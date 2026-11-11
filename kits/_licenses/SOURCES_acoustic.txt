@@ -46,3 +46,8 @@ hihat_open_808.wav <- Fischer TR-808 (1994): oh8/OH50.WAV
     https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/main/oh8/OH50.WAV
 cymbal_808.wav <- Fischer TR-808 (1994): cy8/CY5050.WAV
     https://raw.githubusercontent.com/tidalcycles/sounds-tr808-fischer/main/cy8/CY5050.WAV
+
+# 2026-11 派生（CC0 のまま。自作の胴を重ねた。ツールは tools/kits/make_pro_drums.py）
+kick_full.wav <- kick_real.wav（上の Big Rusty Drums のキック）＋自作サブ／胴
+snare_full.wav <- snare_real.wav（上の Big Rusty Drums のスネア）＋自作トーン／胴
+rimshot_full.wav <- snare_rimshot.wav（上の Big Rusty Drums のリムショット）＋自作トーン／胴

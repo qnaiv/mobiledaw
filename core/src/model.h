@@ -103,6 +103,8 @@ struct Project {
     std::vector<Track> tracks;
     std::vector<Clip> clips;
     std::vector<Placement> placements;
+    MasterParams master; // 無いファイルは既定（従来の +10 dB / グルー / リミッター）
+    AuxParams aux;       // センドが 0 なら音には出ない
 
     int64_t ticksPerBar() const noexcept { return kPpq * 4 * timeSigNumerator / timeSigDenominator; }
 

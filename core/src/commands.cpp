@@ -409,6 +409,52 @@ bool SetProjectTitle::apply(Project& p) {
     return true;
 }
 
+namespace {
+
+MasterParams clampMaster(MasterParams m) noexcept {
+    if (!std::isfinite(m.gain))
+        m.gain = MasterParams{}.gain;
+    m.gain = std::clamp(m.gain, 0.25f, 8.0f);
+    m.glue = std::clamp(m.glue, 0.0f, 1.0f);
+    m.thresholdDb = std::clamp(m.thresholdDb, -36.0f, 0.0f);
+    m.ratio = std::clamp(m.ratio, 1.0f, 8.0f);
+    m.softClip = std::clamp(m.softClip, 0.0f, 1.0f);
+    m.ceiling = std::clamp(m.ceiling, 0.5f, 1.0f);
+    return m;
+}
+
+AuxParams clampAux(AuxParams a) noexcept {
+    a.reverbReturn = std::clamp(a.reverbReturn, 0.0f, 2.0f);
+    a.reverbSize = std::clamp(a.reverbSize, 0.0f, 1.0f);
+    a.delayReturn = std::clamp(a.delayReturn, 0.0f, 2.0f);
+    a.delayFeedback = std::clamp(a.delayFeedback, 0.0f, 0.9f);
+    return a;
+}
+
+} // namespace
+
+bool SetMaster::apply(Project& p) {
+    const MasterParams next = clampMaster(next_);
+    if (!std::isfinite(next_.gain) || next == p.master)
+        return false;
+    old_ = p.master;
+    p.master = next;
+    return true;
+}
+
+void SetMaster::revert(Project& p) { p.master = old_; }
+
+bool SetAux::apply(Project& p) {
+    const AuxParams next = clampAux(next_);
+    if (next == p.aux)
+        return false;
+    old_ = p.aux;
+    p.aux = next;
+    return true;
+}
+
+void SetAux::revert(Project& p) { p.aux = old_; }
+
 bool SetTrackMixer::apply(Project& p) {
     auto* t = p.findTrack(trackId_);
     if (t == nullptr || !std::isfinite(next_.gain) || !std::isfinite(next_.pan))

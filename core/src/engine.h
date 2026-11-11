@@ -120,7 +120,10 @@ private:
     int previewSlot_ = -1;
     std::array<Slot, kMaxSlots> slots_;
     std::vector<float> bufL_, bufR_, prevL_, prevR_, mixL_, mixR_;
+    std::vector<float> sendRevL_, sendRevR_, sendDlyL_, sendDlyR_;
     MasterBus master_;
+    AuxReturn aux_;
+    int64_t auxTailSamples_ = 0;
     bool masterEnabled_ = true;
     int64_t sidechainAge_ = 1 << 30; // キックが鳴ってからのサンプル数
     bool sidechainTrigger_ = false;

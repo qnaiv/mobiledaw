@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../model/project.dart';
+import '../sound/sound_params.dart';
 import '../ui/theme.dart';
 import 'song_controller.dart';
 
@@ -65,7 +66,7 @@ class _MixerSheet extends StatelessWidget {
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('再生しながら動かせます。M＝消音、S＝そのトラックだけ鳴らす',
+                  child: Text('再生しながら動かせます。M＝消音、S＝そのトラックだけ鳴らす。数字をダブルタップで戻す',
                       style: TextStyle(fontSize: 11, color: DawColors.muted)),
                 ),
                 Flexible(
@@ -73,6 +74,8 @@ class _MixerSheet extends StatelessWidget {
                     shrinkWrap: true,
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
                     children: [
+                      _MasterCard(song: song),
+                      _AuxCard(song: song),
                       for (final t in tracks)
                         _MixerRow(song: song, track: t, focused: t.id == focusTrackId),
                     ],
@@ -193,8 +196,214 @@ class _MixerRow extends StatelessWidget {
               song: song,
               onChanged: (v) => song.setMixer(track.id, pan: (v.abs() < 0.04) ? 0 : v),
             ),
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 4),
+                title: const Text('EQ・コンプ・センド', style: TextStyle(fontSize: 12, color: DawColors.muted)),
+                initiallyExpanded: focused,
+                children: [
+                  for (final key in _mixKeys) _FxSlider(song: song, track: track, paramKey: key, color: color),
+                ],
+              ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+const _mixKeys = [
+  'eqLowDb',
+  'eqMidDb',
+  'eqMidHz',
+  'eqHighDb',
+  'comp',
+  'compThresholdDb',
+  'sendReverb',
+  'sendDelay',
+  'bitcrush',
+  'stutter',
+];
+
+class _FxSlider extends StatelessWidget {
+  const _FxSlider({required this.song, required this.track, required this.paramKey, required this.color});
+
+  final SongController song;
+  final TrackData track;
+  final String paramKey;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = allSoundParams.firstWhere((e) => e.key == paramKey);
+    final v = p.valueOf(track);
+    return _SliderLine(
+      icon: Icons.tune,
+      value: v,
+      min: p.min,
+      max: p.max,
+      label: p.format(v),
+      color: color,
+      resetTo: p.def,
+      song: song,
+      onChanged: (next) => song.setSound(track.id, p.id, next),
+    );
+  }
+}
+
+class _MasterCard extends StatelessWidget {
+  const _MasterCard({required this.song});
+  final SongController song;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = song.project.master;
+    return _BusCard(
+      title: 'マスター',
+      children: [
+        _SliderLine(
+          icon: Icons.volume_up,
+          value: m.gain,
+          min: 0.5,
+          max: 6,
+          label: gainLabel(m.gain),
+          color: DawColors.accent,
+          resetTo: 3.2,
+          song: song,
+          onChanged: (v) => song.setMaster(gain: v),
+        ),
+        _SliderLine(
+          icon: Icons.compress,
+          value: m.glue,
+          min: 0,
+          max: 1,
+          label: '${(m.glue * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 1,
+          song: song,
+          onChanged: (v) => song.setMaster(glue: v),
+        ),
+        _SliderLine(
+          icon: Icons.horizontal_rule,
+          value: m.thresholdDb,
+          min: -30,
+          max: 0,
+          label: '${m.thresholdDb.toStringAsFixed(0)} dB',
+          color: DawColors.accent,
+          resetTo: -12,
+          song: song,
+          onChanged: (v) => song.setMaster(thresholdDb: v),
+        ),
+        _SliderLine(
+          icon: Icons.blur_on,
+          value: m.softClip,
+          min: 0,
+          max: 1,
+          label: '${(m.softClip * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 1,
+          song: song,
+          onChanged: (v) => song.setMaster(softClip: v),
+        ),
+        _SliderLine(
+          icon: Icons.vertical_align_top,
+          value: m.ceiling,
+          min: 0.5,
+          max: 1,
+          label: gainLabel(m.ceiling),
+          color: DawColors.accent,
+          resetTo: 0.944,
+          song: song,
+          onChanged: (v) => song.setMaster(ceiling: v),
+        ),
+      ],
+    );
+  }
+}
+
+class _AuxCard extends StatelessWidget {
+  const _AuxCard({required this.song});
+  final SongController song;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = song.project.aux;
+    return _BusCard(
+      title: 'センド（リバーブ / ディレイ）',
+      children: [
+        _SliderLine(
+          icon: Icons.waves,
+          value: a.reverbReturn,
+          min: 0,
+          max: 1.5,
+          label: '${(a.reverbReturn * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 1,
+          song: song,
+          onChanged: (v) => song.setAux(reverbReturn: v),
+        ),
+        _SliderLine(
+          icon: Icons.open_in_full,
+          value: a.reverbSize,
+          min: 0,
+          max: 1,
+          label: '${(a.reverbSize * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 0.65,
+          song: song,
+          onChanged: (v) => song.setAux(reverbSize: v),
+        ),
+        _SliderLine(
+          icon: Icons.repeat,
+          value: a.delayReturn,
+          min: 0,
+          max: 1.5,
+          label: '${(a.delayReturn * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 0.8,
+          song: song,
+          onChanged: (v) => song.setAux(delayReturn: v),
+        ),
+        _SliderLine(
+          icon: Icons.loop,
+          value: a.delayFeedback,
+          min: 0,
+          max: 0.9,
+          label: '${(a.delayFeedback * 100).round()}%',
+          color: DawColors.accent,
+          resetTo: 0.35,
+          song: song,
+          onChanged: (v) => song.setAux(delayFeedback: v),
+        ),
+      ],
+    );
+  }
+}
+
+class _BusCard extends StatelessWidget {
+  const _BusCard({required this.title, required this.children});
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.fromLTRB(10, 8, 6, 6),
+      decoration: BoxDecoration(
+        color: DawColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: DawColors.line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          ...children,
+        ],
       ),
     );
   }

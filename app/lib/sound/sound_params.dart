@@ -47,6 +47,10 @@ class SoundParam {
         return '${v.round()} 半音';
       case 'ct':
         return '${v.round()} セント';
+      case 'dB':
+        return '${v >= 0 ? '+' : ''}${v.toStringAsFixed(1)} dB';
+      case 'ms':
+        return '${v >= 10 ? v.round() : v.toStringAsFixed(1)} ms';
       default:
         return scale == ParamScale.integer ? '${v.round()}' : v.toStringAsFixed(2);
     }
@@ -109,6 +113,25 @@ const fxParams = <SoundParam>[
       scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.fxSidechainSource, 'sidechainSource', 'このトラックをキックにする（他を引っ込める）', 0, 1, 0,
       scale: ParamScale.toggle),
+  SoundParam(MdawParam.fxEqLowDb, 'eqLowDb', 'EQ 低音', -18, 18, 0, unit: 'dB'),
+  SoundParam(MdawParam.fxEqLowHz, 'eqLowHz', 'EQ 低音の周波数', 40, 400, 120, scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.fxEqMidDb, 'eqMidDb', 'EQ 中音', -18, 18, 0, unit: 'dB'),
+  SoundParam(MdawParam.fxEqMidHz, 'eqMidHz', 'EQ 中音の周波数', 200, 8000, 1000, scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.fxEqMidQ, 'eqMidQ', 'EQ 中音の狭さ', 0.4, 6, 1, scale: ParamScale.log),
+  SoundParam(MdawParam.fxEqHighDb, 'eqHighDb', 'EQ 高音', -18, 18, 0, unit: 'dB'),
+  SoundParam(MdawParam.fxEqHighHz, 'eqHighHz', 'EQ 高音の周波数', 1500, 16000, 8000, scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.fxComp, 'comp', 'コンプレッサー', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxCompThresholdDb, 'compThresholdDb', 'コンプのしきい値', -40, 0, -18, unit: 'dB'),
+  SoundParam(MdawParam.fxCompRatio, 'compRatio', 'コンプの比', 1, 20, 4, scale: ParamScale.log),
+  SoundParam(MdawParam.fxCompAttackMs, 'compAttackMs', 'コンプのアタック', 0.2, 80, 10, scale: ParamScale.log, unit: 'ms'),
+  SoundParam(MdawParam.fxCompReleaseMs, 'compReleaseMs', 'コンプのリリース', 20, 400, 120, scale: ParamScale.log, unit: 'ms'),
+  SoundParam(MdawParam.fxCompMakeupDb, 'compMakeupDb', 'コンプのメイクアップ', 0, 18, 0, unit: 'dB'),
+  SoundParam(MdawParam.fxSendReverb, 'sendReverb', 'センド リバーブ', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxSendDelay, 'sendDelay', 'センド ディレイ', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxBitcrush, 'bitcrush', 'ビットクラッシュ', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxStutter, 'stutter', 'スタッター', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxStutterDiv, 'stutterDiv', 'スタッターの長さ（0=2分、1=4分、2=付点8分、3=8分、4=16分）', 0, 4, 3,
+      scale: ParamScale.integer),
 ];
 
 final allSoundParams = [...synthParams, ...fxParams];
@@ -246,21 +269,25 @@ const soundPresets = <SoundPreset>[
     'saturation': 0.6, 'ott': 0.7, 'sidechain': 0.7,
   }),
   SoundPreset('Kick', 'ドラム', {
-    'cutoffHz': 40, 'resonance': 0.7, 'attackS': 0.0005, 'decayS': 0.32, 'sustain': 0, 'releaseS': 0.05,
-    'detuneCents': 0, 'masterGain': 1.0, 'unison': 1, 'width': 0, 'sub': 1.0, 'filterEnv': 0.8,
-    'filterEnvDecayS': 0.025, 'pitchEnv': 30, 'pitchEnvDecayS': 0.035, 'osc': 0.5,
-    'saturation': 0.35, 'sidechainSource': 1,
+    'cutoffHz': 180, 'resonance': 0.7, 'attackS': 0.0005, 'decayS': 0.38, 'sustain': 0, 'releaseS': 0.05,
+    'detuneCents': 0, 'masterGain': 1.0, 'unison': 1, 'width': 0, 'sub': 1.0, 'filterEnv': 0.85,
+    'filterEnvDecayS': 0.03, 'pitchEnv': 36, 'pitchEnvDecayS': 0.04, 'osc': 0.62, 'drive': 0.18,
+    'saturation': 0.42, 'eqLowDb': 3, 'eqLowHz': 80, 'eqMidDb': -2, 'eqMidHz': 350, 'comp': 0.35,
+    'compThresholdDb': -16, 'compRatio': 4, 'sidechainSource': 1,
   }),
   SoundPreset('Snare', 'ドラム', {
-    'cutoffHz': 1600, 'resonance': 0.9, 'attackS': 0.0005, 'decayS': 0.17, 'sustain': 0, 'releaseS': 0.08,
-    'detuneCents': 0, 'masterGain': 1.0, 'unison': 1, 'noise': 1.0, 'filterEnv': 0.55, 'filterEnvDecayS': 0.06,
-    'pitchEnv': 12, 'pitchEnvDecayS': 0.02, 'wave': 1, 'osc': 0.35,
-    'lowCutHz': 160, 'saturation': 0.55, 'reverb': 0.35, 'reverbSize': 0.5,
+    'cutoffHz': 2200, 'resonance': 0.85, 'attackS': 0.0005, 'decayS': 0.2, 'sustain': 0, 'releaseS': 0.08,
+    'detuneCents': 0, 'masterGain': 1.0, 'unison': 1, 'noise': 1.0, 'filterEnv': 0.62, 'filterEnvDecayS': 0.07,
+    'pitchEnv': 14, 'pitchEnvDecayS': 0.025, 'wave': 1, 'osc': 0.48,
+    'lowCutHz': 140, 'saturation': 0.5, 'eqMidDb': 2.5, 'eqMidHz': 1800, 'eqHighDb': 1.5, 'eqHighHz': 7000,
+    'comp': 0.3, 'compThresholdDb': -14, 'compRatio': 3.5, 'reverb': 0.22, 'reverbSize': 0.45,
+    'sendReverb': 0.18,
   }),
   SoundPreset('Hi-hat', 'ドラム', {
-    'cutoffHz': 16000, 'resonance': 0.7, 'attackS': 0.0005, 'decayS': 0.045, 'sustain': 0, 'releaseS': 0.03,
-    'unison': 1, 'noise': 1.0, 'osc': 0, 'masterGain': 1.0,
-    'lowCutHz': 6000, 'reverb': 0.12, 'reverbSize': 0.3, 'sidechain': 0.3, 'sidechainReleaseS': 0.15,
+    'cutoffHz': 14000, 'resonance': 0.9, 'attackS': 0.0005, 'decayS': 0.07, 'sustain': 0, 'releaseS': 0.04,
+    'unison': 1, 'noise': 1.0, 'osc': 0.08, 'masterGain': 0.9,
+    'lowCutHz': 3500, 'eqHighDb': 2, 'eqHighHz': 9000, 'reverb': 0.08, 'reverbSize': 0.3,
+    'sidechain': 0.25, 'sidechainReleaseS': 0.12,
   }),
   SoundPreset('Noise Riser', 'FX', {
     'cutoffHz': 5000, 'resonance': 1.5, 'attackS': 3.0, 'decayS': 1.0, 'sustain': 1.0, 'releaseS': 0.4,

@@ -63,6 +63,8 @@ struct PlaybackSnapshot {
     std::vector<SeqEvent> events;      // tick 順。同じ tick ではオフが先
     std::vector<SnapshotAutoLane> automation; // スロット×パラメータごと（無ければ空＝従来動作）
     std::vector<int64_t> automationTicks;     // 全レーンのポイント位置（昇順・重複なし）。エンジンの区切り用
+    MasterParams master;
+    AuxParams aux;
 
     // tick より後ろで最初のオートメーションのポイント位置。無ければ false
     bool nextAutomationTick(double tick, double& out) const noexcept;

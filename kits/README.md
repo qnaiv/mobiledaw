@@ -36,7 +36,7 @@
 |---|---|
 | `name` | アプリに出る名前 |
 | `version` | 中身を変えたら 1 増やす（アプリに「更新」が出る） |
-| `author` / `license` / `description` | キットの説明。license は配布してよいもの（CC0 など）だけ |
+| `author` / `license` / `description` | キットの説明。license は配布してよいもの（CC0 など）だけ。自作合成ドラムの出どころは `_licenses/SYNTH_DRUMS.md` |
 | `sounds[].file` | このフォルダの中の wav（サブフォルダ可） |
 | `sounds[].name` | ピアノロールの列に出る名前 |
 | `sounds[].note` | 割り当てる音程（MIDI 0〜127）。省くと 36 から順に。GM ドラムの番号に合わせると MIDI 書き出しでも扱いやすい（Kick 36・Snare 38・Clap 39・Closed Hat 42・Open Hat 46・Crash 49・Ride 51 など） |

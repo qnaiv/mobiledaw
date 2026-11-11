@@ -141,6 +141,108 @@ TEST(synth_new_params_clamp_and_roundtrip) {
     CHECK(old.tracks[0].synth.cutoffHz == 900.0f);
     CHECK(old.tracks[0].synth.unison == SynthParams{}.unison);
     CHECK(old.tracks[0].fx == FxParams{});
+    CHECK(old.master == MasterParams{});
+    CHECK(old.aux == AuxParams{});
+}
+
+TEST(fx_eq_boosts_lows_and_comp_tames_loud) {
+    auto lowLevel = [](float eqDb) {
+        TrackFx fx;
+        fx.prepare(kRate, 256);
+        FxParams p;
+        p.eqLowDb = eqDb;
+        p.eqLowHz = 200.0f;
+        fx.setParams(p);
+        std::vector<float> l(256), r(256);
+        double phase = 0.0;
+        float level = 0.0f;
+        for (int block = 0; block < 60; ++block) {
+            for (int i = 0; i < 256; ++i) {
+                l[static_cast<size_t>(i)] = r[static_cast<size_t>(i)] = 0.15f * static_cast<float>(std::sin(phase));
+                phase += 2.0 * 3.14159265 * 70.0 / kRate;
+            }
+            fx.process(l.data(), r.data(), 256);
+            if (block > 30)
+                level = std::max(level, rms(l));
+        }
+        return level;
+    };
+    const float flat = lowLevel(0.0f), boosted = lowLevel(12.0f);
+    std::printf("  EQ 70Hz なし %.4f / +12dB %.4f\n", flat, boosted);
+    CHECK(boosted > flat * 2.0f);
+
+    auto loud = [](float comp) {
+        TrackFx fx;
+        fx.prepare(kRate, 256);
+        FxParams p;
+        p.comp = comp;
+        p.compThresholdDb = -24.0f;
+        p.compRatio = 8.0f;
+        p.compAttackMs = 1.0f;
+        p.compReleaseMs = 40.0f;
+        fx.setParams(p);
+        std::vector<float> l(256), r(256);
+        double phase = 0.0;
+        float level = 0.0f;
+        for (int block = 0; block < 80; ++block) {
+            for (int i = 0; i < 256; ++i) {
+                l[static_cast<size_t>(i)] = r[static_cast<size_t>(i)] = 0.6f * static_cast<float>(std::sin(phase));
+                phase += 2.0 * 3.14159265 * 440.0 / kRate;
+            }
+            fx.process(l.data(), r.data(), 256);
+            if (block > 40)
+                level = std::max(level, rms(l));
+        }
+        return level;
+    };
+    const float open = loud(0.0f), squeezed = loud(1.0f);
+    std::printf("  コンプ なし %.4f / あり %.4f\n", open, squeezed);
+    CHECK(squeezed < open * 0.55f);
+}
+
+TEST(engine_aux_reverb_send_rings_after_the_note) {
+    auto tail = [](float send) {
+        Project p;
+        Track t;
+        t.id = 1;
+        t.synth.unison = 1.0f;
+        t.synth.osc = 1.0f;
+        t.synth.attackS = 0.001f;
+        t.synth.decayS = 0.02f;
+        t.synth.sustain = 0.0f;
+        t.synth.releaseS = 0.01f;
+        t.synth.masterGain = 0.8f;
+        t.fx.sendReverb = send;
+        t.fx.reverb = 0.0f;
+        t.mixer.gain = 1.0f;
+        p.tracks.push_back(t);
+        p.aux.reverbReturn = 1.2f;
+        p.aux.reverbSize = 0.85f;
+        Clip c;
+        c.id = 10;
+        c.trackId = 1;
+        c.lengthTicks = kPpq * 4;
+        Note n;
+        n.id = 1;
+        n.tick = 0;
+        n.length = kPpq / 8;
+        n.pitch = 60;
+        n.velocity = 1.0f;
+        c.notes.push_back(n);
+        p.clips.push_back(c);
+        p.placements.push_back({100, 10, 1, 0, 1});
+        p.tempo = 120.0;
+        Engine e;
+        e.prepare(kRate);
+        e.publish(buildSnapshot(p));
+        e.play();
+        const auto out = renderEngine(e, 48000);
+        return rms(out.l, 24000, 40000); // 0.5秒より後
+    };
+    const float dry = tail(0.0f), wet = tail(1.0f);
+    std::printf("  AUX なし %.5f / センド %.5f\n", dry, wet);
+    CHECK(wet > dry * 4.0f);
+    CHECK(wet > 0.002f);
 }
 
 TEST(fx_reverb_and_delay_leave_a_tail) {

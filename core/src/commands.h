@@ -264,6 +264,32 @@ private:
     std::string old_;
 };
 
+// マスターバス（音量・グルー・ソフトクリップ・天井）
+class SetMaster final : public Command {
+public:
+    explicit SetMaster(MasterParams next) : next_(next) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetMaster"; }
+
+private:
+    MasterParams next_;
+    MasterParams old_;
+};
+
+// AUX リターン（リバーブとディレイ）
+class SetAux final : public Command {
+public:
+    explicit SetAux(AuxParams next) : next_(next) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetAux"; }
+
+private:
+    AuxParams next_;
+    AuxParams old_;
+};
+
 // トラックの音量・パン・ミュート・ソロをまとめて変える
 class SetTrackMixer final : public Command {
 public:
