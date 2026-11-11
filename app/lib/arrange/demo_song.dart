@@ -24,11 +24,22 @@
 //   ファイルは tools/demos/rock.py。ドラムは Acoustic Live キット
 // ・エレクトロニカ「グラス・ガーデン」：112 BPM・D minor・38小節（約1分21秒）。クワイアパッドとボーカルチョップ。
 //   ファイルは tools/demos/electronica.py。ドラムは Future Bass Pro キット（キックはキーに合わせたシンセ）
-// ・ブルアカ風フューチャーベース「そら色ステップ」：150 BPM・E♭ major・64小節（約1分42秒）。
-//   ワブルするスーパーソー、固定フォルマントの高い歌、チョップとピアノ。歌入りとインストの2曲。
-//   ファイルは tools/demos/buruaka.py。ドラムは Future Bass Pro、キックは E♭ のシンセ。
+// ・透明感フューチャーベース「そら色ステップ」：146 BPM・A major・76小節（約2分5秒）。
+//   ガラスっぽいベルのイントロ、3-3-2 のスタブ、ハーフタイムのドロップ、固定フォルマントの高い歌。
+//   歌入りとインストの2曲。ファイルは tools/demos/buruaka.py。ドラムは Future Bass Pro、キックは A のシンセ。
 //   チョップとピアノは自作の Kawaii Oneshots（kits/kawaii-oneshots）
-enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst }
+// ・kawaii フューチャーベース「ソーダ色シュガーパレード」：164 BPM・E major（2回目のドロップで F へ半音転調）・
+//   76小節（約1分51秒）。チップチューンのリード、オルゴール、跳ねる16分、ワブルコード、合成の歌とチョップ。
+//   ファイルは tools/demos/kawaii_fb.py。ドラムは Future Bass Pro、チョップとピアノは Kawaii Oneshots
+// ・A.I.テクノ風テクノポップのインスト「ネコミミ☆プロトコル」：148 BPM・D major（ラストサビで全音上げ）・74小節（約2分3秒）。
+//   ブレイクビーツ寄りのエレクトロ。主旋律はのこぎり波のリード（モノ＋ポルタメント、遅れて浅いビブラート）で、
+//   その呼びかけに矩形波のリードが1オクターブ上の16分で答えるコール＆レスポンス。
+//   ♭VI–♭VII で持ち上げるBメロ、Gm6（同主短調の iv）。ファイルは tools/demos/nekomimi.py。ドラムは Chiptune キット＋シンセキック
+// ・A.I.テクノ風テクノポップのインスト「メモリー☆シャッフル」：120 BPM・E major（ラストサビで半音上げ）・66小節（約2分15秒）。
+//   16分が跳ねるシャッフル。ローズ風エレピとカッティングでシティポップ寄り、サビは王道進行＋経過の減七。
+//   主旋律はあたたかいのこぎり波のシンセブラス風リード、合間に矩形波のリードが答える。
+//   ファイルは tools/demos/memory_shuffle.py。ドラムは Future Bass Pro キット
+enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst, kawaiiFb, nekomimi, memoryShuffle }
 
 /// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
 String demoProjectId(DemoSong d) => 'demo-${d.name}';
@@ -43,8 +54,11 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.technopop => 'テクノポップ「ネオン・シグナル」（約1分）',
       DemoSong.rock => 'ロック「オーバードライブ」（約1分）',
       DemoSong.electronica => 'エレクトロニカ「グラス・ガーデン」（約1分半）',
-      DemoSong.buruaka => 'ブルアカ風フューチャーベース「そら色ステップ」（約1分40秒）',
-      DemoSong.buruakaInst => 'ブルアカ風フューチャーベース「そら色ステップ」インスト（約1分40秒）',
+      DemoSong.buruaka => '透明感フューチャーベース「そら色ステップ」（約2分）',
+      DemoSong.buruakaInst => '透明感フューチャーベース「そら色ステップ」インスト（約2分）',
+      DemoSong.kawaiiFb => 'kawaii フューチャーベース「ソーダ色シュガーパレード」（約1分50秒）',
+      DemoSong.nekomimi => 'A.I.テクノ風テクノポップ「ネコミミ☆プロトコル」インスト（約2分）',
+      DemoSong.memoryShuffle => 'A.I.テクノ風テクノポップ「メモリー☆シャッフル」インスト（約2分15秒）',
     };
 
 /// 一覧に入るときの曲名
@@ -60,6 +74,9 @@ String demoTitle(DemoSong d) => switch (d) {
       DemoSong.electronica => 'デモ：グラス・ガーデン',
       DemoSong.buruaka => 'デモ：そら色ステップ',
       DemoSong.buruakaInst => 'デモ：そら色ステップ（インスト）',
+      DemoSong.kawaiiFb => 'デモ：ソーダ色シュガーパレード',
+      DemoSong.nekomimi => 'デモ：ネコミミ☆プロトコル',
+      DemoSong.memoryShuffle => 'デモ：メモリー☆シャッフル',
     };
 
 /// 同梱のプロジェクトファイル
@@ -75,6 +92,9 @@ String demoAsset(DemoSong d) => switch (d) {
       DemoSong.electronica => 'assets/demos/electronica.json',
       DemoSong.buruaka => 'assets/demos/buruaka.json',
       DemoSong.buruakaInst => 'assets/demos/buruaka_inst.json',
+      DemoSong.kawaiiFb => 'assets/demos/kawaii_fb.json',
+      DemoSong.nekomimi => 'assets/demos/nekomimi.json',
+      DemoSong.memoryShuffle => 'assets/demos/memory_shuffle.json',
     };
 
 /// メニューに出すキット名
@@ -90,4 +110,7 @@ String demoKitName(DemoSong d) => switch (d) {
       DemoSong.electronica => 'Future Bass Pro キット',
       DemoSong.buruaka => 'Future Bass Pro と Kawaii Oneshots',
       DemoSong.buruakaInst => 'Future Bass Pro と Kawaii Oneshots',
+      DemoSong.kawaiiFb => 'Future Bass Pro と Kawaii Oneshots',
+      DemoSong.nekomimi => 'Chiptune キット',
+      DemoSong.memoryShuffle => 'Future Bass Pro キット',
     };
