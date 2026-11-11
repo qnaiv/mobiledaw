@@ -47,6 +47,14 @@ abstract final class MdawParam {
   static const lfoCutoff = 32;
   static const lfoPitch = 33;
 
+  // シンセの追加（80番台。既定はすべて効かない）
+  static const lfoAmp = 80;
+  static const lfoRetrig = 81;
+  static const fm = 82;
+  static const fmRatio = 83;
+  static const formant = 84;
+  static const formantVowel = 85;
+
   // トラックのエフェクト（setTrackParam で同じように変えられる）
   static const fxLowCutHz = 40;
   static const fxSaturation = 41;
@@ -59,6 +67,27 @@ abstract final class MdawParam {
   static const fxSidechain = 48;
   static const fxSidechainReleaseS = 49;
   static const fxSidechainSource = 50;
+  static const fxEqLowDb = 51;
+  static const fxEqLowHz = 52;
+  static const fxEqMidDb = 53;
+  static const fxEqMidHz = 54;
+  static const fxEqMidQ = 55;
+  static const fxEqHighDb = 57;
+  static const fxEqHighHz = 58;
+  static const fxComp = 59;
+  static const fxCompThresholdDb = 60;
+  static const fxCompRatio = 61;
+  static const fxCompAttackMs = 62;
+  static const fxCompReleaseMs = 63;
+  static const fxCompMakeupDb = 64;
+  static const fxSendReverb = 65;
+  static const fxSendDelay = 66;
+  static const fxBitcrush = 67;
+  static const fxStutter = 68;
+  static const fxStutterDiv = 69;
+  static const fxSidechainAttackS = 70;
+  static const fxSidechainHoldS = 71;
+  static const fxSidechainCurve = 72;
 
   // オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。setTrackParam では使わない
   static const trackGain = 56;
@@ -256,6 +285,11 @@ class MdawEngine {
       int Function(_EnginePtr, int, Pointer<Utf8>)>('mdaw_rename_track');
   late final _setTrackMixer = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Float, Float, Int32, Int32),
       int Function(_EnginePtr, int, double, double, int, int)>('mdaw_set_track_mixer');
+  late final _setMaster = _lib.lookupFunction<Int32 Function(_EnginePtr, Float, Float, Float, Float, Float, Float),
+          int Function(_EnginePtr, double, double, double, double, double, double)>(
+      'mdaw_set_master');
+  late final _setAux = _lib.lookupFunction<Int32 Function(_EnginePtr, Float, Float, Float, Float),
+      int Function(_EnginePtr, double, double, double, double)>('mdaw_set_aux');
   late final _createClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32, Int32, Pointer<Uint64>),
       int Function(_EnginePtr, int, int, int, Pointer<Uint64>)>('mdaw_create_clip');
   late final _placeClip = _lib.lookupFunction<Uint64 Function(_EnginePtr, Uint64, Int32),
@@ -417,6 +451,22 @@ class MdawEngine {
   /// 音量（0〜2）・パン（-1〜1）・ミュート・ソロ。変わらなければ false
   bool setTrackMixer(int trackId, {required double gain, required double pan, required bool mute, required bool solo}) =>
       _setTrackMixer(_handle, trackId, gain, pan, mute ? 1 : 0, solo ? 1 : 0) != 0;
+
+  bool setMaster(
+          {required double gain,
+          required double glue,
+          required double thresholdDb,
+          required double ratio,
+          required double softClip,
+          required double ceiling}) =>
+      _setMaster(_handle, gain, glue, thresholdDb, ratio, softClip, ceiling) != 0;
+
+  bool setAux(
+          {required double reverbReturn,
+          required double reverbSize,
+          required double delayReturn,
+          required double delayFeedback}) =>
+      _setAux(_handle, reverbReturn, reverbSize, delayReturn, delayFeedback) != 0;
 
   /// 新しいクリップを作って置く。戻り値は (clipId, placementId)
   (int, int) createClip(int trackId, int startBar, {int lengthBars = 1}) {

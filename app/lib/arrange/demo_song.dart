@@ -18,7 +18,17 @@
 // ・シティソウル：96 BPM・D minor・48小節（2分）、8トラック。Just the Two of Us 系の IVM7 → III7 → vim7 の流れに
 //   書き下ろしのメロディ（短い動機のくり返しとずらし）。ローズ風キーズ・歌うリード（モノ＋グライド）・ビブラフォン。
 //   ファイルは tools/demos/city_soul.py で作る。ドラムは Acoustic Live キット（kits/acoustic-live）
-enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul }
+// ・テクノポップ「ネオン・シグナル」：128 BPM・B♭ major・38小節（約1分11秒）。シンセが日本語の歌詞を歌う。
+//   ファイルは tools/demos/technopop.py（singer.py / vowels.py）。ドラムは House キット
+// ・ロック「オーバードライブ」：140 BPM・E minor・42小節（約1分12秒）。歪んだギターとトークボックスのリード。
+//   ファイルは tools/demos/rock.py。ドラムは Acoustic Live キット
+// ・エレクトロニカ「グラス・ガーデン」：112 BPM・D minor・38小節（約1分21秒）。クワイアパッドとボーカルチョップ。
+//   ファイルは tools/demos/electronica.py。ドラムは Future Bass Pro キット（キックはキーに合わせたシンセ）
+// ・ブルアカ風フューチャーベース「そら色ステップ」：150 BPM・E♭ major・64小節（約1分42秒）。
+//   ワブルするスーパーソー、固定フォルマントの高い歌、チョップとピアノ。歌入りとインストの2曲。
+//   ファイルは tools/demos/buruaka.py。ドラムは Future Bass Pro、キックは E♭ のシンセ。
+//   チョップとピアノは自作の Kawaii Oneshots（kits/kawaii-oneshots）
+enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst }
 
 /// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
 String demoProjectId(DemoSong d) => 'demo-${d.name}';
@@ -30,6 +40,11 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.lofi => 'Lo-fi（約1分）',
       DemoSong.rnb => 'R&B（約1分半）',
       DemoSong.citySoul => 'シティソウル（2分）',
+      DemoSong.technopop => 'テクノポップ「ネオン・シグナル」（約1分）',
+      DemoSong.rock => 'ロック「オーバードライブ」（約1分）',
+      DemoSong.electronica => 'エレクトロニカ「グラス・ガーデン」（約1分半）',
+      DemoSong.buruaka => 'ブルアカ風フューチャーベース「そら色ステップ」（約1分40秒）',
+      DemoSong.buruakaInst => 'ブルアカ風フューチャーベース「そら色ステップ」インスト（約1分40秒）',
     };
 
 /// 一覧に入るときの曲名
@@ -40,6 +55,11 @@ String demoTitle(DemoSong d) => switch (d) {
       DemoSong.lofi => 'デモ：Lo-fi',
       DemoSong.rnb => 'デモ：R&B',
       DemoSong.citySoul => 'デモ：シティソウル',
+      DemoSong.technopop => 'デモ：ネオン・シグナル',
+      DemoSong.rock => 'デモ：オーバードライブ',
+      DemoSong.electronica => 'デモ：グラス・ガーデン',
+      DemoSong.buruaka => 'デモ：そら色ステップ',
+      DemoSong.buruakaInst => 'デモ：そら色ステップ（インスト）',
     };
 
 /// 同梱のプロジェクトファイル
@@ -50,6 +70,11 @@ String demoAsset(DemoSong d) => switch (d) {
       DemoSong.lofi => 'assets/demos/lofi.json',
       DemoSong.rnb => 'assets/demos/rnb.json',
       DemoSong.citySoul => 'assets/demos/city_soul.json',
+      DemoSong.technopop => 'assets/demos/technopop.json',
+      DemoSong.rock => 'assets/demos/rock.json',
+      DemoSong.electronica => 'assets/demos/electronica.json',
+      DemoSong.buruaka => 'assets/demos/buruaka.json',
+      DemoSong.buruakaInst => 'assets/demos/buruaka_inst.json',
     };
 
 /// メニューに出すキット名
@@ -60,4 +85,9 @@ String demoKitName(DemoSong d) => switch (d) {
       DemoSong.lofi => 'Lo-fi Boom Bap キット',
       DemoSong.rnb => 'Acoustic Live キット',
       DemoSong.citySoul => 'Acoustic Live キット',
+      DemoSong.technopop => 'House キット',
+      DemoSong.rock => 'Acoustic Live キット',
+      DemoSong.electronica => 'Future Bass Pro キット',
+      DemoSong.buruaka => 'Future Bass Pro と Kawaii Oneshots',
+      DemoSong.buruakaInst => 'Future Bass Pro と Kawaii Oneshots',
     };

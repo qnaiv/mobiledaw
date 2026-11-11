@@ -39,6 +39,8 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const Ki
     snap->tempo = std::clamp(project.tempo, 20.0, 400.0);
     snap->ticksPerBar = std::max<int64_t>(project.ticksPerBar(), 1);
     snap->loopEndTicks = std::max(project.lengthBars(), 1) * snap->ticksPerBar;
+    snap->master = project.master;
+    snap->aux = project.aux;
 
     bool anySolo = false;
     const size_t numTracks = std::min(project.tracks.size(), static_cast<size_t>(PlaybackSnapshot::kMaxSlots));

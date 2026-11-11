@@ -137,7 +137,10 @@ void Session::previewTrack(Id trackId) {
 
 bool Session::setTrackParamLive(Id trackId, int paramId, float value) {
     const int slot = slotOf(trackId);
-    if (slot < 0 || paramId < 0 || paramId >= MDAW_FX_END || (paramId >= MDAW_PARAM_COUNT && paramId < MDAW_FX_FIRST))
+    const bool synthMain = paramId >= 0 && paramId < MDAW_PARAM_COUNT;
+    const bool synthExt = paramId >= MDAW_PARAM_EXT_FIRST && paramId < MDAW_PARAM_EXT_END;
+    const bool fx = paramId >= MDAW_FX_FIRST && paramId < MDAW_FX_END;
+    if (slot < 0 || !(synthMain || synthExt || fx))
         return false;
     return engine_.setTrackParam(slot, paramId, value);
 }

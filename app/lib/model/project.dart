@@ -116,6 +116,56 @@ class PlacementData {
       );
 }
 
+/// マスターバス。無いファイルは従来の +10 dB / グルー / ソフトクリップ / リミッター。
+class MasterData {
+  const MasterData({
+    this.gain = 3.2,
+    this.glue = 1,
+    this.thresholdDb = -12,
+    this.ratio = 1.6,
+    this.softClip = 1,
+    this.ceiling = 0.944,
+  });
+
+  final double gain;
+  final double glue;
+  final double thresholdDb;
+  final double ratio;
+  final double softClip;
+  final double ceiling;
+
+  factory MasterData.fromJson(Map<String, Object?> j) => MasterData(
+        gain: _double(j['gain'], 3.2),
+        glue: _double(j['glue'], 1),
+        thresholdDb: _double(j['thresholdDb'], -12),
+        ratio: _double(j['ratio'], 1.6),
+        softClip: _double(j['softClip'], 1),
+        ceiling: _double(j['ceiling'], 0.944),
+      );
+}
+
+/// リバーブとディレイの AUX。センドが 0 のあいだは音に出ない。
+class AuxData {
+  const AuxData({
+    this.reverbReturn = 1,
+    this.reverbSize = 0.65,
+    this.delayReturn = 0.8,
+    this.delayFeedback = 0.35,
+  });
+
+  final double reverbReturn;
+  final double reverbSize;
+  final double delayReturn;
+  final double delayFeedback;
+
+  factory AuxData.fromJson(Map<String, Object?> j) => AuxData(
+        reverbReturn: _double(j['reverbReturn'], 1),
+        reverbSize: _double(j['reverbSize'], 0.65),
+        delayReturn: _double(j['delayReturn'], 0.8),
+        delayFeedback: _double(j['delayFeedback'], 0.35),
+      );
+}
+
 class MixerData {
   const MixerData({this.gain = 0.8, this.pan = 0, this.mute = false, this.solo = false});
 
@@ -206,6 +256,8 @@ class ProjectData {
     required this.tracks,
     required this.clips,
     required this.placements,
+    this.master = const MasterData(),
+    this.aux = const AuxData(),
   });
 
   final String title;
@@ -214,6 +266,8 @@ class ProjectData {
   final int timeSigDenominator;
   final int keyRoot; // 0 = C
   final String scale;
+  final MasterData master;
+  final AuxData aux;
   final List<TrackData> tracks;
   final List<ClipData> clips;
   final List<PlacementData> placements;
@@ -241,6 +295,8 @@ class ProjectData {
       timeSigDenominator: sig.length > 1 ? _int(sig[1], 4) : 4,
       keyRoot: _int(key['root']),
       scale: key['scale'] is String ? key['scale']! as String : 'minor',
+      master: MasterData.fromJson(_map(j['master'])),
+      aux: AuxData.fromJson(_map(j['aux'])),
       tracks: _list(j['tracks']).map(TrackData.fromJson).toList(growable: false),
       clips: _list(j['clips']).map(ClipData.fromJson).toList(growable: false),
       placements: _list(j['placements']).map(PlacementData.fromJson).toList(growable: false),

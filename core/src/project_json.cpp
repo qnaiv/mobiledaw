@@ -180,6 +180,21 @@ std::string projectToJson(const Project& p) {
     }
     put(root, "placements", placements);
 
+    auto master = object();
+    put(master, "gain", p.master.gain);
+    put(master, "glue", p.master.glue);
+    put(master, "thresholdDb", p.master.thresholdDb);
+    put(master, "ratio", p.master.ratio);
+    put(master, "softClip", p.master.softClip);
+    put(master, "ceiling", p.master.ceiling);
+    put(root, "master", master);
+    auto aux = object();
+    put(aux, "reverbReturn", p.aux.reverbReturn);
+    put(aux, "reverbSize", p.aux.reverbSize);
+    put(aux, "delayReturn", p.aux.delayReturn);
+    put(aux, "delayFeedback", p.aux.delayFeedback);
+    put(root, "aux", aux);
+
     return juce::JSON::toString(root, juce::JSON::FormatOptions{}.withSpacing(juce::JSON::Spacing::multiLine))
         .toStdString();
 }
@@ -320,6 +335,25 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
                 continue;
             p.placements.push_back(pl);
         }
+    }
+
+    {
+        const auto m = get(root, "master");
+        const MasterParams d;
+        p.master.gain = static_cast<float>(std::clamp(num(m, "gain", d.gain), 0.25, 8.0));
+        p.master.glue = static_cast<float>(std::clamp(num(m, "glue", d.glue), 0.0, 1.0));
+        p.master.thresholdDb = static_cast<float>(std::clamp(num(m, "thresholdDb", d.thresholdDb), -36.0, 0.0));
+        p.master.ratio = static_cast<float>(std::clamp(num(m, "ratio", d.ratio), 1.0, 8.0));
+        p.master.softClip = static_cast<float>(std::clamp(num(m, "softClip", d.softClip), 0.0, 1.0));
+        p.master.ceiling = static_cast<float>(std::clamp(num(m, "ceiling", d.ceiling), 0.5, 1.0));
+    }
+    {
+        const auto a = get(root, "aux");
+        const AuxParams d;
+        p.aux.reverbReturn = static_cast<float>(std::clamp(num(a, "reverbReturn", d.reverbReturn), 0.0, 2.0));
+        p.aux.reverbSize = static_cast<float>(std::clamp(num(a, "reverbSize", d.reverbSize), 0.0, 1.0));
+        p.aux.delayReturn = static_cast<float>(std::clamp(num(a, "delayReturn", d.delayReturn), 0.0, 2.0));
+        p.aux.delayFeedback = static_cast<float>(std::clamp(num(a, "delayFeedback", d.delayFeedback), 0.0, 0.9));
     }
 
     if (p.tracks.empty()) {

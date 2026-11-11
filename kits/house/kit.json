@@ -1,9 +1,9 @@
 {
   "name": "House",
-  "version": 1,
+  "version": 2,
   "author": "Qnaiv",
   "license": "自作合成（同梱可）＋CC0-1.0（TR-808）",
-  "description": "ハウス・テクノ用キック、808 のハット・クラップ・パーカッション",
+  "description": "ハウス・テクノ用キック（自作のクリック＋胴＋サブ）、808 のハット・クラップ・パーカッション",
   "sounds": [
     {
       "file": "clap_wide.wav",

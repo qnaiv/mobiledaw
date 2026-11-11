@@ -178,6 +178,27 @@ int32_t mdaw_set_track_mixer(mdaw_engine* e, mdaw_id track, float gain, float pa
     return run(e, std::make_unique<mdaw::SetTrackMixer>(track, m));
 }
 
+int32_t mdaw_set_master(mdaw_engine* e, float gain, float glue, float thresholdDb, float ratio, float softClip,
+                        float ceiling) {
+    mdaw::MasterParams m;
+    m.gain = gain;
+    m.glue = glue;
+    m.thresholdDb = thresholdDb;
+    m.ratio = ratio;
+    m.softClip = softClip;
+    m.ceiling = ceiling;
+    return run(e, std::make_unique<mdaw::SetMaster>(m));
+}
+
+int32_t mdaw_set_aux(mdaw_engine* e, float reverbReturn, float reverbSize, float delayReturn, float delayFeedback) {
+    mdaw::AuxParams a;
+    a.reverbReturn = reverbReturn;
+    a.reverbSize = reverbSize;
+    a.delayReturn = delayReturn;
+    a.delayFeedback = delayFeedback;
+    return run(e, std::make_unique<mdaw::SetAux>(a));
+}
+
 mdaw_id mdaw_create_clip(mdaw_engine* e, mdaw_id track, int32_t startBar, int32_t bars, mdaw_id* outPlacement) {
     if (outPlacement != nullptr)
         *outPlacement = 0;

@@ -315,6 +315,31 @@ class SongController extends ChangeNotifier {
         ].where((id) => id != 0).toList()));
   }
 
+  /// マスターバス。指定したものだけ変える
+  bool setMaster(
+      {double? gain, double? glue, double? thresholdDb, double? ratio, double? softClip, double? ceiling}) {
+    final m = project.master;
+    return _edit(() => engine.setMaster(
+          gain: gain ?? m.gain,
+          glue: glue ?? m.glue,
+          thresholdDb: thresholdDb ?? m.thresholdDb,
+          ratio: ratio ?? m.ratio,
+          softClip: softClip ?? m.softClip,
+          ceiling: ceiling ?? m.ceiling,
+        ));
+  }
+
+  /// AUX のリターン。指定したものだけ変える
+  bool setAux({double? reverbReturn, double? reverbSize, double? delayReturn, double? delayFeedback}) {
+    final a = project.aux;
+    return _edit(() => engine.setAux(
+          reverbReturn: reverbReturn ?? a.reverbReturn,
+          reverbSize: reverbSize ?? a.reverbSize,
+          delayReturn: delayReturn ?? a.delayReturn,
+          delayFeedback: delayFeedback ?? a.delayFeedback,
+        ));
+  }
+
   /// 指定したものだけ変える（他は今の値のまま）
   bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
     final t = project.track(trackId);

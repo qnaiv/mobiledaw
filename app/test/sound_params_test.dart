@@ -36,15 +36,21 @@ void main() {
   });
 
   // 同梱のデモ曲が、表にある名前だけを使っている（コアの保存名と食い違っていない）
-  test('bundled demo uses known parameter names', () {
-    final j = jsonDecode(File('assets/demos/future_bass.json').readAsStringSync()) as Map<String, Object?>;
-    final tracks = (j['tracks']! as List<Object?>).cast<Map<String, Object?>>();
-    expect(tracks.length, 8);
-    for (final t in tracks) {
-      final params = ((t['instrument']! as Map<String, Object?>)['params']! as Map<String, Object?>).keys;
-      final fx = (t['fx']! as Map<String, Object?>).keys;
-      for (final k in [...params, ...fx]) {
-        expect(keys, contains(k), reason: '${t['name']}: $k');
+  test('bundled demos use known parameter names', () {
+    final dir = Directory('assets/demos');
+    expect(dir.existsSync(), isTrue);
+    final files = dir.listSync().whereType<File>().where((f) => f.path.endsWith('.json')).toList();
+    expect(files.length, greaterThanOrEqualTo(9));
+    for (final f in files) {
+      final j = jsonDecode(f.readAsStringSync()) as Map<String, Object?>;
+      final tracks = (j['tracks']! as List<Object?>).cast<Map<String, Object?>>();
+      expect(tracks, isNotEmpty, reason: f.path);
+      for (final t in tracks) {
+        final params = ((t['instrument']! as Map<String, Object?>)['params']! as Map<String, Object?>).keys;
+        final fx = (t['fx']! as Map<String, Object?>).keys;
+        for (final k in [...params, ...fx]) {
+          expect(keys, contains(k), reason: '${f.path} ${t['name']}: $k');
+        }
       }
     }
   });
@@ -69,10 +75,30 @@ void main() {
     expect(byKey['lowCutHz']!.id, 40);
     expect(byKey['sidechainSource']!.id, 50);
     expect(byKey['lfoPitch']!.id, 33);
+    // ミックス拡張は既定で素通し（古い曲の音は変わらない）
+    for (final (key, def) in [
+      ('eqLowDb', 0.0),
+      ('eqMidDb', 0.0),
+      ('eqHighDb', 0.0),
+      ('comp', 0.0),
+      ('sendReverb', 0.0),
+      ('sendDelay', 0.0),
+      ('bitcrush', 0.0),
+      ('stutter', 0.0),
+    ]) {
+      expect(byKey[key]!.def, def, reason: key);
+    }
     // 音色画面の節分けに新しい節が入っている
     expect(filterParams.map((p) => p.key), contains('keyTrack'));
     expect(playParams.map((p) => p.key), ['glideS', 'mono']);
-    expect(lfoParams.map((p) => p.key), ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
+    expect(lfoParams.map((p) => p.key),
+        ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch', 'lfoAmp', 'lfoRetrig']);
+    expect(voiceParams.map((p) => p.key), ['fm', 'fmRatio', 'formant', 'formantVowel']);
+    expect(byKey['lfoAmp']!.def, 0);
+    expect(byKey['formant']!.def, 0);
+    expect(byKey['fm']!.def, 0);
+    expect(byKey['sidechainCurve']!.def, 2);
+    expect(byKey['pitchEnv']!.min, -48);
   });
 
   // 本格フューチャーベース・プリセット：エンジン拡張パラメータの使い方が設計どおりか

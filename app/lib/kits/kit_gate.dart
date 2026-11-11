@@ -19,7 +19,12 @@ List<String> kitsInProjectJson(String json) {
     for (final t in j['tracks']! as List<Object?>) {
       if (t is! Map<String, Object?>) continue;
       final inst = t['instrument'];
-      if (inst is Map<String, Object?> && inst['type'] == 'kit' && inst['kit'] is String) ids.add(inst['kit']! as String);
+      if (inst is! Map<String, Object?>) continue;
+      if (inst['type'] == 'kit' && inst['kit'] is String) ids.add(inst['kit']! as String);
+      final sampler = inst['sampler'];
+      if (inst['type'] == 'sampler' && sampler is Map<String, Object?> && sampler['kit'] is String) {
+        ids.add(sampler['kit']! as String);
+      }
     }
     return ids.toList();
   } on Object {

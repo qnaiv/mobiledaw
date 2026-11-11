@@ -1,17 +1,17 @@
 {
   "name": "Acoustic Live",
-  "version": 1,
+  "version": 2,
   "author": "Qnaiv",
-  "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）",
-  "description": "生ドラム。クローズマイク",
+  "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）。キックとスネアの _full は CC0 実録に自作の胴を重ねたもの",
+  "description": "生ドラム。クローズマイク。キックとスネアは胴を足して厚くしてある",
   "sounds": [
     {
-      "file": "snare_rimshot.wav",
+      "file": "rimshot_full.wav",
       "name": "Snare Rimshot",
       "note": 33
     },
     {
-      "file": "kick_real.wav",
+      "file": "kick_full.wav",
       "name": "Kick Real",
       "note": 36
     },
@@ -21,7 +21,7 @@
       "note": 37
     },
     {
-      "file": "snare_real.wav",
+      "file": "snare_full.wav",
       "name": "Snare Real",
       "note": 38
     },

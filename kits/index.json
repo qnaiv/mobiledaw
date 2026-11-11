@@ -5,27 +5,27 @@
   {
    "id": "acoustic-live",
    "name": "Acoustic Live",
-   "version": 1,
+   "version": 2,
    "author": "Qnaiv",
-   "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）",
-   "description": "生ドラム。クローズマイク",
+   "license": "CC0-1.0（Big Rusty Drums / VCSL / TR-808）。キックとスネアの _full は CC0 実録に自作の胴を重ねたもの",
+   "description": "生ドラム。クローズマイク。キックとスネアは胴を足して厚くしてある",
    "sounds": 24,
-   "size": 4790361,
+   "size": 4811243,
    "files": [
     {
      "path": "kit.json",
-     "size": 2627,
-     "sha256": "62e8475ea7c9808945e5ae3f0a552708257051af2b5fdf828323099f2b44fd82"
+     "size": 2767,
+     "sha256": "e595b85b80dc61b56fcffe3b01820816034a902a9fef1681b520c68ccb79219e"
     },
     {
-     "path": "snare_rimshot.wav",
-     "size": 21642,
-     "sha256": "79a88667bc402c916a8c78ff46d2b1ed7de801d8ea9dfed1cce6fefb0f31f40b"
+     "path": "rimshot_full.wav",
+     "size": 28268,
+     "sha256": "2b2107fc1041e30a28c8419a70f80fbb8331f82cdd88ff774575dc183404e31e"
     },
     {
-     "path": "kick_real.wav",
-     "size": 24348,
-     "sha256": "c3b256fa72ecaa1b0a77280c15c28346b95c5e2e018c1176e9834093a3fc5440"
+     "path": "kick_full.wav",
+     "size": 37088,
+     "sha256": "65cc785ea9b8e723ace1f59a59b1027d6a75b0a04e3e837c5880d490202a6ce3"
     },
     {
      "path": "sidestick.wav",
@@ -33,9 +33,9 @@
      "sha256": "24a6ac0ce3299d1cf8daae2d6c84d5999b77e1ada01836d47f3eea05622b8aa0"
     },
     {
-     "path": "snare_real.wav",
-     "size": 26892,
-     "sha256": "423a112bc69a10c96fee24252b64ea712a7b581ca79c943344f5c1e09bf32c7b"
+     "path": "snare_full.wav",
+     "size": 28268,
+     "sha256": "246dd8f160daa784b1bcf7839dd67c1e6c239a8f2f71a7385776e6ddd87f5130"
     },
     {
      "path": "hihat_closed_808.wav",
@@ -381,22 +381,22 @@
   {
    "id": "future-bass-pro",
    "name": "Future Bass Pro",
-   "version": 1,
+   "version": 2,
    "author": "Qnaiv",
    "license": "CC0-1.0（自作合成＋TR-808 実機録音（CC0）の加工・レイヤー）",
-   "description": "レイヤーで仕上げた本格フューチャーベース用ワンショット集。キックはクリック＋胴＋サブの3層でキーDにチューニング、スネアは胴＋ノイズ＋薄いクラップのドライ仕上げ。ライザー／リバースシンバル／インパクト／ダウンリフター入り。note 配置は Future Bass キット互換",
+   "description": "レイヤーで仕上げた本格フューチャーベース用ワンショット集。キックはクリック＋胴＋サブの3層でキーDにチューニング、スネアは胴＋ノイズ＋薄いクラップのドライ仕上げ。ライザー／リバースシンバル／インパクト／ダウンリフター入り。note 配置は Future Bass キット互換 キック・スネア・ハット・クラップの主音は自作合成で胴と金属感を足してある。",
    "sounds": 40,
-   "size": 5931513,
+   "size": 5936442,
    "files": [
     {
      "path": "kit.json",
-     "size": 2973,
-     "sha256": "332afa4318a4254967c25669ab1c398746379d36d3065d99146adb44c71978c7"
+     "size": 3086,
+     "sha256": "99232036e89f194b0f79f25e02685495135067bfe08587b442e62b9c908702ed"
     },
     {
      "path": "kick_soft.wav",
-     "size": 86444,
-     "sha256": "4d228d87552a504bfc354ae2082c1e7e4b8486dfc1315996c1ff7b83e7830342"
+     "size": 96044,
+     "sha256": "6922d51e4e08d08dea4526988beb2a73e17073d56abe4cc936713c7a6bf6dfba"
     },
     {
      "path": "sub_tail.wav",
@@ -405,13 +405,13 @@
     },
     {
      "path": "clap_tight.wav",
-     "size": 32684,
-     "sha256": "b900ed4939284f6f570145868a66312304ba1a1a4656a92e5ebdb1ae19bf0d2a"
+     "size": 30764,
+     "sha256": "3bb3ce9021a71e3e7c8fce49700f2766361fbc4026f8ff8062dfea0ef15aaf0e"
     },
     {
      "path": "clap_wide.wav",
-     "size": 73004,
-     "sha256": "54343ee2583aac5b13b756c15b715815e99d3851b134caee1a6132980c53c6bc"
+     "size": 69164,
+     "sha256": "702f11c06b57601afbc7bea4f7ea4bd5805d2dd5a641b17b913929a90c35a335"
     },
     {
      "path": "snare_ghost.wav",
@@ -425,18 +425,18 @@
     },
     {
      "path": "kick_subdeep.wav",
-     "size": 153644,
-     "sha256": "8e34e49c34cb50930a7a65c0ae67e1dd8fe5c52e73ab499614dc7d89bc9eee7e"
+     "size": 163244,
+     "sha256": "0b1338f94db1101fc499940d570ab05245ee33e567b4c71fbd036dce5e737396"
     },
     {
      "path": "kick_punch.wav",
-     "size": 76844,
-     "sha256": "f49d495fb38ffbe01849a3c2892b7e7db53ab1a3004337583eddcd4213792544"
+     "size": 80684,
+     "sha256": "3cb3ee6e97f028f3ee603e434ba5e1b767aed31959a90be9c60a630e77c12ca3"
     },
     {
      "path": "kick_main.wav",
-     "size": 105644,
-     "sha256": "6d583d1f17f6b6a40961a42b0e3dea6394312d1f6801a50e35e76b1bc9152c13"
+     "size": 119084,
+     "sha256": "d505c0219e380edc1c51f3a1731e851c3fb08f84888883e435c831f543fe877d"
     },
     {
      "path": "rimshot_pro.wav",
@@ -445,18 +445,18 @@
     },
     {
      "path": "snare_main.wav",
-     "size": 46124,
-     "sha256": "52abc0cecd2e7f7889bf18860ad0bd0ea00f9794ff72df8f05bfc1cd80573afc"
+     "size": 49964,
+     "sha256": "b4b4756b0cd91f7a9b3ecacb2900d75c51699323080ee5989bed5f06831d68b3"
     },
     {
      "path": "clap_main.wav",
-     "size": 61484,
-     "sha256": "8f4ec630c492716c6927f82077c221d9151fead458e759e3e19131b7ad5562b7"
+     "size": 42284,
+     "sha256": "b56f48d318452cfd9315d882eba9d8680e14e2afdf2e00a3c5e68827d1e0f91f"
     },
     {
      "path": "snare_tight.wav",
      "size": 30764,
-     "sha256": "94be17b7f7d326b6b49466f07f425661dc750dbc03a9b4965d58d7de6f90232c"
+     "sha256": "8414c0646a513f0d6252ce1381c1f9c5019b0e633284422a36aefc2852e4338a"
     },
     {
      "path": "snare_bright.wav",
@@ -465,18 +465,18 @@
     },
     {
      "path": "hat_closed.wav",
-     "size": 26924,
-     "sha256": "4f6767bb70af3036e58c9239d148b56ae2849c4348cb23a7b5a8df3d377783d0"
+     "size": 23084,
+     "sha256": "f3f39c66634ff52b7e15bd4cb8f0eca77def5cf2c1a8d1d6ae1bcb14f84a871a"
     },
     {
      "path": "snare_snap.wav",
-     "size": 17324,
-     "sha256": "88c1834cf5a2dd956a788dfbaf32aa3fd261ffad4053a13913c3535eecfd8900"
+     "size": 19244,
+     "sha256": "dc14a10179607b9c89890d11e2280938420f14f0e11c76254bab8a02a74c8dbf"
     },
     {
      "path": "hat_closed_short.wav",
-     "size": 13484,
-     "sha256": "7a1373481cf154bb11176bc7036da53248db5d64a297052d83e51d8e677637a3"
+     "size": 10604,
+     "sha256": "c665a949ddbc3486594af4b3681d557657fa0979e78d5c9843be44b4c2a1e9e2"
     },
     {
      "path": "tom_low.wav",
@@ -530,8 +530,8 @@
     },
     {
      "path": "hat_open_short.wav",
-     "size": 48028,
-     "sha256": "30bb2a16be860319ce0f9a8a5931d314cdf73ff0be5b47b26d1bad79046cafa0"
+     "size": 42284,
+     "sha256": "670f9fc9f02990559da0ed658374588b96de5fb1c1f206285ff7a5534bd42cc0"
     },
     {
      "path": "riser_long.wav",
@@ -598,32 +598,32 @@
   {
    "id": "house",
    "name": "House",
-   "version": 1,
+   "version": 2,
    "author": "Qnaiv",
    "license": "自作合成（同梱可）＋CC0-1.0（TR-808）",
-   "description": "ハウス・テクノ用キック、808 のハット・クラップ・パーカッション",
+   "description": "ハウス・テクノ用キック（自作のクリック＋胴＋サブ）、808 のハット・クラップ・パーカッション",
    "sounds": 13,
-   "size": 568385,
+   "size": 644279,
    "files": [
     {
      "path": "kit.json",
-     "size": 1509,
-     "sha256": "f6f955b7bf2a489845f403982d06c33793be86b535d214f30668ba0e0af20c53"
+     "size": 1551,
+     "sha256": "c16e5828e29d60c253ecccf3de0cfb700aeae4caa81f629987410fe72cceb14d"
     },
     {
      "path": "clap_wide.wav",
-     "size": 79424,
-     "sha256": "edafd703a48ce2238e08e2f96e84929082dbd73c1420b2918e697ca263239e9f"
+     "size": 74132,
+     "sha256": "ecdc613216bffa88078f76172de87477dd02733ec106d94dd4acf97dfbf1e951"
     },
     {
      "path": "kick_techno.wav",
-     "size": 56492,
-     "sha256": "d346330c7ca3e9d2fe56a67d8e9d341813c5f46db87628c19feca3cc324297bb"
+     "size": 84716,
+     "sha256": "45ae892f528a6be504ee35b0929572a868616e05448cafa191650dce8223e54f"
     },
     {
      "path": "kick_house.wav",
-     "size": 56492,
-     "sha256": "49da2320abd5d77c6beb7856df28eb1345baa2ed2592801462d26463574f23d8"
+     "size": 102356,
+     "sha256": "07cf539e4e1626327bc30b89ea5f1688dfb797b09a0d7c6da9dd039e3034e354"
     },
     {
      "path": "808_rimshot.wav",
@@ -632,8 +632,8 @@
     },
     {
      "path": "snare_tight_dry.wav",
-     "size": 35324,
-     "sha256": "0ef4da873edd6f8571cfddd70e9373b7d689245971618dc9a849c8dfce0402e3"
+     "size": 49436,
+     "sha256": "343f655a4aac1cec39c1276492c25ebe1ba4d82e76914936e07c77c648438873"
     },
     {
      "path": "808_clap.wav",
@@ -672,8 +672,40 @@
     },
     {
      "path": "shaker_bright.wav",
-     "size": 38852,
-     "sha256": "01b0c15844aab6abd24eb32af35d8fd216cef7c72104381baee61ad0fbb053ac"
+     "size": 31796,
+     "sha256": "eec3f9b97786cdb9cb9fcbb7d1acd48c7a1048f10d80e49cbe5fb59e7c565979"
+    }
+   ]
+  },
+  {
+   "id": "kawaii-oneshots",
+   "name": "Kawaii Oneshots",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "自作合成（同梱可・表示不要）",
+   "description": "かわいいフューチャーベース用。固定フォルマントの「あ」「お」と、倍音のピアノ。すべて自作",
+   "sounds": 3,
+   "size": 184979,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 527,
+     "sha256": "18b90ced891763d7211ba85a25035126397535ca5523d61cf367b7bb4009e408"
+    },
+    {
+     "path": "ah.wav",
+     "size": 40364,
+     "sha256": "016ae85f9f58c24fb7f23450354e5247894f1a63eeea2fa732bf26e4ef491b58"
+    },
+    {
+     "path": "oh.wav",
+     "size": 38444,
+     "sha256": "4dd05bc8b289a2d6220226a60c6d8821a4e5f03ad17d51a9a2b26f1cf2cde062"
+    },
+    {
+     "path": "piano.wav",
+     "size": 105644,
+     "sha256": "78e6fd76f5562e8c86efaff7ea68ceb93400933b2e29530fa96e3dc8699a4850"
     }
    ]
   },
