@@ -107,6 +107,14 @@ void main() {
     expect(kitsInProjectJson(f.readAsStringSync()), ['acoustic-live']);
   });
 
+  test('bundled buruaka demos use future-bass-pro and the oneshot kit', () {
+    for (final name in ['buruaka.json', 'buruaka_inst.json']) {
+      final f = File('assets/demos/$name');
+      if (!f.existsSync()) return;
+      expect(kitsInProjectJson(f.readAsStringSync()), containsAll(['future-bass-pro', 'kawaii-oneshots']));
+    }
+  });
+
   test('bundled electronica demo uses the future-bass-pro kit', () {
     final f = File('assets/demos/electronica.json');
     if (!f.existsSync()) return;

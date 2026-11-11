@@ -28,3 +28,15 @@ Acoustic Live の次の3つは、Karoryfer Big Rusty Drums（CC0、出典は `SO
 | rimshot_full.wav | snare_rimshot.wav |
 
 出典 URL は `SOURCES_acoustic.txt` の同じ行。
+
+## kawaii-oneshots
+
+`tools/kits/make_kawaii_oneshots.py` が書く。録音は使わない。
+
+| ファイル | 内容 |
+|---|---|
+| ah.wav | C4 の倍音列を「あ」のフォルマント（800 / 1250 / 2700 Hz）で短くしたもの |
+| oh.wav | 同じソースを「お」（520 / 880 / 2600 Hz）にしたもの |
+| piano.wav | C4 の減衰する倍音と短いハンマーノイズ |
+
+ライセンスは自作合成（同梱可、表示不要）。`LICENSE-SYNTH.txt` と同じ。

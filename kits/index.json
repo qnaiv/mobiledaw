@@ -678,6 +678,38 @@
    ]
   },
   {
+   "id": "kawaii-oneshots",
+   "name": "Kawaii Oneshots",
+   "version": 1,
+   "author": "Qnaiv",
+   "license": "自作合成（同梱可・表示不要）",
+   "description": "かわいいフューチャーベース用。固定フォルマントの「あ」「お」と、倍音のピアノ。すべて自作",
+   "sounds": 3,
+   "size": 184979,
+   "files": [
+    {
+     "path": "kit.json",
+     "size": 527,
+     "sha256": "18b90ced891763d7211ba85a25035126397535ca5523d61cf367b7bb4009e408"
+    },
+    {
+     "path": "ah.wav",
+     "size": 40364,
+     "sha256": "016ae85f9f58c24fb7f23450354e5247894f1a63eeea2fa732bf26e4ef491b58"
+    },
+    {
+     "path": "oh.wav",
+     "size": 38444,
+     "sha256": "4dd05bc8b289a2d6220226a60c6d8821a4e5f03ad17d51a9a2b26f1cf2cde062"
+    },
+    {
+     "path": "piano.wav",
+     "size": 105644,
+     "sha256": "78e6fd76f5562e8c86efaff7ea68ceb93400933b2e29530fa96e3dc8699a4850"
+    }
+   ]
+  },
+  {
    "id": "lofi-boombap",
    "name": "Lo-fi Boom Bap",
    "version": 1,

@@ -67,6 +67,17 @@ enum {
     MDAW_PARAM_LFO_PITCH = 33,     /* LFO で音程を揺らす量 0〜1（最大 ±2 半音、ビブラート） */
     MDAW_PARAM_COUNT = 34,
 
+    /* シンセの追加（40番台はエフェクトが使っているので、80番台に置く）。
+       既定はすべて「効かない」。保存は名前ベース。 */
+    MDAW_PARAM_EXT_FIRST = 80,
+    MDAW_PARAM_LFO_AMP = 80,       /* LFO で音量を揺らす（トレモロ）0〜1。0 = なし */
+    MDAW_PARAM_LFO_RETRIG = 81,    /* 1 = テンポ同期 LFO をノートごとに位相 0 からやり直す */
+    MDAW_PARAM_FM = 82,            /* FM の深さ 0〜1。0 = 従来オシレーターのまま */
+    MDAW_PARAM_FM_RATIO = 83,      /* モジュレーターの周波数比 0.5〜8 */
+    MDAW_PARAM_FORMANT = 84,       /* 固定Hzのフォルマント（母音）の混ぜ 0〜1。0 = なし */
+    MDAW_PARAM_FORMANT_VOWEL = 85, /* 0=ア 1=エ 2=イ 3=オ 4=ウ。音程が上がってもHzは動かない */
+    MDAW_PARAM_EXT_END = 86,
+
     /* トラックのエフェクト（mdaw_set_track_param のみ）。
        番号はシンセ側の拡張（〜33）のあとに置く。保存ファイルは名前ベースなので番号変更の影響はない */
     MDAW_FX_FIRST = 40,
@@ -100,7 +111,10 @@ enum {
     MDAW_FX_BITCRUSH = 67,         /* ビットクラッシュ 0〜1（0 = なし） */
     MDAW_FX_STUTTER = 68,          /* テンポ同期スタッター 0〜1（0 = なし） */
     MDAW_FX_STUTTER_DIV = 69,      /* 0=2分 1=4分 2=付点8分 3=8分 4=16分 */
-    MDAW_FX_END = 70,
+    MDAW_FX_SIDECHAIN_ATTACK_S = 70, /* 引っ込むまでの時間。既定 0.002 で従来と同じ */
+    MDAW_FX_SIDECHAIN_HOLD_S = 71,   /* 引っ込んだまま保つ時間。既定 0 */
+    MDAW_FX_SIDECHAIN_CURVE = 72,    /* 戻りの形。2 = (1-x)^2 で従来と同じ。小さいほど直線 */
+    MDAW_FX_END = 73,
 
     /* オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。
        mdaw_set_track_param では使わず、クリップのオートメーションの対象としてだけ使う */

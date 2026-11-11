@@ -47,6 +47,14 @@ abstract final class MdawParam {
   static const lfoCutoff = 32;
   static const lfoPitch = 33;
 
+  // シンセの追加（80番台。既定はすべて効かない）
+  static const lfoAmp = 80;
+  static const lfoRetrig = 81;
+  static const fm = 82;
+  static const fmRatio = 83;
+  static const formant = 84;
+  static const formantVowel = 85;
+
   // トラックのエフェクト（setTrackParam で同じように変えられる）
   static const fxLowCutHz = 40;
   static const fxSaturation = 41;
@@ -77,6 +85,9 @@ abstract final class MdawParam {
   static const fxBitcrush = 67;
   static const fxStutter = 68;
   static const fxStutterDiv = 69;
+  static const fxSidechainAttackS = 70;
+  static const fxSidechainHoldS = 71;
+  static const fxSidechainCurve = 72;
 
   // オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。setTrackParam では使わない
   static const trackGain = 56;

@@ -26,6 +26,10 @@ struct FxParams {
     float sidechain = 0.0f;
     float sidechainReleaseS = 0.25f;
     float sidechainSource = 0.0f;
+    // 既定（アタック 2ms・ホールド 0・カーブ 2）は従来の (1-x)^2 と同じ形
+    float sidechainAttackS = 0.002f;
+    float sidechainHoldS = 0.0f;
+    float sidechainCurve = 2.0f;
     // 3バンド EQ。ゲインが全部 0 のときは素通し（古い曲の音は変わらない）
     float eqLowDb = 0.0f;
     float eqLowHz = 120.0f;

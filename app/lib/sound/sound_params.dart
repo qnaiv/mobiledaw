@@ -79,7 +79,7 @@ const synthParams = <SoundParam>[
   SoundParam(MdawParam.filterEnv, 'filterEnv', '鳴らした瞬間に開く量', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.filterEnvDecayS, 'filterEnvDecayS', '閉じるまでの時間', 0.005, 5, 0.3,
       scale: ParamScale.log, unit: 's'),
-  SoundParam(MdawParam.pitchEnv, 'pitchEnv', '音程の落ち込み（キック・ザップ）', 0, 48, 0, unit: 'st'),
+  SoundParam(MdawParam.pitchEnv, 'pitchEnv', '音程エンベロープ（正で上がる・負で下がる）', -48, 48, 0, unit: 'st'),
   SoundParam(MdawParam.pitchEnvDecayS, 'pitchEnvDecayS', '音程が戻るまでの時間', 0.002, 2, 0.05,
       scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.keyTrack, 'keyTrack', 'キートラッキング（音程にカットオフが連動）', 0, 1, 0, unit: '%'),
@@ -92,6 +92,13 @@ const synthParams = <SoundParam>[
       scale: ParamScale.integer),
   SoundParam(MdawParam.lfoCutoff, 'lfoCutoff', 'LFOで明るさを揺らす量', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.lfoPitch, 'lfoPitch', 'LFOで音程を揺らす量（ビブラート）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.lfoAmp, 'lfoAmp', 'LFOで音量を揺らす（トレモロ）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.lfoRetrig, 'lfoRetrig', 'LFOをノートごとにやり直す', 0, 1, 0, scale: ParamScale.toggle),
+  SoundParam(MdawParam.fm, 'fm', 'FMの深さ（ベル・ピアノ）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fmRatio, 'fmRatio', 'FMの周波数比', 0.5, 8, 1, scale: ParamScale.log),
+  SoundParam(MdawParam.formant, 'formant', '固定フォルマント（高い声でも母音）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.formantVowel, 'formantVowel', '母音（0=ア、1=エ、2=イ、3=オ、4=ウ）', 0, 4, 0,
+      scale: ParamScale.integer),
   SoundParam(MdawParam.attackS, 'attackS', 'アタック', 0.0005, 10, 0.005, scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.decayS, 'decayS', 'ディケイ', 0.0005, 10, 0.25, scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.sustain, 'sustain', 'サステイン', 0, 1, 0.7, unit: '%'),
@@ -113,6 +120,10 @@ const fxParams = <SoundParam>[
       scale: ParamScale.log, unit: 's'),
   SoundParam(MdawParam.fxSidechainSource, 'sidechainSource', 'このトラックをキックにする（他を引っ込める）', 0, 1, 0,
       scale: ParamScale.toggle),
+  SoundParam(MdawParam.fxSidechainAttackS, 'sidechainAttackS', 'パンプの入り', 0.0005, 0.05, 0.002,
+      scale: ParamScale.log, unit: 's'),
+  SoundParam(MdawParam.fxSidechainHoldS, 'sidechainHoldS', 'パンプを保つ時間', 0, 0.5, 0, unit: 's'),
+  SoundParam(MdawParam.fxSidechainCurve, 'sidechainCurve', 'パンプの戻りの形（2=従来）', 0.5, 4, 2),
   SoundParam(MdawParam.fxEqLowDb, 'eqLowDb', 'EQ 低音', -18, 18, 0, unit: 'dB'),
   SoundParam(MdawParam.fxEqLowHz, 'eqLowHz', 'EQ 低音の周波数', 40, 400, 120, scale: ParamScale.log, unit: 'Hz'),
   SoundParam(MdawParam.fxEqMidDb, 'eqMidDb', 'EQ 中音', -18, 18, 0, unit: 'dB'),
@@ -207,7 +218,10 @@ final playParams = pickParams(['glideS', 'mono']);
 
 /// LFO 節（両シンセ共通）：波形・テンポ同期・宛先（カットオフ／音程）。
 /// 速さと WT_POS への量は従来どおり wtLfoRate／wtLfoAmount（ウェーブテーブルパネルに表示）
-final lfoParams = pickParams(['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
+final lfoParams = pickParams(['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch', 'lfoAmp', 'lfoRetrig']);
+
+/// FM と、音程に引きずられない母音フィルター
+final voiceParams = pickParams(['fm', 'fmRatio', 'formant', 'formantVowel']);
 
 // tools/demos/future_bass.py の音色（Chords・Lead・Bell・Bass・Kick・Clap・Hats・Riser）＋よく使う形
 const soundPresets = <SoundPreset>[

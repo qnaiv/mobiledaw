@@ -84,7 +84,7 @@ void Engine::handle(const Event& e) noexcept {
         case Event::Type::TrackParam:
             if (e.slot < kMaxSlots) {
                 auto& s = slots_[e.slot];
-                if (e.index >= MDAW_FX_FIRST) {
+                if (e.index >= MDAW_FX_FIRST && e.index < MDAW_FX_END) {
                     FxParams f = s.fx.params();
                     if (setFxParam(f, e.index, e.value))
                         s.fx.setParams(f);
@@ -192,7 +192,7 @@ void Engine::applyAutomation(double tick) noexcept {
         auto& s = slots_[lane.slot];
         if (lane.paramId == MDAW_PARAM_TRACK_GAIN) {
             s.autoGain = std::clamp(v, 0.0f, 2.0f);
-        } else if (lane.paramId >= MDAW_FX_FIRST) {
+        } else if (lane.paramId >= MDAW_FX_FIRST && lane.paramId < MDAW_FX_END) {
             FxParams f = s.fx.params();
             if (setFxParam(f, lane.paramId, v))
                 s.fx.setParams(f);
@@ -425,6 +425,14 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         const auto& fx = s.fx.params();
         const float depth = fx.sidechainSource >= 0.5f ? 0.0f : fx.sidechain;
         const auto release = static_cast<int64_t>(std::max(0.03f, fx.sidechainReleaseS) * sr);
+        // 既定（2ms・ホールドなし・カーブ2）は以前の式と同じ。それ以外は形を変える
+        const bool classicDuck = fx.sidechainAttackS > 0.0019f && fx.sidechainAttackS < 0.0021f && fx.sidechainHoldS < 0.0001f
+                                 && fx.sidechainCurve > 1.99f && fx.sidechainCurve < 2.01f;
+        const auto duckAttack = classicDuck ? attack
+                                            : static_cast<int64_t>(std::max(0.0005f, fx.sidechainAttackS) * sr);
+        const auto duckHold = classicDuck ? int64_t{0}
+                                          : static_cast<int64_t>(std::max(0.0f, fx.sidechainHoldS) * sr);
+        const float duckCurve = fx.sidechainCurve;
         const float sendR = fx.sendReverb;
         const float sendD = fx.sendDelay;
         if (sendR > 0.0f || sendD > 0.0f)
@@ -435,11 +443,13 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
                 // 2ms で引っ込み、(1-x)^2 の形で戻る（戻り始めが速く、最後はゆっくり）
                 const int64_t age = sidechainAge_ + static_cast<int64_t>(i);
                 float env = 0.0f;
-                if (age < attack)
-                    env = s.duckStart + (1.0f - s.duckStart) * static_cast<float>(age) / static_cast<float>(attack);
-                else if (age < attack + release) {
-                    const float x = 1.0f - static_cast<float>(age - attack) / static_cast<float>(release);
-                    env = x * x;
+                if (age < duckAttack)
+                    env = s.duckStart + (1.0f - s.duckStart) * static_cast<float>(age) / static_cast<float>(std::max<int64_t>(duckAttack, 1));
+                else if (age < duckAttack + duckHold)
+                    env = 1.0f;
+                else if (age < duckAttack + duckHold + release) {
+                    const float x = 1.0f - static_cast<float>(age - duckAttack - duckHold) / static_cast<float>(release);
+                    env = (classicDuck || (duckCurve > 1.99f && duckCurve < 2.01f)) ? x * x : std::pow(x, duckCurve);
                 }
                 s.duck = env;
                 g = 1.0f - depth * env;

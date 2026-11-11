@@ -26,7 +26,7 @@ const SynthParamSpec kSynthParamSpecs[] = {
     {{MDAW_PARAM_DRIVE, "drive", 0.0f, 1.0f, false}, &SynthParams::drive},
     {{MDAW_PARAM_FILTER_ENV, "filterEnv", 0.0f, 1.0f, false}, &SynthParams::filterEnv},
     {{MDAW_PARAM_FILTER_ENV_DECAY_S, "filterEnvDecayS", 0.005f, 5.0f, false}, &SynthParams::filterEnvDecayS},
-    {{MDAW_PARAM_PITCH_ENV, "pitchEnv", 0.0f, 48.0f, false}, &SynthParams::pitchEnv},
+    {{MDAW_PARAM_PITCH_ENV, "pitchEnv", -48.0f, 48.0f, false}, &SynthParams::pitchEnv},
     {{MDAW_PARAM_PITCH_ENV_DECAY_S, "pitchEnvDecayS", 0.002f, 2.0f, false}, &SynthParams::pitchEnvDecayS},
     {{MDAW_PARAM_WAVE, "wave", 0.0f, 1.0f, true}, &SynthParams::wave},
     {{MDAW_PARAM_OSC, "osc", 0.0f, 1.0f, false}, &SynthParams::osc},
@@ -44,6 +44,12 @@ const SynthParamSpec kSynthParamSpecs[] = {
     {{MDAW_PARAM_LFO_DIV, "lfoDiv", 0.0f, 4.0f, true}, &SynthParams::lfoDiv},
     {{MDAW_PARAM_LFO_CUTOFF, "lfoCutoff", 0.0f, 1.0f, false}, &SynthParams::lfoCutoff},
     {{MDAW_PARAM_LFO_PITCH, "lfoPitch", 0.0f, 1.0f, false}, &SynthParams::lfoPitch},
+    {{MDAW_PARAM_LFO_AMP, "lfoAmp", 0.0f, 1.0f, false}, &SynthParams::lfoAmp},
+    {{MDAW_PARAM_LFO_RETRIG, "lfoRetrig", 0.0f, 1.0f, true}, &SynthParams::lfoRetrig},
+    {{MDAW_PARAM_FM, "fm", 0.0f, 1.0f, false}, &SynthParams::fm},
+    {{MDAW_PARAM_FM_RATIO, "fmRatio", 0.5f, 8.0f, false}, &SynthParams::fmRatio},
+    {{MDAW_PARAM_FORMANT, "formant", 0.0f, 1.0f, false}, &SynthParams::formant},
+    {{MDAW_PARAM_FORMANT_VOWEL, "formantVowel", 0.0f, 4.0f, true}, &SynthParams::formantVowel},
 };
 const int kNumSynthParamSpecs = static_cast<int>(std::size(kSynthParamSpecs));
 
@@ -199,6 +205,12 @@ void Voice::start(int note, float velocity, const SynthParams& params, uint64_t 
         for (auto& ph : phase_)
             ph = static_cast<float>(nextRandom(r) >> 8) / 16777216.0f;
         subPhase_ = 0.0f;
+        for (auto& mp : modPhase_)
+            mp = 0.0f;
+        for (int i = 0; i < 3; ++i) {
+            formL_[i].reset();
+            formR_[i].reset();
+        }
         noise_ = r;
         filterL_.reset();
         filterR_.reset();
@@ -303,7 +315,20 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
     const bool lfoForWt = useWt && p_.wtLfoAmount > 0.0f;
     const bool lfoForCutoff = p_.lfoCutoff > 0.0f;
     const bool lfoForPitch = p_.lfoPitch > 0.0f;
-    const bool lfoAny = lfoForWt || lfoForCutoff || lfoForPitch;
+    const bool lfoForAmp = p_.lfoAmp > 0.001f;
+    const bool lfoRetrig = p_.lfoRetrig >= 0.5f;
+    const bool lfoAny = lfoForWt || lfoForCutoff || lfoForPitch || lfoForAmp;
+    const bool useFm = p_.fm > 0.001f;
+    const bool useFormant = p_.formant > 0.001f;
+    // 日本語母音の F1 F2 F3（Hz）。音程ではなく固定なので、高い声でも母音が崩れない
+    static constexpr float kVowels[5][3] = {
+        {800.0f, 1250.0f, 2700.0f}, // ア
+        {520.0f, 1950.0f, 2700.0f}, // エ
+        {320.0f, 2400.0f, 3100.0f}, // イ
+        {520.0f, 880.0f, 2600.0f},  // オ
+        {360.0f, 1350.0f, 2500.0f}, // ウ
+    };
+    const int vowel = std::clamp(static_cast<int>(std::lround(p_.formantVowel)), 0, 4);
 
     for (int start = 0; start < numSamples; start += kControlBlock) {
         const int end = std::min(numSamples, start + kControlBlock);
@@ -313,15 +338,17 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
         float lfoVal = 0.0f;
         if (lfoAny) {
             float ph;
-            if (lfoSync) {
+            if (lfoSync && !lfoRetrig) {
                 const double cyc = lfoSyncBase_ + static_cast<double>(blockIndex) * lfoSyncInc_;
                 ph = static_cast<float>(cyc - std::floor(cyc));
             } else {
                 ph = lfoPhase_;
             }
             lfoVal = lfoShape(lfoWave, ph);
-            if (!lfoSync) {
-                lfoPhase_ += p_.wtLfoRate * static_cast<float>(kControlBlock) / static_cast<float>(sampleRate_);
+            if (!lfoSync || lfoRetrig) {
+                const float step = lfoSync ? static_cast<float>(lfoSyncInc_)
+                                           : p_.wtLfoRate * static_cast<float>(kControlBlock) / static_cast<float>(sampleRate_);
+                lfoPhase_ += step;
                 if (lfoPhase_ >= 1.0f)
                     lfoPhase_ -= std::floor(lfoPhase_);
             }
@@ -334,7 +361,7 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
             pitchSemis_ = glideFrom_ + (glideTarget_ - glideFrom_) * glidePos_;
         }
 
-        const bool pitchEnvActive = p_.pitchEnv > 0.0f && pitchEnv_ > 1e-4f;
+        const bool pitchEnvActive = std::abs(p_.pitchEnv) > 1e-4f && pitchEnv_ > 1e-4f;
         if (pitchEnvActive || gliding || lfoForPitch) {
             updateIncrements(p_.pitchEnv * pitchEnv_ + (lfoForPitch ? lfoVal * p_.lfoPitch * 2.0f : 0.0f));
             if (pitchEnvActive)
@@ -354,13 +381,30 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
             cutoff *= std::exp2(lfoVal * p_.lfoCutoff * 2.0f); // 最大 ±2 オクターブ
         filterL_.set(cutoff, p_.resonance, sampleRate_);
         filterR_.set(cutoff, p_.resonance, sampleRate_);
+        if (useFormant) {
+            for (int b = 0; b < 3; ++b) {
+                formL_[b].set(kVowels[vowel][b], 6.0f, sampleRate_);
+                formR_[b].set(kVowels[vowel][b], 6.0f, sampleRate_);
+            }
+        }
+        const float fmIndex = useFm ? p_.fm * (1.5f + 5.0f * filterEnv_) : 0.0f;
+        const float tremolo = lfoForAmp ? (1.0f - p_.lfoAmp * 0.5f * (1.0f - lfoVal)) : 1.0f;
         filterEnv_ *= filterEnvCoef_;
 
         for (int s = start; s < end; ++s) {
             float l = 0.0f, r = 0.0f;
             for (int u = 0; u < unison; ++u) {
-                const float ph = phase_[u];
+                const float ph0 = phase_[u];
                 const float dt = inc_[u];
+                float ph = ph0;
+                if (useFm) {
+                    const float mod = fastSin(modPhase_[u]);
+                    ph += fmIndex * mod * (1.0f / 6.2831853f);
+                    ph -= std::floor(ph);
+                    modPhase_[u] += dt * p_.fmRatio;
+                    if (modPhase_[u] >= 1.0f)
+                        modPhase_[u] -= std::floor(modPhase_[u]);
+                }
                 float v;
                 if (useWt) {
                     const float wp = wtWarp > 0 ? warpPhase(ph, wtWarp, p_.wtWarpAmount) : ph;
@@ -379,7 +423,7 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
                 }
                 l += v * gainL_[u];
                 r += v * gainR_[u];
-                float next = ph + dt;
+                float next = ph0 + dt;
                 if (next >= 1.0f)
                     next -= 1.0f;
                 phase_[u] = next;
@@ -398,6 +442,20 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
             }
             l = filterL_.process(l);
             r = filterR_.process(r);
+            if (useFormant) {
+                float bL = 0.0f, bR = 0.0f;
+                static constexpr float kFormGain[3] = {1.0f, 0.62f, 0.32f};
+                for (int b = 0; b < 3; ++b) {
+                    float bandL = 0.0f, bandR = 0.0f;
+                    formL_[b].process(l, nullptr, &bandL);
+                    formR_[b].process(r, nullptr, &bandR);
+                    bL += bandL * kFormGain[b];
+                    bR += bandR * kFormGain[b];
+                }
+                const float mix = p_.formant;
+                l = l * (1.0f - mix) + bL * 2.2f * mix;
+                r = r * (1.0f - mix) + bR * 2.2f * mix;
+            }
             if (subLevel > 0.0f) {
                 const float sv = fastSin(subPhase_) * subLevel;
                 subPhase_ += subInc_;
@@ -406,7 +464,7 @@ void Voice::render(float* left, float* right, int numSamples) noexcept {
                 l += sv;
                 r += sv;
             }
-            const float a = adsr_.getNextSample() * gain_;
+            const float a = adsr_.getNextSample() * gain_ * tremolo;
             left[s] += l * a;
             right[s] += r * a;
         }

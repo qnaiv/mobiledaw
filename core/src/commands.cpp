@@ -525,10 +525,14 @@ void SetKey::revert(Project& p) {
 namespace {
 // シンセの音色とエフェクトを同じ ID の並びで読み書きする
 bool getTrackParam(const Track& t, int id, float& out) {
-    return id >= MDAW_FX_FIRST ? getFxParam(t.fx, id, out) : getSynthParam(t.synth, id, out);
+    if (id >= MDAW_FX_FIRST && id < MDAW_FX_END)
+        return getFxParam(t.fx, id, out);
+    return getSynthParam(t.synth, id, out);
 }
 bool setTrackParam(Track& t, int id, float value) {
-    return id >= MDAW_FX_FIRST ? setFxParam(t.fx, id, value) : setSynthParam(t.synth, id, value);
+    if (id >= MDAW_FX_FIRST && id < MDAW_FX_END)
+        return setFxParam(t.fx, id, value);
+    return setSynthParam(t.synth, id, value);
 }
 } // namespace
 

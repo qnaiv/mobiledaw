@@ -1,0 +1,24 @@
+{
+  "name": "Kawaii Oneshots",
+  "version": 1,
+  "author": "Qnaiv",
+  "license": "自作合成（同梱可・表示不要）",
+  "description": "かわいいフューチャーベース用。固定フォルマントの「あ」「お」と、倍音のピアノ。すべて自作",
+  "sounds": [
+    {
+      "file": "ah.wav",
+      "name": "Ah",
+      "note": 60
+    },
+    {
+      "file": "oh.wav",
+      "name": "Oh",
+      "note": 62
+    },
+    {
+      "file": "piano.wav",
+      "name": "Piano",
+      "note": 64
+    }
+  ]
+}

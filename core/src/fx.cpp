@@ -38,6 +38,9 @@ const FxParamSpec kFxParamSpecs[] = {
     {{MDAW_FX_BITCRUSH, "bitcrush", 0.0f, 1.0f, false}, &FxParams::bitcrush},
     {{MDAW_FX_STUTTER, "stutter", 0.0f, 1.0f, false}, &FxParams::stutter},
     {{MDAW_FX_STUTTER_DIV, "stutterDiv", 0.0f, 4.0f, true}, &FxParams::stutterDiv},
+    {{MDAW_FX_SIDECHAIN_ATTACK_S, "sidechainAttackS", 0.0005f, 0.05f, false}, &FxParams::sidechainAttackS},
+    {{MDAW_FX_SIDECHAIN_HOLD_S, "sidechainHoldS", 0.0f, 0.5f, false}, &FxParams::sidechainHoldS},
+    {{MDAW_FX_SIDECHAIN_CURVE, "sidechainCurve", 0.5f, 4.0f, false}, &FxParams::sidechainCurve},
 };
 const int kNumFxParamSpecs = static_cast<int>(std::size(kFxParamSpecs));
 

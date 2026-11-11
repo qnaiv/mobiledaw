@@ -24,7 +24,11 @@
 //   ファイルは tools/demos/rock.py。ドラムは Acoustic Live キット
 // ・エレクトロニカ「グラス・ガーデン」：112 BPM・D minor・38小節（約1分21秒）。クワイアパッドとボーカルチョップ。
 //   ファイルは tools/demos/electronica.py。ドラムは Future Bass Pro キット（キックはキーに合わせたシンセ）
-enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica }
+// ・ブルアカ風フューチャーベース「そら色ステップ」：150 BPM・E♭ major・64小節（約1分42秒）。
+//   ワブルするスーパーソー、固定フォルマントの高い歌、チョップとピアノ。歌入りとインストの2曲。
+//   ファイルは tools/demos/buruaka.py。ドラムは Future Bass Pro、キックは E♭ のシンセ。
+//   チョップとピアノは自作の Kawaii Oneshots（kits/kawaii-oneshots）
+enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst }
 
 /// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
 String demoProjectId(DemoSong d) => 'demo-${d.name}';
@@ -39,6 +43,8 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.technopop => 'テクノポップ「ネオン・シグナル」（約1分）',
       DemoSong.rock => 'ロック「オーバードライブ」（約1分）',
       DemoSong.electronica => 'エレクトロニカ「グラス・ガーデン」（約1分半）',
+      DemoSong.buruaka => 'ブルアカ風フューチャーベース「そら色ステップ」（約1分40秒）',
+      DemoSong.buruakaInst => 'ブルアカ風フューチャーベース「そら色ステップ」インスト（約1分40秒）',
     };
 
 /// 一覧に入るときの曲名
@@ -52,6 +58,8 @@ String demoTitle(DemoSong d) => switch (d) {
       DemoSong.technopop => 'デモ：ネオン・シグナル',
       DemoSong.rock => 'デモ：オーバードライブ',
       DemoSong.electronica => 'デモ：グラス・ガーデン',
+      DemoSong.buruaka => 'デモ：そら色ステップ',
+      DemoSong.buruakaInst => 'デモ：そら色ステップ（インスト）',
     };
 
 /// 同梱のプロジェクトファイル
@@ -65,6 +73,8 @@ String demoAsset(DemoSong d) => switch (d) {
       DemoSong.technopop => 'assets/demos/technopop.json',
       DemoSong.rock => 'assets/demos/rock.json',
       DemoSong.electronica => 'assets/demos/electronica.json',
+      DemoSong.buruaka => 'assets/demos/buruaka.json',
+      DemoSong.buruakaInst => 'assets/demos/buruaka_inst.json',
     };
 
 /// メニューに出すキット名
@@ -78,4 +88,6 @@ String demoKitName(DemoSong d) => switch (d) {
       DemoSong.technopop => 'House キット',
       DemoSong.rock => 'Acoustic Live キット',
       DemoSong.electronica => 'Future Bass Pro キット',
+      DemoSong.buruaka => 'Future Bass Pro と Kawaii Oneshots',
+      DemoSong.buruakaInst => 'Future Bass Pro と Kawaii Oneshots',
     };

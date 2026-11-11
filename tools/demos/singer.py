@@ -58,7 +58,10 @@ def lane(points):
 FIXED = {"a": 0.0, "e": 0.25, "i": 0.5, "o": 0.75, "u": 1.0}
 
 
-def sing(lyric, tempo, clip_ticks, transpose=0, base_gain=1.0, consonants=True, vibrato=0.12, compensate=True, cutoff_cap=20000):
+VOWEL_ID = {"a": 0, "e": 1, "i": 2, "o": 3, "u": 4}
+
+
+def sing(lyric, tempo, clip_ticks, transpose=0, base_gain=1.0, consonants=True, vibrato=0.12, compensate=True, cutoff_cap=20000, fixed_formant=False):
     """lyric: [(拍, 長さ拍, 音程, 音節)]（クリップ先頭からの拍）。
     戻り値: (vox ノート, vox オートメーション, 子音ノート, 子音オートメーション)"""
     tps = tempo / 60.0 * PPQ  # ticks / 秒
@@ -66,7 +69,7 @@ def sing(lyric, tempo, clip_ticks, transpose=0, base_gain=1.0, consonants=True, 
     ev = sorted(lyric)
     bp = best_pos if compensate else (lambda v, p: (FIXED[v], 0.0))
     vox, cons = [], []
-    wt, cut, gain, vib = [], [], [], []
+    wt, cut, gain, vib, vow = [], [], [], [], []
     clc, ccut = [], []
     gain.append((0, base_gain))
     vib.append((0, 0.0))
@@ -103,6 +106,9 @@ def sing(lyric, tempo, clip_ticks, transpose=0, base_gain=1.0, consonants=True, 
         else:
             wt += [(pre, wt[-1][1] if wt else target), (start + ms(18), target)]
             cut += [(pre, cut[-1][1] if cut else vc), (start + ms(18), vc)]
+        if fixed_formant:
+            vid = VOWEL_ID[v]
+            vow += [(pre, vow[-1][1] if vow else vid), (start + ms(12), vid)]
         # 区切りの音量の谷
         if c in DIP:
             gain += [(pre, base_gain), (start + 4, base_gain * DIP[c]), (start + ms(55), base_gain)]
@@ -127,6 +133,8 @@ def sing(lyric, tempo, clip_ticks, transpose=0, base_gain=1.0, consonants=True, 
     clamp = lambda pts: [(min(t, clip_ticks), v) for t, v in pts]
     vauto = [dict(param="wtPos", points=lane(clamp(wt))), dict(param="cutoffHz", points=lane(clamp(cut))),
              dict(param="gain", points=lane(clamp(gain))), dict(param="lfoPitch", points=lane(clamp(vib)))]
+    if fixed_formant and vow:
+        vauto.append(dict(param="formantVowel", points=lane(clamp([(max(0, t), v) for t, v in vow]))))
     cauto = None
     if cons:
         cauto = [dict(param="lowCutHz", points=lane([(max(0, t), v) for t, v in clc])),

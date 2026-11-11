@@ -91,7 +91,14 @@ void main() {
     // 音色画面の節分けに新しい節が入っている
     expect(filterParams.map((p) => p.key), contains('keyTrack'));
     expect(playParams.map((p) => p.key), ['glideS', 'mono']);
-    expect(lfoParams.map((p) => p.key), ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch']);
+    expect(lfoParams.map((p) => p.key),
+        ['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoPitch', 'lfoAmp', 'lfoRetrig']);
+    expect(voiceParams.map((p) => p.key), ['fm', 'fmRatio', 'formant', 'formantVowel']);
+    expect(byKey['lfoAmp']!.def, 0);
+    expect(byKey['formant']!.def, 0);
+    expect(byKey['fm']!.def, 0);
+    expect(byKey['sidechainCurve']!.def, 2);
+    expect(byKey['pitchEnv']!.min, -48);
   });
 
   // 本格フューチャーベース・プリセット：エンジン拡張パラメータの使い方が設計どおりか

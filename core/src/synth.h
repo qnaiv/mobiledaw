@@ -43,6 +43,12 @@ struct SynthParams {
     float lfoDiv = 1.0f;      // 同期の分周 0=1小節、1=4分、2=付点8分、3=8分、4=16分
     float lfoCutoff = 0.0f;   // LFO→カットオフの量 0〜1（最大 ±2 オクターブ）
     float lfoPitch = 0.0f;    // LFO→音程の量 0〜1（最大 ±2 半音）
+    float lfoAmp = 0.0f;      // LFO→音量（トレモロ）0〜1。0 = 従来と完全一致
+    float lfoRetrig = 0.0f;   // 1 = テンポ同期 LFO をノート頭で位相 0 に戻す
+    float fm = 0.0f;          // FM の深さ 0〜1。0 = 位相変調しない
+    float fmRatio = 1.0f;     // モジュレーター / キャリア
+    float formant = 0.0f;     // 固定Hzフォルマントの混ぜ。0 = 通さない
+    float formantVowel = 0.0f; // 0=ア 1=エ 2=イ 3=オ 4=ウ
 };
 
 struct ParamSpec {
@@ -73,12 +79,14 @@ struct Svf {
     void set(float cutoffHz, float q, double sampleRate) noexcept;
     void reset() noexcept { ic1 = ic2 = 0.0f; }
     // 戻り値はローパス。high を渡すとハイパスも返す
-    float process(float x, float* high = nullptr) noexcept {
+    float process(float x, float* high = nullptr, float* band = nullptr) noexcept {
         const float v3 = x - ic2;
         const float v1 = a1 * ic1 + a2 * v3;
         const float v2 = ic2 + a2 * ic1 + a3 * v3;
         ic1 = 2.0f * v1 - ic1;
         ic2 = 2.0f * v2 - ic2;
+        if (band != nullptr)
+            *band = v1;
         if (high != nullptr)
             *high = x - k * v1 - v2;
         return v2;
@@ -122,6 +130,8 @@ private:
 
     int unison_ = 1;
     float phase_[kMaxUnison] = {};
+    float modPhase_[kMaxUnison] = {};
+    Svf formL_[3], formR_[3];
     float inc_[kMaxUnison] = {};
     float detune_[kMaxUnison] = {}; // 半音
     float gainL_[kMaxUnison] = {};
