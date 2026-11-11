@@ -107,12 +107,24 @@ void main() {
     expect(kitsInProjectJson(f.readAsStringSync()), ['acoustic-live']);
   });
 
-  test('bundled buruaka demos use future-bass-pro and the oneshot kit', () {
-    for (final name in ['buruaka.json', 'buruaka_inst.json']) {
+  test('bundled buruaka and kawaii_fb demos use future-bass-pro and the oneshot kit', () {
+    for (final name in ['buruaka.json', 'buruaka_inst.json', 'kawaii_fb.json']) {
       final f = File('assets/demos/$name');
       if (!f.existsSync()) return;
       expect(kitsInProjectJson(f.readAsStringSync()), containsAll(['future-bass-pro', 'kawaii-oneshots']));
     }
+  });
+
+  test('bundled memory_shuffle demo uses the future-bass-pro kit', () {
+    final f = File('assets/demos/memory_shuffle.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['future-bass-pro']);
+  });
+
+  test('bundled nekomimi demo uses the chiptune kit', () {
+    final f = File('assets/demos/nekomimi.json');
+    if (!f.existsSync()) return;
+    expect(kitsInProjectJson(f.readAsStringSync()), ['chiptune']);
   });
 
   test('bundled electronica demo uses the future-bass-pro kit', () {

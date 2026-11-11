@@ -1,14 +1,23 @@
 #!/usr/bin/env python3
-"""ブルアカ風かわいいフューチャーベース「そら色ステップ」。
+"""透明感のあるフューチャーベース「そら色ステップ」（歌入り／インスト）。
 
   python3 tools/demos/buruaka.py                 # 歌入りとインストの両方
   python3 tools/demos/buruaka.py vocal|inst [出力先]
 
-150 BPM / E♭ major / 64小節（約1分42秒）。
-既存の future_bass（F・150）や kawaii2（D・155、GM9→A9→F#m9→Bm9）とは
-キーも進行もメロディも別。歌は固定Hzのフォルマントで高い音域のまま母音を保つ。
-ドラムのキックはシンセで E♭ に合わせる（キットの E チューンのキックは使わない）。
-音程のあるパーカッション（Bubble / Chime / Impact）は使わない。
+146 BPM / A major / 76小節（約2分5秒）。メロディ・歌詞・進行は書き下ろし。
+  小節  0– 3  イントロ      ガラスっぽいベルとプラックが 3-3-2 で跳ねる。ドラムはリムとシェイカーだけ
+        4–11  イントロドロップ  いきなりハーフタイムのドロップ（サビ進行の予告）。ボーカルチョップのモチーフ
+       12–19  Aメロ          ピアノとプラック、軽いキック。D の小節で Dm6（同主短調の iv）に曇らせる
+       20–23  Bメロ          ii → iii → IV → Vsus4 と上がる。スネアロール、最後の拍は無音
+       24–39  サビ×2         ii–V–iii–vi ／ ii–V–I。スーパーソーは 3-3-2 のスタブ、2・4拍クラップで前へ
+       40–47  ドロップ        ハーフタイム。IV–iii–ii–V と降りる進行でチョップが歌う
+       48–51  ブリッジ        ドラムなし。ピアノとパッド
+       52–55  Bメロ2
+       56–71  ラストサビ×2   リードがオクターブ上も重ねる
+       72–75  アウトロ        ベルのモチーフに戻って A で終わる
+コードは開いた配置（C4 より下で2度を重ねない）。スーパーソーは根音を省いてベースに任せる。
+コードのピッチエンベロープはほぼ 0（-0.6 半音・20 ms）。ベルの FM は比率 1・浅め。パッドはクワイア表（wtTable 7）を
+やめてスーパーソー表を暗く（クワイア表は長3度の倍音が強く、短調のコードで濁る）。キックは A1 に合わせる。
 """
 import json
 import sys
@@ -16,15 +25,15 @@ import sys
 from future_bass import Builder, n, steps, PPQ, BAR, S16
 from singer import AutoBuilder, sing
 
-TEMPO = 150.0
+TEMPO = 146.0
 OUT_VOCAL = "app/assets/demos/buruaka.json"
 OUT_INST = "app/assets/demos/buruaka_inst.json"
 
 # 未来ベース用の明るいスーパーソー。各スタブが -2 半音から戻る。8分で音量も揺れる
 CHORD = dict(
-    wtTable=5, wtPos=0.62, unison=8, detuneCents=28, width=1.0, blend=0.72, noise=0.02,
-    cutoffHz=9000, resonance=0.75, keyTrack=0.45, filterEnv=0.25, filterEnvDecayS=0.12,
-    pitchEnv=-2, pitchEnvDecayS=0.09,
+    wtTable=5, wtPos=0.55, unison=7, detuneCents=20, width=0.9, blend=0.72, noise=0.0,
+    cutoffHz=6500, resonance=0.75, keyTrack=0.45, filterEnv=0.25, filterEnvDecayS=0.12,
+    pitchEnv=-0.6, pitchEnvDecayS=0.02,  # ほんの少しだけ下からすくう（-2/0.09 だと8分のスタブの大半が低いまま鳴る）
     lfoSync=1, lfoRetrig=1, lfoDiv=3, lfoWave=1, lfoAmp=0.45,
     attackS=0.004, decayS=0.22, sustain=0.35, releaseS=0.12, masterGain=0.5,
 )
@@ -32,18 +41,18 @@ SOUNDS = {
     "Chords": dict(
         color="fff7a8d8",
         synth=dict(CHORD),
-        fx=dict(lowCutHz=250, saturation=0.08, chorus=0.22, ott=0.45, reverb=0.08, reverbSize=0.6,
-                eqHighDb=2, eqHighHz=8000, sidechain=0.92, sidechainAttackS=0.004, sidechainHoldS=0.03,
-                sidechainReleaseS=0.2, sidechainCurve=2.4, sendReverb=0.28),
-        mixer=dict(gain=0.42, pan=0),
+        fx=dict(lowCutHz=300, saturation=0.08, chorus=0.22, ott=0.45, eqMidDb=-4, eqMidHz=500, reverb=0.08, reverbSize=0.6,
+                eqHighDb=2.5, eqHighHz=4500, sidechain=0.92, sidechainAttackS=0.004, sidechainHoldS=0.03,
+                sidechainReleaseS=0.32, sidechainCurve=2.4, sendReverb=0.28),
+        mixer=dict(gain=0.8, pan=0),
     ),
     "Pad": dict(
         color="ffd89af2",
-        synth=dict(wtTable=7, wtPos=0.35, wtLfoRate=0.25, wtLfoAmount=0.2, unison=6, detuneCents=18,
-                   width=0.9, blend=0.75, cutoffHz=4200, attackS=0.45, decayS=0.8, sustain=0.85,
+        synth=dict(wtTable=5, wtPos=0.35, wtLfoRate=0.25, wtLfoAmount=0.2, unison=6, detuneCents=18,
+                   width=0.9, blend=0.75, cutoffHz=1800, attackS=0.45, decayS=0.8, sustain=0.85,
                    releaseS=1.2, masterGain=0.4, lfoPitch=0.04),
-        fx=dict(lowCutHz=200, chorus=0.3, reverb=0.15, sendReverb=0.4, sidechain=0.55, sidechainReleaseS=0.28),
-        mixer=dict(gain=0.34, pan=0.05),
+        fx=dict(lowCutHz=350, chorus=0.3, reverb=0.15, sendReverb=0.4, sidechain=0.85, sidechainReleaseS=0.32, sidechainCurve=2),
+        mixer=dict(gain=0.6, pan=0.05),
     ),
     "Pluck": dict(
         color="ff5ad6c0",
@@ -51,11 +60,11 @@ SOUNDS = {
                    filterEnv=0.55, filterEnvDecayS=0.1, attackS=0.001, decayS=0.18, sustain=0, releaseS=0.16,
                    masterGain=0.55),
         fx=dict(lowCutHz=300, delay=0.12, sendDelay=0.28, sendReverb=0.16, sidechain=0.4, sidechainReleaseS=0.18),
-        mixer=dict(gain=0.32, pan=-0.35),
+        mixer=dict(gain=0.45, pan=-0.35),
     ),
-    "Bell": dict(  # 2オペレーターFM。比率 3.5 で鉄琴っぽい部分音
+    "Bell": dict(  # 2オペレーターFM。比率 1・浅めで倍音を素直に（比率 3.5／4 だと部分音がコードとぶつかる）
         color="ffffe066",
-        synth=dict(osc=0.15, fm=0.85, fmRatio=3.5, unison=2, detuneCents=6, width=0.4,
+        synth=dict(osc=0.15, fm=0.3, fmRatio=1.0, unison=2, detuneCents=6, width=0.4,
                    cutoffHz=8000, resonance=0.7, filterEnv=0.4, filterEnvDecayS=0.08,
                    attackS=0.001, decayS=0.28, sustain=0, releaseS=0.35, masterGain=0.55),
         fx=dict(lowCutHz=400, sendDelay=0.22, sendReverb=0.2, sidechain=0.25, sidechainReleaseS=0.16),
@@ -66,21 +75,21 @@ SOUNDS = {
         sampler=dict(kit="kawaii-oneshots", sound="Piano", rootNote=60, gain=1.0, start=0),
         synth=dict(masterGain=0.8, unison=1),
         fx=dict(lowCutHz=120, sendReverb=0.35, reverb=0.05),
-        mixer=dict(gain=0.32, pan=-0.1),
+        mixer=dict(gain=0.14, pan=-0.1),
     ),
     "Chops": dict(
         color="ffff7ab8",
         sampler=dict(kit="kawaii-oneshots", sound="Ah", rootNote=60, gain=1.1, start=0),
         synth=dict(masterGain=0.8, unison=1),
         fx=dict(lowCutHz=200, sendDelay=0.2, sendReverb=0.12, sidechain=0.35, sidechainReleaseS=0.14),
-        mixer=dict(gain=0.48, pan=0.15),
+        mixer=dict(gain=0.34, pan=0.15),
     ),
     "Chops Oh": dict(
         color="ffffb0d0",
         sampler=dict(kit="kawaii-oneshots", sound="Oh", rootNote=60, gain=1.0, start=0),
         synth=dict(masterGain=0.7, unison=1),
         fx=dict(lowCutHz=180, sendReverb=0.18, sidechain=0.3, sidechainReleaseS=0.14),
-        mixer=dict(gain=0.36, pan=-0.2),
+        mixer=dict(gain=0.28, pan=-0.2),
     ),
     "Lead": dict(
         color="ffe879c6",
@@ -97,10 +106,10 @@ SOUNDS = {
                    formant=0.92, formantVowel=0, mono=1, glideS=0.055,
                    wtLfoRate=5.5, lfoPitch=0.0, cutoffHz=7500, resonance=0.7, noise=0.02,
                    attackS=0.01, decayS=0.2, sustain=0.82, releaseS=0.08, masterGain=0.72),
-        fx=dict(lowCutHz=180, chorus=0.08, ott=0.15, eqHighDb=1.5, eqHighHz=7000,
+        fx=dict(lowCutHz=180, chorus=0.08, ott=0.15, eqMidDb=-2.5, eqMidHz=450, eqHighDb=2, eqHighHz=4000,
                 comp=0.35, compThresholdDb=-16, compRatio=3, compMakeupDb=1,
                 sendDelay=0.16, sendReverb=0.22, sidechain=0.28, sidechainReleaseS=0.14),
-        mixer=dict(gain=0.42, pan=0),
+        mixer=dict(gain=0.24, pan=0),
     ),
     "Cons": dict(
         color="ffffd0e6",
@@ -111,20 +120,20 @@ SOUNDS = {
     ),
     "Sub": dict(
         color="ff5aa9f2",
-        synth=dict(osc=0.15, sub=1.0, unison=1, cutoffHz=220, resonance=0.6,
+        synth=dict(osc=0.4, sub=0.3, unison=1, cutoffHz=300, resonance=0.6,
                    attackS=0.005, decayS=0.2, sustain=0.9, releaseS=0.08, masterGain=0.85),
         fx=dict(eqLowDb=1.5, eqLowHz=70, eqHighDb=-6, eqHighHz=400,
-                comp=0.4, compThresholdDb=-18, compRatio=4, sidechain=0.7, sidechainReleaseS=0.18),
-        mixer=dict(gain=0.34, pan=0),
+                comp=0.4, compThresholdDb=-18, compRatio=4, sidechain=0.85, sidechainReleaseS=0.22),
+        mixer=dict(gain=0.75, pan=0),
     ),
-    "Kick": dict(  # ノート 39 = E♭2。ピッチエンベロープで胴が落ちる
+    "Kick": dict(  # ノート 33 = A1。ピッチエンベロープで胴が落ちる
         color="fff28c38",
-        synth=dict(osc=0.35, sub=1.0, unison=1, cutoffHz=900, resonance=0.7, keyTrack=0,
+        synth=dict(osc=0.7, sub=0.0, unison=1, cutoffHz=900, resonance=0.7, keyTrack=0,
                    pitchEnv=30, pitchEnvDecayS=0.04, filterEnv=0.85, filterEnvDecayS=0.03,
                    attackS=0.0005, decayS=0.28, sustain=0, releaseS=0.04, masterGain=1.0),
         fx=dict(saturation=0.3, eqLowDb=2, eqLowHz=70, eqMidDb=-2.5, eqMidHz=300,
                 comp=0.4, compThresholdDb=-12, compRatio=3.5),
-        mixer=dict(gain=0.4, pan=0),
+        mixer=dict(gain=0.5, pan=0),
     ),
     "Ghost": dict(  # 聞こえない4つ打ち。サイドチェインだけを踏む
         color="ff888888",
@@ -135,13 +144,14 @@ SOUNDS = {
     ),
     "Clap": dict(
         color="fff2d45a", kit="future-bass-pro", synth=dict(masterGain=1, unison=1),
-        fx=dict(lowCutHz=180, eqMidDb=1.5, eqMidHz=2000, comp=0.25, sendReverb=0.16),
-        mixer=dict(gain=0.32, pan=0.02),
+        fx=dict(lowCutHz=180, eqMidDb=1.5, eqMidHz=2000, eqHighDb=-3, eqHighHz=7000, comp=0.4, compThresholdDb=-14, compRatio=4,
+                sendReverb=0.16),
+        mixer=dict(gain=0.22, pan=0.02),
     ),
     "Hats": dict(
         color="ffb0b6c0", kit="future-bass-pro", synth=dict(masterGain=1, unison=1),
-        fx=dict(lowCutHz=400, eqHighDb=2, eqHighHz=9000),
-        mixer=dict(gain=0.22, pan=0.28),
+        fx=dict(lowCutHz=400, eqHighDb=-1.5, eqHighHz=10000),
+        mixer=dict(gain=0.16, pan=0.28),
     ),
     "Riser": dict(
         color="ffeeeeee",
@@ -152,141 +162,147 @@ SOUNDS = {
     ),
 }
 
-V = {
-    "AbM9": [56, 60, 63, 67, 70], "Bb": [58, 62, 65, 70], "Gm7": [55, 58, 62, 65],
-    "Cm9": [60, 63, 67, 70, 74], "Fm9": [53, 56, 60, 63, 67], "Bbsus": [58, 63, 65],
-    "Bb7": [58, 62, 65, 68], "EbM9": [63, 67, 70, 74, 77], "Eb7": [63, 67, 70, 73],
-    "Ebadd9": [63, 67, 70, 74, 77],
+V = {  # 開いた配置（A major）
+    "AM7": [57, 64, 68, 71, 73], "Aadd9": [57, 64, 69, 71, 76], "C#m7": [61, 68, 71, 76, 80],
+    "DM7": [62, 69, 73, 76, 78], "Dm6": [62, 65, 69, 71, 74], "Bm7": [59, 66, 69, 74, 76],  # Bm7 は 11th 入り
+    "E7sus4": [64, 69, 71, 74, 76], "Esus4": [64, 69, 71, 76, 81], "F#m7": [66, 69, 73, 76, 81],
 }
-ROOT = {"AbM9": 44, "Bb": 46, "Gm7": 43, "Cm9": 48, "Fm9": 41, "Bbsus": 46,
-        "Bb7": 46, "EbM9": 39, "Eb7": 39, "Ebadd9": 39}
-VERSE = ["AbM9", "Bb", "Gm7", "Cm9"]
-BUILD = ["Fm9", "Gm7", "AbM9", "Bbsus"]
-DROP = ["AbM9", "Bb", "Gm7", "Cm9", "Fm9", "Bb7", "EbM9", "Eb7"]
-LAST = ["AbM9", "Bb", "Gm7", "Cm9", "Fm9", "Bb7", "EbM9", "Ebadd9"]
+ROOT = {"AM7": 33, "Aadd9": 33, "C#m7": 37, "DM7": 38, "Dm6": 38, "Bm7": 35, "E7sus4": 40, "Esus4": 40,
+        "F#m7": 42}
+INTRO = ["DM7", "Dm6", "AM7", "E7sus4"]
+VERSE = ["AM7", "C#m7", "DM7", "Dm6"]
+PRE = ["Bm7", "C#m7", "DM7", "Esus4"]
+CHO = ["Bm7", "E7sus4", "C#m7", "F#m7", "Bm7", "E7sus4", "AM7", "Aadd9"]
+DRP = ["DM7", "C#m7", "Bm7", "E7sus4"]
+BRG = ["F#m7", "DM7", "Bm7", "Esus4"]
+OUTRO = ["DM7", "Dm6", "AM7", "Aadd9"]
 
-CLAP, SNARE, HAT, HAT_O, CRASH, REV, SHAKER = 39, 38, 42, 58, 51, 52, 82
-KICK = 39  # シンセの E♭2
+CLAP, SNARE, HAT, HAT_O, CRASH, REV, SHAKER, RIM = 39, 38, 42, 58, 51, 52, 82, 37
+KICK = 33  # シンセの A1
+P332 = (0, 3, 6, 8, 11, 14)  # 付点8分・付点8分・8分 ×2
 
 
 def stabs(prog, vel=0.82):
     out = []
     for i, c in enumerate(prog):
-        for pos in (0, 3, 6, 10, 14):
-            out += [n(i * BAR + pos * S16, S16 * 2 - 20, p, vel if pos in (0, 10) else vel * 0.85) for p in V[c]]
+        for k, pos in enumerate(P332):
+            ln = (P332 + (16,))[k + 1] - pos
+            out += [n(i * BAR + pos * S16, ln * S16 - 30, p, vel if pos in (0, 8) else vel * 0.86) for p in V[c][1:]]
     return out
+
+
+def pulses(prog, vel=0.8):
+    """ハーフタイム用：4分で刻むコード（サイドチェインで大きく揺れる）"""
+    return [n(i * BAR + q * PPQ, PPQ - 40, p, vel) for i, c in enumerate(prog) for q in range(4) for p in V[c][1:]]
 
 
 def held(prog, vel=0.55):
     return [n(i * BAR, BAR - 40, p, vel) for i, c in enumerate(prog) for p in V[c]]
 
 
-def bass(prog):
+def bass(prog, pos=(0, 6, 10)):
     out = []
     for i, c in enumerate(prog):
         r = ROOT[c]
-        out += [n(i * BAR, S16 * 6, r, 0.95), n(i * BAR + 8 * S16, S16 * 6, r, 0.85),
-                n(i * BAR + 14 * S16, S16 * 2 - 20, r + 12, 0.7)]
+        ps = list(pos) + [16]
+        out += [n(i * BAR + a * S16, (b_ - a) * S16 - 30, r + (12 if a == 14 else 0), 0.95 if a == 0 else 0.85)
+                for a, b_ in zip(ps, ps[1:])]
     return out
 
 
-def arp(prog):
+def arp332(prog, octave=12, vel=0.6):
     out = []
     for i, c in enumerate(prog):
-        tones = V[c]
-        for k in range(8):
-            out.append(n(i * BAR + k * S16 * 2, S16 * 2 - 30, tones[k % len(tones)] + 12, 0.6))
+        tones = V[c][1:]
+        order = [0, 2, 3, 1, 3, 2]
+        for k, pos in enumerate(P332):
+            out.append(n(i * BAR + pos * S16, S16 * 2 - 20, tones[order[k] % len(tones)] + octave, vel))
     return out
 
 
-def melody(spec, vel=0.88):
-    return [n(b * PPQ, l * PPQ - 30, p, vel) for b, l, p in spec]
+def chop_motif(prog):
+    """ドロップのチョップ：上の3声を 3-3-2 で歌わせる（全部コードの音）"""
+    out = []
+    for i, c in enumerate(prog):
+        top = V[c][-3:]
+        seq = [2, 1, 2, 0, 1, 2] if i % 2 == 0 else [2, 1, 0, 1, 2, 2]
+        for k, pos in enumerate(P332):
+            out.append(n(i * BAR + pos * S16, S16 * 2 - 30, top[seq[k]], 0.85 if pos in (0, 8) else 0.72))
+    return out
 
 
-# サビのフック。6度の跳躍のあと階段で降り、6小節目で一番高い音。音域は10度
-HOOK = [
-    (0, .7, 70), (.7, .7, 79), (1.5, .5, 77), (2, 1, 75), (3, .5, 74), (3.5, .5, 72),
-    (4, .5, 72), (4.5, .5, 72), (5, .75, 70), (5.75, .75, 68), (6.5, 1.5, 67),
-    (8, .7, 70), (8.7, .7, 79), (9.5, .5, 77), (10, .5, 75), (10.5, .5, 74), (11, 1, 72),
-    (12, 1, 74), (13, .5, 75), (13.5, .5, 77), (14, 2, 79),
-    (16, .7, 72), (16.7, .7, 81), (17.5, .5, 79), (18, 1, 77), (19, .5, 75), (19.5, .5, 74),
-    (20, .5, 74), (20.5, .5, 74), (21, .75, 72), (21.75, .75, 70), (22.5, 1.5, 67),
-    (24, .75, 75), (24.75, .75, 79), (25.5, .5, 77), (26, 1, 75), (27, 1, 74),
-    (28, 1.5, 72), (29.5, .5, 70), (30, 2, 67),
+def melody(spec, vel=0.88, shift=0):
+    return [n(b * PPQ, l * PPQ - 30, p + shift, vel) for b, l, p, *_ in spec]
+
+
+# 歌（書き下ろし）。(拍, 長さ, 音程, 音節)
+A_LYR = [  # AM7 → C#m7 → DM7 → Dm6
+    (0, .5, 73, "ki"), (.5, .5, 71, "ra"), (1, .5, 73, "ki"), (1.5, 1, 76, "ra"),
+    (2.5, .5, 73, "hi"), (3, .5, 71, "ka"), (3.5, .5, 69, "ri"), (4, .5, 68, "ga"),
+    (4.5, .5, 71, "yu"), (5, .5, 73, "re"), (5.5, 2, 76, "te"),
+    (8, .5, 69, "ki"), (8.5, .5, 73, "mi"), (9, .5, 76, "to"), (9.5, .5, 73, "to"),
+    (10, .5, 69, "mo"), (10.5, .5, 66, "da"), (11, 1, 69, "chi"),
+    (12, .5, 69, "ni"), (12.5, .5, 71, "a"), (13, .5, 74, "u"), (13.5, 2, 69, "yo"),
 ]
+B_LYR = [  # Bm7 → C#m7 → DM7 → Esus4
+    (0, .5, 66, "ha"), (.5, .5, 69, "ya"), (1, 1, 71, "ku"),
+    (2, .5, 69, "ha"), (2.5, .5, 71, "ya"), (3, 1, 74, "ku"),
+    (4, .5, 76, "ko"), (4.5, .5, 76, "ko"), (5, .5, 73, "ro"), (5.5, .5, 71, "ga"),
+    (6, .5, 73, "to"), (6.5, 1.5, 76, "bu"),
+    (8, .5, 78, "so"), (8.5, .5, 76, "ra"), (9, .5, 73, "ma"), (9.5, 1.5, 76, "de"),
+    (11, .5, 78, "to"), (11.5, .5, 80, "do"), (12, .5, 81, "ke"), (12.5, 3, 76, "yo"),
+]
+HOOK_LYR = [  # Bm7 → E7sus4 → C#m7 → F#m7 → Bm7 → E7sus4 → AM7 → Aadd9
+    (0, .5, 78, "so"), (.5, .5, 76, "ra"), (1, .5, 74, "i"), (1.5, .5, 76, "ro"),
+    (2, .5, 78, "no"), (2.5, .5, 81, "na"), (3, .5, 78, "ka"), (3.5, 1, 76, "de"),
+    (5, .5, 74, "te"), (5.5, .5, 76, "o"), (6, .5, 78, "tsu"), (6.5, .5, 76, "na"), (7, .5, 74, "i"),
+    (7.5, 1, 73, "de"),
+    (9, .5, 73, "to"), (9.5, .5, 76, "N"), (10, .5, 80, "de"), (10.5, .5, 78, "i"), (11, .5, 76, "ko"),
+    (11.5, .5, 73, "u"), (12, 1.5, 73, "yo"),
+    (16, .5, 78, "ki"), (16.5, .5, 76, "mi"), (17, .5, 74, "to"), (17.5, .5, 76, "na"), (18, 1.5, 78, "ra"),
+    (20, .5, 76, "ko"), (20.5, .5, 74, "wa"), (21, .5, 71, "ku"), (21.5, .5, 74, "na"), (22, 1.5, 76, "i"),
+    (24, .5, 73, "wa"), (24.5, .5, 76, "ra"), (25, .5, 81, "e"), (25.5, .5, 80, "ru"), (26, 1, 76, "yo"),
+    (27, .5, 76, "a"), (27.5, .5, 78, "o"), (28, .5, 80, "zo"), (28.5, 3, 81, "ra"),
+]
+# サビの合いの手（F#m7 の小節の後半）。チョップ「お」が C#–E–A
+ANSWER = [n(13.5 * PPQ, PPQ // 2 - 30, 73, 0.75), n(14 * PPQ, PPQ // 2 - 30, 76, 0.75),
+          n(14.5 * PPQ, PPQ * 1.5 - 30, 81, 0.8)]
+# イントロ／アウトロのベルのモチーフ（D–Dm–A–E7sus4 の上で、どれもその小節のコードの音）
+BELL_MOTIF = [(0, .75, 81), (.75, .75, 78), (1.5, .5, 76), (2, 1, 73), (3, .5, 76), (3.5, .5, 78),
+              (4, .75, 81), (4.75, .75, 77), (5.5, .5, 74), (6, 2, 71),
+              (8, .75, 80), (8.75, .75, 76), (9.5, .5, 73), (10, 1, 71), (11, .5, 73), (11.5, .5, 76),
+              (12, .75, 81), (12.75, .75, 76), (13.5, .5, 74), (14, 2, 71)]
 
 
-def line(start, spec, syls):
-    s = syls.split()
-    assert len(s) == len(spec), (syls, len(s), len(spec))
-    return [(start + b, l, p, x) for (b, l, p), x in zip(spec, s)]
-
-
-# 歌（書き下ろし。放課後の光と友だち。キャラクター名や既存曲の文句は使わない）
-A1 = [(0, .5, 70), (.5, .5, 72), (1, .5, 75), (1.5, .5, 72),
-      (2.5, .75, 70), (3.25, .75, 67), (4, 1, 68), (5, .5, 70),
-      (6, 1, 72), (7, .5, 70), (7.5, .5, 67)]
-A2 = [(0, .5, 72), (.5, .5, 74), (1, .75, 75), (2, .5, 70), (2.5, .5, 72),
-      (3, .5, 74), (3.5, .5, 75), (4, .75, 72), (5, .75, 70), (6, .5, 67), (6.5, 1.5, 75)]
-B1 = [(0, .5, 74), (.5, .5, 75), (1, .5, 77), (1.5, .5, 75), (2, .5, 74), (2.5, .5, 72),
-      (3, .5, 70), (3.5, .5, 72), (4, .75, 74), (5, .5, 75), (5.5, 1, 79), (6.5, 1, 77)]
-B2 = [(0, .75, 75), (1, .5, 74), (1.5, .75, 72), (2.5, .5, 70), (3, .5, 72),
-      (3.5, .75, 74), (4.5, 1, 75), (6, 2, 79)]
-SABI_SYL = "so ra i ro su te p pu to n de i ko u".split()
-# フックの音の数に歌詞を合わせる（32音は長いので、フックの前半16音＋後半は繰り返しの変形）
-SABI_A = HOOK[:16]
-SABI_B = HOOK[16:]
-
-
-def lyric_hook(spec, text):
-    syls = text.split()
-    assert len(syls) == len(spec), (len(syls), len(spec), text)
-    return [(b, l, p, s) for (b, l, p), s in zip(spec, syls)]
-
-
-def chops_of(spec, every=2):
-    return [n(b * PPQ, min(l, 0.35) * PPQ, p, 0.8) for i, (b, l, p) in enumerate(spec) if i % every == 0]
-
-
-def hats(bars, dense=False):
+def hats(bars, dense=False, roll_last=False):
     out = []
     for b in range(bars):
         for s in range(16 if dense else 8):
             pos = s if dense else s * 2
-            vel = 0.55 if pos % 4 == 0 else 0.32
+            vel = 0.55 if pos % 4 == 0 else 0.3 if dense else 0.4
             out.append(n(b * BAR + pos * S16, S16, HAT, vel))
-        if dense:
-            for pos in (2, 6, 10, 14):
-                out.append(n(b * BAR + pos * S16, S16 * 2, HAT_O, 0.4))
+        if roll_last and b == bars - 1:
+            out += [n(b * BAR + 12 * S16 + k * (S16 // 2), S16 // 2 - 6, HAT, 0.35 + 0.03 * k) for k in range(8)]
     return out
 
 
-def kick_half(bars, jersey_last=False):
+def ghost(bars, pos=(0, 4, 8, 12), skip_last_beat=False):
     out = []
     for b in range(bars):
-        pat = [0, 8, 10, 12, 14] if jersey_last and b == bars - 1 else [0, 10]
-        out += steps(b, pat, S16 * 2, [KICK], 1.0)
-    return out
-
-
-def ghost(bars, skip_last_beat=False):
-    out = []
-    for b in range(bars):
-        pos = [0, 4, 8] if skip_last_beat and b == bars - 1 else [0, 4, 8, 12]
-        out += steps(b, pos, S16 * 2, [KICK], 1.0)
+        ps = [p for p in pos if not (skip_last_beat and b == bars - 1 and p >= 12)]
+        out += steps(b, ps, S16 * 2, [KICK], 1.0)
     return out
 
 
 def snare_roll():
     out = []
-    # 4分 → 8分 → 16分 → 32分。最後の拍は空ける
     for k in range(4):
         out.append(n(k * PPQ, PPQ - 20, SNARE, 0.45 + 0.08 * k))
     for k in range(8):
         out.append(n(BAR + k * PPQ // 2, PPQ // 2 - 15, SNARE, 0.5 + 0.04 * k))
     for k in range(16):
         out.append(n(2 * BAR + k * S16, S16 - 10, SNARE, 0.55 + 0.02 * k))
-    for k in range(24):  # 32分だが最後の8つ（1拍）は置かない
+    for k in range(24):
         out.append(n(3 * BAR + k * (S16 // 2), S16 // 2 - 8, SNARE, 0.6 + 0.012 * k))
     return out
 
@@ -299,105 +315,111 @@ def with_sampler(b, name, sound, solo):
     return tid
 
 
+SEC = dict(intro=0, idrop=4, verse=12, pre=20, cho=24, drop=40, bridge=48, pre2=52, last=56, outro=72)
+
+
 def build(vocal=True, solo=None):
     b = AutoBuilder()
     names = [k for k in SOUNDS if vocal or k not in ("Vox", "Cons")]
     if not vocal:
-        SOUNDS["Lead"]["mixer"] = dict(gain=0.55, pan=0)
+        SOUNDS["Lead"]["mixer"] = dict(gain=0.5, pan=0)
     t = {}
     for name in names:
-        if "sampler" in SOUNDS[name]:
-            t[name] = with_sampler(b, name, SOUNDS[name], solo)
-        else:
-            t[name] = b.track(name, SOUNDS[name], solo)
+        t[name] = with_sampler(b, name, SOUNDS[name], solo) if "sampler" in SOUNDS[name] else b.track(name, SOUNDS[name], solo)
+    CHD, PAD, PL, BE, PI, SUB = t["Chords"], t["Pad"], t["Pluck"], t["Bell"], t["Piano"], t["Sub"]
+    K, GH, CL, H, RI, LE = t["Kick"], t["Ghost"], t["Clap"], t["Hats"], t["Riser"], t["Lead"]
+    CA, CO = t["Chops"], t["Chops Oh"]
+    CHO_AT = [24, 32, 56, 64]
+    cut = lambda a_, b_, bars=4: [dict(param="cutoffHz", points=[[0, a_], [bars * BAR, b_]])]
 
-    L4 = 4 * BAR
-    b.clip(t["Pad"], 4, held(VERSE, 0.5), [0, 4, 8, 12, 16, 20, 48, 52])
-    b.clip(t["Pad"], 4, held(DROP[:4], 0.55), [32, 36, 40, 44, 56, 60])
-    b.clip(t["Chords"], 4, stabs(VERSE, 0.7), [0, 4], automation=[
-        dict(param="cutoffHz", points=[[0, 1800], [4 * BAR, 5200]])])
-    b.clip(t["Chords"], 4, stabs(VERSE), [8, 12, 16, 20])
-    b.clip(t["Chords"], 4, stabs(BUILD, 0.9), [24, 28])
-    b.clip(t["Chords"], 4, stabs(DROP[:4], 0.95), [32, 36, 40, 44])
-    b.clip(t["Chords"], 4, stabs(DROP[4:], 0.95), [32 + 4, 40 + 4])  # 各8小節の後半は別クリップで置き直す
-    # 上の配置は 4小節クリップを 32 と 36 に置くと 32-39 が DROP前半の繰り返しになる。
-    # 後半進行は 36 を上書きできない（同じ小節に2つ置けるが重なる）。
-    # 8小節クリップでドロップ進行を置く。
-    b.clips = [c for c in b.clips if not (c["trackId"] == t["Chords"] and c["lengthTicks"] == 4 * BAR and any(
-        p["clipId"] == c["id"] and p["startBar"] >= 32 for p in b.placements))]
-    b.placements = [p for p in b.placements if not (p["trackId"] == t["Chords"] and p["startBar"] >= 32)]
-    b.clip(t["Chords"], 8, stabs(DROP, 0.95), [32, 40])
-    b.clip(t["Chords"], 8, stabs(LAST, 0.95), [56])
-    b.clip(t["Chords"], 4, held(VERSE, 0.6), [48, 52])
+    # ---- イントロ：ベルのモチーフとプラック（3-3-2）だけ。パッドは無し
+    b.clip(BE, 4, melody(BELL_MOTIF, 0.85), [0, 72])
+    b.clip(PL, 4, arp332(INTRO, 0, 0.62), [0])
+    b.clip(PI, 4, held(INTRO, 0.4), [0])
+    b.clip(H, 4, [x for bb in range(4) for x in steps(bb, [4, 12], S16, [RIM], 0.5)]
+           + [x for bb in range(4) for x in steps(bb, range(0, 16, 2), S16, [SHAKER], 0.2)], [0])
+    b.clip(H, 1, [n(2 * PPQ, 2 * PPQ, REV, 0.6)], [3])
+    # ---- イントロドロップ（ハーフタイム、チョップのモチーフ）
+    b.clip(CHD, 8, pulses(CHO, 0.85), [4], automation=cut(5500, 5500, 8))
+    b.clip(PAD, 8, held(CHO, 0.5), [4, 24, 32, 56, 64])
+    b.clip(CA, 4, chop_motif(CHO[:4]) + [], [4])
+    b.clip(CA, 4, chop_motif(CHO[4:]), [8])
+    b.clip(SUB, 8, bass(CHO, (0, 10)), [4])
+    half_k = [x for bb in range(4) for x in steps(bb, [0, 10] if bb % 2 == 0 else [0, 3, 10], S16 * 2, [KICK], 1.0)]
+    b.clip(K, 4, half_k, [4, 8, 40, 44])
+    b.clip(GH, 4, ghost(4, (0, 8)), [4, 8, 40, 44])
+    b.clip(CL, 4, [x for bb in range(4) for x in steps(bb, [8], S16, [CLAP], 0.9)], [4, 8, 40, 44])
+    b.clip(H, 4, hats(4, False, roll_last=True), [4, 8, 40, 44])
+    b.clip(H, 1, [n(0, BAR, CRASH, 0.8)], [4, 24, 40, 56])
+    # ---- Aメロ
+    b.clip(PI, 4, held(VERSE, 0.6), [12, 16])
+    b.clip(PL, 4, arp332(VERSE, 12, 0.5), [12, 16])
+    b.clip(CHD, 4, stabs(VERSE, 0.6), [16], automation=cut(2500, 4500))
+    b.clip(SUB, 4, bass(VERSE, (0, 8)), [12, 16])
+    b.clip(K, 4, [x for bb in range(4) for x in steps(bb, [0, 8], S16 * 2, [KICK], 0.85)], [12, 16])
+    b.clip(GH, 4, ghost(4), [12, 16])
+    b.clip(H, 4, [x for bb in range(4) for x in steps(bb, [4, 12], S16, [RIM], 0.55)] + hats(4), [12, 16])
+    # ---- Bメロ（ビルド）
+    for at in (20, 52):
+        b.clip(CHD, 4, stabs(PRE, 0.8), [at], automation=cut(3000, 7000))
+    b.clip(PAD, 4, held(PRE, 0.55), [20, 52])
+    b.clip(SUB, 4, bass(PRE, (0, 4, 8, 12)), [20, 52])
+    b.clip(K, 4, [x for bb in range(3) for x in steps(bb, [0, 4, 8, 12], S16, [KICK], 0.95)], [20, 52])
+    b.clip(GH, 4, ghost(4, skip_last_beat=True), [20, 52])
+    b.clip(CL, 4, snare_roll(), [20, 52])
+    b.clip(RI, 4, [n(0, 4 * BAR - PPQ, 60, 0.85)], [20, 52])
+    b.clip(H, 4, [n(2 * BAR, 2 * BAR - PPQ, REV, 0.7)], [20, 52])
+    # ---- サビ
+    b.clip(CHD, 8, stabs(CHO, 0.95), CHO_AT, automation=cut(6500, 6500, 8))
+    b.clip(SUB, 8, bass(CHO), CHO_AT)
+    b.clip(PL, 8, arp332(CHO, 12, 0.45), [32, 64])
+    drive = [x for bb in range(4) for x in steps(bb, [0, 6, 8] if bb < 3 else [0, 6, 8, 11, 14], S16 * 2, [KICK], 1.0)]
+    b.clip(K, 4, drive, [24, 28, 32, 36, 56, 60, 64, 68])
+    b.clip(GH, 4, ghost(4), [24, 28, 32, 36, 56, 60, 64, 68])
+    b.clip(CL, 4, [x for bb in range(4) for x in steps(bb, [4, 12], S16, [CLAP], 0.9)], [24, 28, 32, 36, 56, 60, 64, 68])
+    b.clip(H, 4, hats(4, True), [24, 28, 32, 36, 56, 60, 64, 68])
+    b.clip(CO, 8, ANSWER, CHO_AT)
+    # ---- ドロップ（ハーフタイム、降りる進行）
+    b.clip(CHD, 4, pulses(DRP, 0.9), [40, 44], automation=cut(6000, 6000))
+    b.clip(PAD, 4, held(DRP, 0.5), [40, 44])
+    b.clip(CA, 4, chop_motif(DRP), [40, 44])
+    b.clip(BE, 4, arp332(DRP, 12, 0.45), [44])
+    b.clip(SUB, 4, bass(DRP, (0, 10)), [40, 44])
+    # ---- ブリッジ
+    b.clip(PI, 4, held(BRG, 0.6), [48])
+    b.clip(PAD, 4, held(BRG, 0.5), [48])
+    b.clip(CO, 4, [n(i * BAR, BAR // 2, V[c][-1], 0.6) for i, c in enumerate(BRG)], [48])
+    # ---- アウトロ
+    b.clip(PI, 4, held(OUTRO, 0.55), [72])
+    b.clip(PAD, 4, held(OUTRO, 0.45), [72])
+    b.clip(K, 1, [n(0, S16 * 2, KICK, 1)], [72])
+    b.clip(H, 1, [n(0, BAR, CRASH, 0.6)], [72])
 
-    b.clip(t["Pluck"], 4, arp(VERSE), [0, 4, 48, 52])
-    b.clip(t["Bell"], 4, arp(VERSE), [0, 48])
-    b.clip(t["Sub"], 4, bass(VERSE), [8, 12, 16, 20, 32, 36, 40, 44, 56, 60])
-    b.clip(t["Sub"], 4, bass(BUILD), [24, 28])
-
-    b.clip(t["Piano"], 4, held(VERSE, 0.7), [48, 52])
-    b.clip(t["Piano"], 2, [n(0, 2 * BAR - 80, p, 0.75) for p in V["Ebadd9"]], [62])
-
-    # リード：インストはサビのメロディが主役。歌入りはサビで3度下を薄く重ねる
-    lead_hook = [(b, l, p - 3, ) for b, l, p in HOOK] if vocal else [(b, l, p) for b, l, p in HOOK]
-    # melody() expects triples
-    b.clip(t["Lead"], 8, melody(lead_hook, 0.7 if vocal else 0.9), [32, 56] if vocal else [32, 40, 56])
-    if not vocal:
-        b.clip(t["Lead"], 8, melody([(b, l, p + 12) for b, l, p in HOOK], 0.55), [40])
-
+    # ---- 歌・リード
+    gain = SOUNDS["Vox"]["mixer"]["gain"]
     if vocal:
-        a_lyr = line(0, A1, "ki ra ki ra hi ka ri ga yu re te") + line(8, A2, "ki mi to to mo da chi ni a u yo")
-        vox, va, cons, ca = sing(a_lyr, TEMPO, 4 * BAR, fixed_formant=True, compensate=False, vibrato=0.1)
-        b.clip(t["Vox"], 4, vox, [8, 12, 16, 20], automation=va)
-        b.clip(t["Cons"], 4, cons, [8, 12, 16, 20], automation=ca)
-        b_lyr = line(0, B1, "ha ya ku ha ya ku ko ko ro ga to bu") + line(8, B2, "so ra ma de to do ke yo")
-        # B1 は11、B2 は8。line() が数を確かめる
-        vox, va, cons, ca = sing(b_lyr, TEMPO, 4 * BAR, fixed_formant=True, compensate=False, vibrato=0.08)
-        b.clip(t["Vox"], 4, vox, [24], automation=va)
-        b.clip(t["Cons"], 4, cons, [24], automation=ca)
-        hook_syl = (
-            "so ra i ro no na ka de "
-            "te o tsu na i de "
-            "to N de i ko u yo "
-            "ki mi to na ra "
-            "ko wa ku na i "
-            "wa ra e ru yo "
-            "a o zo ra"
-        ).split()
-        assert len(hook_syl) == len(HOOK), (len(hook_syl), len(HOOK))
-        hook_lyr = [(b, l, p, s) for (b, l, p), s in zip(HOOK, hook_syl)]
-        vox, va, cons, ca = sing(hook_lyr, TEMPO, 8 * BAR, fixed_formant=True, compensate=False, vibrato=0.14)
-        b.clip(t["Vox"], 8, vox, [32, 40, 56], automation=va)
-        b.clip(t["Cons"], 8, cons, [32, 40, 56], automation=ca)
-
-    b.clip(t["Chops"], 8, chops_of(HOOK, 2), [32, 40, 56])
-    b.clip(t["Chops Oh"], 8, chops_of(HOOK[1:], 2), [32, 40])
-
-    # ドラム
-    b.clip(t["Kick"], 4, kick_half(4), [8, 12, 16, 20])
-    b.clip(t["Kick"], 4, [x for bb in range(3) for x in steps(bb, [0, 4, 8, 12], S16, [KICK], 0.95)], [24])
-    b.clip(t["Kick"], 4, kick_half(4, jersey_last=True), [32, 36, 40, 44, 56, 60])
-    b.clip(t["Ghost"], 4, ghost(4), [8, 12, 16, 20, 32, 36, 40, 44, 56, 60])
-    b.clip(t["Ghost"], 4, ghost(4, skip_last_beat=True), [24, 28])
-    b.clip(t["Clap"], 4, [x for bb in range(4) for x in steps(bb, [8], S16, [CLAP], 0.9)], [8, 12, 16, 20, 32, 36, 40, 44, 56, 60])
-    b.clip(t["Clap"], 4, snare_roll(), [28])
-    b.clip(t["Hats"], 4, hats(4, False), [4, 8, 12, 16, 20])
-    b.clip(t["Hats"], 4, hats(4, True), [32, 36, 40, 44, 56, 60])
-    b.clip(t["Hats"], 1, [n(0, BAR, CRASH, 0.85)], [32, 40, 56])
-    b.clip(t["Hats"], 4, [n(2 * BAR, 2 * BAR, REV, 0.75)], [48])
-    b.clip(t["Hats"], 4, [n(bb * BAR + (3 if bb % 2 == 0 else 11) * S16, S16, SHAKER, 0.45) for bb in range(4)], [8, 16])
-    b.clip(t["Riser"], 4, [n(0, 4 * BAR - PPQ, 60, 0.85)], [28])
-    # 終わりの一発
-    b.clip(t["Kick"], 1, [n(0, S16 * 2, KICK, 1)], [63])
-    b.clip(t["Chords"], 1, [n(0, BAR - 40, p, 0.8) for p in V["Ebadd9"]], [63])
+        for lyr, bars, at, vib in ((A_LYR, 4, [12, 16], 0.1), (B_LYR, 4, [20, 52], 0.08), (HOOK_LYR, 8, CHO_AT, 0.14)):
+            vox, va, cons, ca = sing(lyr, TEMPO, bars * BAR, fixed_formant=True, compensate=False, vibrato=vib,
+                                     base_gain=gain)
+            b.clip(t["Vox"], bars, vox, at, automation=va)
+            b.clip(t["Cons"], bars, cons, at, automation=ca)
+        b.clip(LE, 8, melody(HOOK_LYR, 0.45, -12), [32, 64])
+    else:
+        b.clip(LE, 8, melody(HOOK_LYR, 0.9), CHO_AT)
+        b.clip(LE, 8, melody(HOOK_LYR, 0.5, 12), [64])
+        b.clip(LE, 4, melody(A_LYR, 0.75), [12, 16])
+        b.clip(LE, 4, melody(B_LYR, 0.8), [20, 52])
 
     song = dict(format="mobiledaw-project", version=1,
                 title="そら色ステップ" if vocal else "そら色ステップ（インスト）",
-                tempo=TEMPO, timeSig=[4, 4], key=dict(root=3, scale="major"),
-                master=dict(gain=2.5 if vocal else 3.3, glue=0.8, thresholdDb=-13, ratio=1.8, softClip=0.55, ceiling=0.93),
-                aux=dict(reverbReturn=0.85, reverbSize=0.62, delayReturn=0.5, delayFeedback=0.32),
+                tempo=TEMPO, timeSig=[4, 4], key=dict(root=9, scale="major"),
+                master=dict(gain=MASTER_GAIN[vocal], glue=0.6, thresholdDb=-10, ratio=1.8, softClip=0.35, ceiling=0.84),
+                aux=dict(reverbReturn=0.85, reverbSize=0.6, delayReturn=0.45, delayFeedback=0.3),
                 tracks=b.tracks, clips=b.clips, placements=b.placements)
     return song
+
+
+MASTER_GAIN = {True: 3.3, False: 3.8}
 
 
 def main():
