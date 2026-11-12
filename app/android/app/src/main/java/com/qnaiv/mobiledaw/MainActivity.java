@@ -1,5 +1,6 @@
 package com.qnaiv.mobiledaw;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
@@ -7,9 +8,13 @@ import android.os.Bundle;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.FileProvider;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +29,10 @@ public class MainActivity extends FlutterActivity {
     private static final String PATHS_CHANNEL = "mobiledaw/paths";
     // lib/export/share.dart と揃える
     private static final String SHARE_CHANNEL = "mobiledaw/share";
+    // lib/platform_files.dart と揃える（プロジェクトの取り込みで使うファイル選択）
+    private static final String FILES_CHANNEL = "mobiledaw/files";
+    private static final int REQUEST_OPEN_FILE = 4317;
+    private MethodChannel.Result pendingOpenFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +81,28 @@ public class MainActivity extends FlutterActivity {
                             result.notImplemented();
                     }
                 });
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), FILES_CHANNEL)
+                .setMethodCallHandler((call, result) -> {
+                    if (call.method.equals("openFile")) {
+                        if (pendingOpenFile != null) {
+                            result.error("busy", "ファイル選択が既に開いています", null);
+                            return;
+                        }
+                        // Storage Access Framework で選ばせる。拡張子では絞れないため
+                        // 型は */* にし、Dart 側で中身を検証する（.mdawproj は zip）。
+                        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("*/*");
+                        String title = call.argument("title");
+                        if (title != null)
+                            intent.putExtra(Intent.EXTRA_TITLE, title);
+                        pendingOpenFile = result;
+                        startActivityForResult(intent, REQUEST_OPEN_FILE);
+                    } else {
+                        // saveFile は Android では未実装（書き出しは共有シート経路を使う）
+                        result.notImplemented();
+                    }
+                });
         new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), UPDATER_CHANNEL)
                 .setMethodCallHandler((call, result) -> {
                     switch (call.method) {
@@ -92,6 +123,38 @@ public class MainActivity extends FlutterActivity {
                             result.notImplemented();
                     }
                 });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQUEST_OPEN_FILE || pendingOpenFile == null)
+            return;
+        MethodChannel.Result result = pendingOpenFile;
+        pendingOpenFile = null;
+        if (resultCode != Activity.RESULT_OK || data == null || data.getData() == null) {
+            result.success(null); // やめた
+            return;
+        }
+        // content:// URI はそのままでは Dart で読めないため、キャッシュへ複製してパスを返す
+        try {
+            File dir = new File(getCacheDir(), "imports");
+            //noinspection ResultOfMethodCallIgnored
+            dir.mkdirs();
+            File out = new File(dir, "import-" + System.currentTimeMillis() + ".mdawproj");
+            try (InputStream in = getContentResolver().openInputStream(data.getData());
+                 OutputStream os = new FileOutputStream(out)) {
+                if (in == null)
+                    throw new IllegalStateException("読み込めませんでした");
+                byte[] buf = new byte[64 * 1024];
+                int n;
+                while ((n = in.read(buf)) >= 0)
+                    os.write(buf, 0, n);
+            }
+            result.success(out.getAbsolutePath());
+        } catch (Exception e) {
+            result.error("openFile", e.toString(), null);
+        }
     }
 
     /** 書き出したファイルを共有シートへ（1つなら ACTION_SEND、複数なら ACTION_SEND_MULTIPLE） */

@@ -1,10 +1,17 @@
-// 曲の一覧：開く・新しい曲・複製・名前を変える・削除。新しく保存した順に並ぶ。
+// 曲の一覧：開く・新しい曲・複製・名前を変える・削除・書き出し／取り込み。
+// 新しく保存した順に並ぶ。
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../arrange/song_controller.dart';
+import '../export/share.dart';
 import '../kits/kit_gate.dart';
+import '../platform_files.dart';
 import '../ui/theme.dart';
+import '../update/updater.dart';
 import 'library.dart';
+import 'project_transfer.dart';
 
 /// 曲名を入れてもらう（空ならやめる）
 Future<String?> askSongTitle(BuildContext context, {required String title, String initial = '', String ok = '決める'}) async {
@@ -95,6 +102,60 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     _reload();
   }
 
+  void _toast(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  /// プロジェクトを .mdawproj ファイルに書き出す。
+  /// Windows は保存ダイアログ、Android は共有シート（WAV/MIDI 書き出しと同じ経路）。
+  Future<void> _export(ProjectEntry e) async {
+    if (e.id == song.projectId) song.saveNow();
+    try {
+      if (Platform.isWindows) {
+        final path = await pickSaveFile(
+          title: 'プロジェクトを書き出す',
+          defaultName: '${safeFileName(e.title)}.$projectFileExtension',
+          filterName: 'プロジェクトファイル',
+          extension: projectFileExtension,
+        );
+        if (path == null) return;
+        final target = File(path.endsWith('.$projectFileExtension') ? path : '$path.$projectFileExtension');
+        await writeProjectFile(library: library, id: e.id, target: target, appBuild: currentBuild);
+        _toast('書き出しました：${target.path}');
+      } else {
+        final dir = await exportsDir();
+        final target = File('$dir/${safeFileName(e.title)}.$projectFileExtension');
+        await writeProjectFile(library: library, id: e.id, target: target, appBuild: currentBuild);
+        await shareFiles([target.path], mimeType: 'application/zip', title: e.title);
+      }
+    } on ProjectTransferException catch (err) {
+      _toast(err.message);
+    } on Object {
+      _toast('書き出しに失敗しました');
+    }
+  }
+
+  /// .mdawproj ファイルを取り込んで、新しい曲として一覧に足す
+  Future<void> _import() async {
+    final path = await pickOpenFile(
+      title: 'プロジェクトを取り込む',
+      filterName: 'プロジェクトファイル',
+      extension: projectFileExtension,
+    );
+    if (path == null) return;
+    try {
+      final bytes = await File(path).readAsBytes();
+      final entry = importProjectArchive(library, bytes);
+      _reload();
+      _toast('「${entry.title}」を取り込みました');
+    } on ProjectTransferException catch (err) {
+      _toast(err.message);
+    } on Object {
+      _toast('取り込みに失敗しました');
+    }
+  }
+
   Future<void> _delete(ProjectEntry e) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -130,7 +191,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
   Widget build(BuildContext context) {
     final current = song.projectId;
     return Scaffold(
-      appBar: AppBar(title: const Text('曲の一覧')),
+      appBar: AppBar(
+        title: const Text('曲の一覧'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.file_open_outlined),
+            tooltip: 'プロジェクトを取り込む',
+            onPressed: _import,
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _new,
         icon: const Icon(Icons.add),
@@ -166,6 +236,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             _rename(e);
                           case 'duplicate':
                             _duplicate(e);
+                          case 'export':
+                            _export(e);
                           case 'delete':
                             _delete(e);
                         }
@@ -173,6 +245,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       itemBuilder: (context) => const [
                         PopupMenuItem(value: 'rename', child: Text('名前を変える')),
                         PopupMenuItem(value: 'duplicate', child: Text('複製')),
+                        PopupMenuItem(value: 'export', child: Text('プロジェクトを書き出す')),
                         PopupMenuItem(value: 'delete', child: Text('削除')),
                       ],
                     ),
