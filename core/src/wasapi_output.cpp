@@ -288,23 +288,17 @@ private:
                 continue;
             const UINT32 available = bufferFrames - padding;
             BYTE* data = nullptr;
-            DWORD flags = 0;
-            hr = render->GetBuffer(available, &data, &flags, nullptr, nullptr);
+            // IAudioRenderClient::GetBuffer は (フレーム数, バッファ) の2引数のみ。
+            // フラグ取得付きの5引数版は IAudioCaptureClient 側の API。
+            hr = render->GetBuffer(available, &data);
             if (hr == AUDCLNT_E_DEVICE_INVALIDATED) {
                 end = SessionEnd::deviceLost;
                 break;
             }
             if (FAILED(hr) || data == nullptr)
                 continue;
-            if ((flags & AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY) != 0)
-                xruns_.fetch_add(1); // WASAPI には xrun 相当が無いので不連続の回数で代える
-            if ((flags & AUDCLNT_BUFFERFLAGS_SILENT) != 0) {
-                std::memset(data, 0, static_cast<size_t>(available) * channels * sizeof(float));
-                render->ReleaseBuffer(available, 0);
-            } else {
-                engine_->render(reinterpret_cast<float*>(data), static_cast<int>(available), channels);
-                render->ReleaseBuffer(available, 0);
-            }
+            engine_->render(reinterpret_cast<float*>(data), static_cast<int>(available), channels);
+            render->ReleaseBuffer(available, 0);
         }
 
         client->Stop();
