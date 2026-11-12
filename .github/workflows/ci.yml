@@ -57,6 +57,7 @@ jobs:
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
+          flutter-version: 3.47.9
           cache: true
       - name: Generate Flutter scaffolding
         run: scripts/bootstrap_app.sh
@@ -138,3 +139,58 @@ jobs:
           name: mobiledaw-apk
           path: app/build/app/outputs/flutter-apk/app-release.apk
           retention-days: 14
+
+  # Windows 版。ビルド確認は PR でも回し、main への push のときだけ
+  # Android ジョブが作る build-<番号> リリースへ zip を添付する。
+  # リリースは Android ジョブが作るので、添付ステップは出現を待ってから実行する
+  # （並行ジョブ同士の順序は保証されないため）。署名シークレットが無い環境では
+  # Android 側もリリースを作らないので、こちらも添付を省く。
+  windows-exe:
+    name: Windows EXE
+    runs-on: windows-latest
+    permissions:
+      contents: write # リリースに zip を添付するため
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.9
+          cache: true
+      # リポジトリにある windows/（CMake・チャネル実装）は上書きされず、
+      # 雛形の不足分だけ生成される（Android の bootstrap と同じ流儀）
+      - name: Generate Flutter scaffolding
+        working-directory: app
+        run: flutter create --platforms=windows --org com.qnaiv --project-name mobiledaw .
+      - name: Build Windows
+        working-directory: app
+        run: flutter build windows --release --dart-define=MDAW_BUILD=${{ github.run_number }}
+      - name: Zip bundle
+        shell: pwsh
+        run: Compress-Archive -Path app/build/windows/x64/runner/Release/* -DestinationPath "$env:RUNNER_TEMP/mobiledaw-windows.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mobiledaw-windows
+          path: app/build/windows/x64/runner/Release
+          retention-days: 14
+      - name: Attach zip to the build release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "署名鍵のシークレットが無い環境ではリリースが作られないので、添付を省きます"
+            exit 0
+          fi
+          tag="build-${{ github.run_number }}"
+          for i in $(seq 1 30); do
+            if gh release view "$tag" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+              break
+            fi
+            echo "リリース $tag を待っています ($i/30)"
+            sleep 20
+          done
+          gh release upload "$tag" "$RUNNER_TEMP/mobiledaw-windows.zip" \
+            --repo "${{ github.repository }}" --clobber
