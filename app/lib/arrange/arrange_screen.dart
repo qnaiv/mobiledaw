@@ -15,6 +15,7 @@ import '../export/export_sheet.dart';
 import '../kits/kit_gate.dart';
 import '../kits/kits_screen.dart';
 import '../project/projects_screen.dart';
+import '../showcase/showcase_screen.dart';
 import '../sound/sound_sheet.dart';
 import 'mixer_sheet.dart';
 import 'song_controller.dart';
@@ -141,6 +142,12 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
               onTap: () => Navigator.pop(context, 'projects'),
             ),
             ListTile(
+              leading: const Icon(Icons.slideshow_outlined),
+              title: const Text('ショーケース再生'),
+              subtitle: const Text('ノートが流れる再生専用画面（録画用）。再生中でもそのまま入れます'),
+              onTap: () => Navigator.pop(context, 'showcase'),
+            ),
+            ListTile(
               leading: const Icon(Icons.ios_share),
               title: const Text('書き出し'),
               subtitle: const Text('WAV（まとめて・トラックごと）・MIDI'),
@@ -201,6 +208,8 @@ class _ArrangeScreenState extends State<ArrangeScreen> with SingleTickerProvider
         }
       case 'projects':
         await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProjectsScreen(song: song)));
+      case 'showcase':
+        await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ShowcaseScreen(song: song)));
       case 'export':
         await showExportSheet(context, song);
       case 'kits':

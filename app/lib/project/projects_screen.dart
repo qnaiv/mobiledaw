@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../arrange/song_controller.dart';
 import '../export/share.dart';
+import '../showcase/showcase_screen.dart';
 import '../kits/kit_gate.dart';
 import '../platform_files.dart';
 import '../ui/theme.dart';
@@ -94,6 +95,18 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
       library.rename(e.id, title);
     }
     _reload();
+  }
+
+  /// ショーケース再生：その曲を開いてから、再生専用画面へ。
+  /// 再生中の曲なら再生は止めず、レインが現在位置から続く
+  Future<void> _showcase(ProjectEntry e) async {
+    if (e.id != song.projectId) {
+      if (!await ensureKits(context, song, kitsInProjectFile(e.path))) return;
+      if (!mounted) return;
+      song.openProject(e.id);
+    }
+    if (!mounted) return;
+    await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ShowcaseScreen(song: song)));
   }
 
   void _duplicate(ProjectEntry e) {
@@ -234,6 +247,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         switch (v) {
                           case 'rename':
                             _rename(e);
+                          case 'showcase':
+                            _showcase(e);
                           case 'duplicate':
                             _duplicate(e);
                           case 'export':
@@ -244,6 +259,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                       },
                       itemBuilder: (context) => const [
                         PopupMenuItem(value: 'rename', child: Text('名前を変える')),
+                        PopupMenuItem(value: 'showcase', child: Text('ショーケース再生')),
                         PopupMenuItem(value: 'duplicate', child: Text('複製')),
                         PopupMenuItem(value: 'export', child: Text('プロジェクトを書き出す')),
                         PopupMenuItem(value: 'delete', child: Text('削除')),

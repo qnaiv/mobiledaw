@@ -648,6 +648,16 @@ class SongController extends ChangeNotifier {
   /// 範囲ループをやめて曲全体に戻す（止まっていれば曲頭へ）
   void clearLoop() => engine.clearLoop();
 
+  /// エンジンを直接操作した画面（ショーケース等）から、再生状態に合わせて
+  /// 画面スリープ防止の見張りを付け直す。再生中なら見張り開始、止まっていれば解除
+  void syncWakeLock() {
+    if (engine.isPlaying) {
+      _playbackWake.started();
+    } else {
+      _playbackWake.stopped();
+    }
+  }
+
   /// 先頭へ：再生を始める位置も曲の頭に戻す
   void rewind() {
     _startTick = 0;
