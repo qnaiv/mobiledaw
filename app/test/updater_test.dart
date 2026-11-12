@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mobiledaw/update/updater.dart';
 
@@ -19,6 +21,13 @@ void main() {
     expect(info.apkUrl, endsWith('/build-42/mobiledaw.apk'));
     expect(info.notes.split('\n').first, 'M2: 縦タイムライン画面');
     expect(info.size, 31000000);
+  });
+
+  // アップデート（APK のインストール）は Android だけ。Windows などでは
+  // リリースに mobiledaw.apk があっても check() が null を返すことを守る
+  test('check is disabled off Android', () async {
+    if (Platform.isAndroid) return; // Android 上では従来どおり API を見に行く
+    expect(await Updater().check(), isNull);
   });
 
   test('ignores releases that are not app builds', () {

@@ -52,8 +52,11 @@ class Updater {
 
   final HttpClient _client;
 
-  /// 新しい版があればその情報、無ければ（または確かめられなければ）null
+  /// 新しい版があればその情報、無ければ（または確かめられなければ）null。
+  /// アップデートは APK のインストールなので Android だけ。Windows などでは
+  /// リリースに mobiledaw.apk があっても絶対に拾わない（チャネルも無い）。
   Future<UpdateInfo?> check() async {
+    if (!Platform.isAndroid) return null;
     try {
       final req = await _client
           .getUrl(Uri.parse('https://api.github.com/repos/$_repo/releases/latest'))

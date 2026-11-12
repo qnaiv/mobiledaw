@@ -161,10 +161,14 @@ class MdawEngine {
     _handle = _create();
   }
 
-  /// Android 上では MainActivity が読み込み済みの libmdaw.so を開く。
+  /// Android 上では MainActivity が読み込み済みの libmdaw.so を、
+  /// Windows では exe と同じフォルダに置かれた mdaw.dll を開く。
   factory MdawEngine.open() {
+    if (Platform.isWindows) {
+      return MdawEngine._(DynamicLibrary.open('mdaw.dll'));
+    }
     if (!Platform.isAndroid) {
-      throw UnsupportedError('mdaw は今のところ Android 専用です');
+      throw UnsupportedError('mdaw は今のところ Android と Windows だけ対応です');
     }
     return MdawEngine._(DynamicLibrary.open('libmdaw.so'));
   }

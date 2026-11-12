@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import 'arrange/arrange_screen.dart';
 import 'arrange/song_controller.dart';
+import 'desktop/desktop_shell.dart';
 import 'engine/mdaw_ffi.dart';
 import 'kits/kit_store.dart';
 import 'music/scale.dart';
@@ -108,12 +110,14 @@ class _AppRootState extends State<AppRoot> {
         ),
       );
     }
-    return ArrangeScreen(
-      song: song,
-      onOpenSoundCheck: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => SoundCheckScreen(engine: engine)),
-      ),
-    );
+    void openSoundCheck() => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => SoundCheckScreen(engine: engine)),
+        );
+    // Windows では PC 用レイアウト（案A）。Android の画面遷移は従来どおり
+    if (Platform.isWindows) {
+      return DesktopShell(song: song, onOpenSoundCheck: openSoundCheck);
+    }
+    return ArrangeScreen(song: song, onOpenSoundCheck: openSoundCheck);
   }
 }
 
