@@ -8,7 +8,9 @@
 extern "C" {
 #endif
 
-#if defined(MDAW_BUILDING_LIBRARY)
+#if defined(_WIN32) && defined(MDAW_BUILDING_LIBRARY)
+ #define MDAW_API __declspec(dllexport)
+#elif defined(MDAW_BUILDING_LIBRARY)
  #define MDAW_API __attribute__((visibility("default")))
 #else
  #define MDAW_API

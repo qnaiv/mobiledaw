@@ -52,7 +52,11 @@ target_compile_definitions(mdaw_juce PUBLIC
     JUCE_MODULE_AVAILABLE_juce_audio_formats=1
     JUCE_MODULE_AVAILABLE_juce_dsp=1
     $<$<PLATFORM_ID:Android>:JUCE_ANDROID=1>)
-target_compile_options(mdaw_juce PRIVATE -w)
+if(MSVC)
+    target_compile_options(mdaw_juce PRIVATE /w)
+else()
+    target_compile_options(mdaw_juce PRIVATE -w)
+endif()
 
 if(ANDROID)
     # JUCE が Android で使う NDK 付属の cpufeatures
@@ -76,7 +80,12 @@ set(MDAW_CORE_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/sampler.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/automation.cpp)
 
-set(MDAW_WARNINGS -Wall -Wextra -Wno-unused-parameter)
+if(MSVC)
+    # /wd4100 = 未使用パラメータ（-Wno-unused-parameter 相当）
+    set(MDAW_WARNINGS /W4 /wd4100)
+else()
+    set(MDAW_WARNINGS -Wall -Wextra -Wno-unused-parameter)
+endif()
 
 if(ANDROID)
     FetchContent_Declare(oboe
@@ -104,6 +113,11 @@ if(ANDROID)
     target_sources(mdaw PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/oboe_output.cpp)
     target_compile_definitions(mdaw PRIVATE MDAW_HAS_OBOE=1)
     target_link_libraries(mdaw PRIVATE oboe log android)
+elseif(WIN32)
+    target_sources(mdaw PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/wasapi_output.cpp)
+    target_compile_definitions(mdaw PRIVATE MDAW_HAS_WASAPI=1)
+    # ole32 = COM、avrt = MMCSS（Pro Audio スレッド特性）、uuid = WASAPI の GUID
+    target_link_libraries(mdaw PRIVATE ole32 uuid avrt)
 elseif(UNIX AND NOT APPLE)
     target_link_libraries(mdaw PRIVATE pthread dl rt)
 endif()

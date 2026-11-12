@@ -10,7 +10,7 @@
 #include "session.h"
 
 namespace mdaw {
-#if !MDAW_HAS_OBOE
+#if !MDAW_HAS_OBOE && !MDAW_HAS_WASAPI
 std::unique_ptr<AudioOutput> createPlatformAudioOutput() { return nullptr; }
 #endif
 } // namespace mdaw
