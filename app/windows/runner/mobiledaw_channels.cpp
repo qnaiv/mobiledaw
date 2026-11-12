@@ -73,7 +73,7 @@ std::filesystem::path FilesDir() {
 }
 
 void RegisterChannel(flutter::FlutterViewController* controller, const char* name,
-                     flutter::MethodChannel<EncodableValue>::MethodCallHandler handler) {
+                     flutter::MethodCallHandler<EncodableValue> handler) {
   auto channel = std::make_unique<flutter::MethodChannel<EncodableValue>>(
       controller->engine()->messenger(), name, &flutter::StandardMethodCodec::GetInstance());
   channel->SetMethodCallHandler(std::move(handler));
