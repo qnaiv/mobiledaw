@@ -1,0 +1,336 @@
+{
+ "format": "mobiledaw-project",
+ "version": 1,
+ "title": "デモ：アンビエント・クラウド",
+ "tempo": 80.0,
+ "timeSig": [
+  4,
+  4
+ ],
+ "key": {
+  "root": 0,
+  "scale": "major"
+ },
+ "master": {
+  "gain": 1.2,
+  "glue": 0.3,
+  "thresholdDb": -15,
+  "ratio": 2.0,
+  "softClip": 0.4,
+  "ceiling": 0.93
+ },
+ "aux": {
+  "reverbReturn": 1.0,
+  "reverbSize": 0.7,
+  "delayReturn": 0.5,
+  "delayFeedback": 0.4
+ },
+ "tracks": [
+  {
+   "id": "0000000000000001",
+   "name": "Cloud Pad",
+   "color": "ff7e57c2",
+   "instrument": {
+    "type": "synth",
+    "params": {
+     "wtTable": 5,
+     "wtPos": 0.3,
+     "noise": 0.015,
+     "unison": 12,
+     "detuneCents": 30,
+     "width": 1.0,
+     "blend": 0.75,
+     "lfoSync": 1,
+     "lfoDiv": 0,
+     "lfoWave": 0,
+     "lfoCutoff": 0.1,
+     "wtLfoAmount": 0.18,
+     "cutoffHz": 5200,
+     "resonance": 0.8,
+     "keyTrack": 0.45,
+     "attackS": 0.6,
+     "decayS": 1.2,
+     "sustain": 0.85,
+     "releaseS": 1.8,
+     "masterGain": 0.3
+    }
+   },
+   "fx": {},
+   "fxChain": [
+    {
+     "type": "granular",
+     "enabled": true,
+     "params": {
+      "granular": 0.85,
+      "granularSizeMs": 240,
+      "granularDensity": 55,
+      "granularPositionS": 1.2,
+      "granularSpray": 0.6,
+      "granularPitch": 0,
+      "granularPitchSpread": 0.4,
+      "granularTexture": 0.85,
+      "granularTimingRandom": 0.7,
+      "granularSizeRandom": 0.5,
+      "granularReverseChance": 0.15,
+      "granularFeedback": 0.55,
+      "granularRoam": 0.4,
+      "granularRoamSpeed": 0.07,
+      "granularFreeze": 0
+     }
+    },
+    {
+     "type": "delay",
+     "enabled": true,
+     "params": {
+      "delay": 0.25,
+      "delayFeedback": 0.45,
+      "delayDiv": 0,
+      "delayPingpong": 0
+     }
+    },
+    {
+     "type": "reverb",
+     "enabled": true,
+     "params": {
+      "reverb": 0.55,
+      "reverbSize": 0.85
+     }
+    }
+   ],
+   "mixer": {
+    "gain": 0.9,
+    "pan": 0,
+    "mute": false,
+    "solo": false
+   }
+  }
+ ],
+ "clips": [
+  {
+   "id": "0000000000000002",
+   "trackId": "0000000000000001",
+   "lengthTicks": 46080,
+   "notes": [
+    {
+     "id": "0000000000000010",
+     "tick": 0,
+     "length": 7640,
+     "pitch": 48,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000011",
+     "tick": 0,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000012",
+     "tick": 0,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000013",
+     "tick": 0,
+     "length": 7640,
+     "pitch": 59,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000014",
+     "tick": 0,
+     "length": 7640,
+     "pitch": 62,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000015",
+     "tick": 7680,
+     "length": 7640,
+     "pitch": 45,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000016",
+     "tick": 7680,
+     "length": 7640,
+     "pitch": 48,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000017",
+     "tick": 7680,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000018",
+     "tick": 7680,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000019",
+     "tick": 7680,
+     "length": 7640,
+     "pitch": 59,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001a",
+     "tick": 15360,
+     "length": 7640,
+     "pitch": 41,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001b",
+     "tick": 15360,
+     "length": 7640,
+     "pitch": 45,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001c",
+     "tick": 15360,
+     "length": 7640,
+     "pitch": 48,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001d",
+     "tick": 15360,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001e",
+     "tick": 15360,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000001f",
+     "tick": 23040,
+     "length": 7640,
+     "pitch": 43,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000020",
+     "tick": 23040,
+     "length": 7640,
+     "pitch": 47,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000021",
+     "tick": 23040,
+     "length": 7640,
+     "pitch": 50,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000022",
+     "tick": 23040,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000023",
+     "tick": 23040,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000024",
+     "tick": 30720,
+     "length": 7640,
+     "pitch": 48,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000025",
+     "tick": 30720,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000026",
+     "tick": 30720,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000027",
+     "tick": 30720,
+     "length": 7640,
+     "pitch": 59,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000028",
+     "tick": 30720,
+     "length": 7640,
+     "pitch": 62,
+     "velocity": 0.6
+    },
+    {
+     "id": "0000000000000029",
+     "tick": 38400,
+     "length": 7640,
+     "pitch": 45,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000002a",
+     "tick": 38400,
+     "length": 7640,
+     "pitch": 48,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000002b",
+     "tick": 38400,
+     "length": 7640,
+     "pitch": 52,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000002c",
+     "tick": 38400,
+     "length": 7640,
+     "pitch": 55,
+     "velocity": 0.6
+    },
+    {
+     "id": "000000000000002d",
+     "tick": 38400,
+     "length": 7640,
+     "pitch": 59,
+     "velocity": 0.6
+    }
+   ]
+  }
+ ],
+ "placements": [
+  {
+   "id": "0000000000000003",
+   "clipId": "0000000000000002",
+   "trackId": "0000000000000001",
+   "startBar": 0,
+   "lengthBars": 12
+  }
+ ]
+}
