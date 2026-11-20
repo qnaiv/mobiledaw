@@ -31,6 +31,22 @@ KitSound makeSineSound(double hz, double seconds, double sr = 44100.0) {
     return s;
 }
 
+// 110Hz・220Hz・330Hz が 1 秒ずつ並ぶ 3 秒素材（往復モードの反転検証用）
+KitSound makeThreeToneSound(double sr = 44100.0) {
+    KitSound s;
+    s.name = "ThreeTone";
+    s.note = 60;
+    s.gain = 1.0f;
+    s.sampleRate = sr;
+    const int seg = static_cast<int>(sr);
+    s.left.resize(static_cast<size_t>(seg * 3));
+    for (int i = 0; i < seg * 3; ++i) {
+        const double hz = i < seg ? 110.0 : (i < seg * 2 ? 220.0 : 330.0);
+        s.left[static_cast<size_t>(i)] = 0.5f * static_cast<float>(std::sin(2.0 * 3.14159265 * hz * i / sr));
+    }
+    return s;
+}
+
 // 前半 110Hz・後半 330Hz の 2 秒素材（位置モードの検証用）
 KitSound makeTwoToneSound(double sr = 44100.0) {
     KitSound s;
@@ -206,6 +222,38 @@ TEST(granular_sampler_position_modes) {
     CHECK(syncEarlyHz > 80.0 && syncEarlyHz < 160.0);
 }
 
+TEST(granular_sampler_pingpong_reverses_at_ends) {
+    auto sound = makeThreeToneSound();
+    auto renderMode = [&](float mode, int frames) {
+        MelodicSampler s;
+        s.prepare(48000.0);
+        s.setSound(&sound, 60, 1.0f, 0.0f);
+        auto g = cloudSettings();
+        g.positionMode = mode;
+        g.position = 0.0f;
+        s.setGranularSettings(g);
+        s.noteOn(60, 1.0f);
+        return renderStereo(s, frames);
+    };
+    // 往復（モード3）: 中心は 110→220→330 と進み、終端（3秒）で反転して
+    // 330→220→110 と戻る。窓は素材境界から離して測る
+    const auto pp = renderMode(3.0f, 48000 * 6);
+    const double ppEarly = estimateHz(pp, 14400, 43200, 48000.0);   // 中心 0.3〜0.9 秒: 110
+    const double ppAfterEnd = estimateHz(pp, 158400, 187200, 48000.0); // 3.3〜3.9 秒: 反転後も 330 側
+    const double ppBackMid = estimateHz(pp, 201600, 230400, 48000.0);  // 4.2〜4.8 秒: 戻り途中の 220
+    const double ppBackStart = estimateHz(pp, 254400, 283200, 48000.0); // 5.3〜5.9 秒: 先頭へ戻り 110
+    // 対照: クロール（モード0）は終端で頭へ巻き戻るので 3.3〜3.9 秒は 110 に戻る
+    const auto crawl = renderMode(0.0f, 48000 * 4);
+    const double crawlAfterEnd = estimateHz(crawl, 158400, 187200, 48000.0);
+    std::printf("  往復 早 %.0f / 端後 %.0f / 戻り中 %.0f / 戻り頭 %.0f Hz, クロール端後 %.0f Hz\n",
+                ppEarly, ppAfterEnd, ppBackMid, ppBackStart, crawlAfterEnd);
+    CHECK(ppEarly > 80.0 && ppEarly < 160.0);
+    CHECK(ppAfterEnd > 260.0 && ppAfterEnd < 400.0);   // 反転したので巻き戻らない
+    CHECK(ppBackMid > 170.0 && ppBackMid < 280.0);     // 戻りは中間帯を通る
+    CHECK(ppBackStart > 80.0 && ppBackStart < 160.0);  // 先頭まで戻る
+    CHECK(crawlAfterEnd > 80.0 && crawlAfterEnd < 160.0); // 従来モードの挙動は不変
+}
+
 TEST(granular_sampler_feedback_and_freeze_stay_bounded) {
     auto sound = makeNoiseSound(2.0);
     MelodicSampler s;
@@ -266,6 +314,10 @@ TEST(granular_sampler_param_spec_clamps) {
     CHECK(g.sizeMs == 500.0f);
     CHECK(setGranularSamplerParam(g, MDAW_SAMPLER_GRANULAR_POSITION_MODE, 1.6f));
     CHECK(g.positionMode == 2.0f); // 整数丸め
+    CHECK(setGranularSamplerParam(g, MDAW_SAMPLER_GRANULAR_POSITION_MODE, 2.6f));
+    CHECK(g.positionMode == 3.0f); // 往復モード（Phase 2.6 で追加）
+    CHECK(setGranularSamplerParam(g, MDAW_SAMPLER_GRANULAR_POSITION_MODE, 9.0f));
+    CHECK(g.positionMode == 3.0f); // 上限で丸める
     CHECK(setGranularSamplerParam(g, MDAW_SAMPLER_GRANULAR, 0.4f));
     CHECK(g.enabled == 0.0f);
     CHECK(!setGranularSamplerParam(g, 9999, 1.0f));

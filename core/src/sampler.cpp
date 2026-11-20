@@ -21,7 +21,7 @@ const GranularSamplerParamSpec kGranularSamplerParamSpecs[] = {
     {{MDAW_SAMPLER_GRANULAR_TIMING_RANDOM, "timingRandom", 0.0f, 1.0f, false}, &GranularSamplerSettings::timingRandom},
     {{MDAW_SAMPLER_GRANULAR_SIZE_RANDOM, "sizeRandom", 0.0f, 1.0f, false}, &GranularSamplerSettings::sizeRandom},
     {{MDAW_SAMPLER_GRANULAR_REVERSE, "reverseChance", 0.0f, 1.0f, false}, &GranularSamplerSettings::reverseChance},
-    {{MDAW_SAMPLER_GRANULAR_POSITION_MODE, "positionMode", 0.0f, 2.0f, true}, &GranularSamplerSettings::positionMode},
+    {{MDAW_SAMPLER_GRANULAR_POSITION_MODE, "positionMode", 0.0f, 3.0f, true}, &GranularSamplerSettings::positionMode},
     {{MDAW_SAMPLER_GRANULAR_ROAM, "roam", 0.0f, 1.0f, false}, &GranularSamplerSettings::roam},
     {{MDAW_SAMPLER_GRANULAR_ROAM_SPEED, "roamSpeed", 0.01f, 0.5f, false}, &GranularSamplerSettings::roamSpeed},
     {{MDAW_SAMPLER_GRANULAR_FEEDBACK, "feedback", 0.0f, 0.9f, false}, &GranularSamplerSettings::feedback},
@@ -261,6 +261,7 @@ void MelodicSampler::noteOn(int note, float velocity) noexcept {
         c->centre = (granular_.positionMode >= 0.5f && granular_.positionMode < 1.5f)
                         ? songPos_ * frames
                         : static_cast<double>(granular_.position) * frames;
+        c->centreDir = 1.0; // 往復モードは常に正向きから始める
         c->baseRate = incrementFor(note);
         c->gain = vel * sound_->gain * gain_;
         c->fade = 1.0f;
@@ -364,6 +365,7 @@ int MelodicSampler::activeClouds() const noexcept {
 //   0 = 全体クロール: 中心が素材を実時間で進み、終端で頭へ戻る（進行が残る）
 //   1 = 曲位置同期  : 中心 = 曲の再生位置 × 素材の長さ（和声が曲に付いてくる）
 //   2 = 狭域ループ  : 中心は position のまま（意図的に静止したテクスチャ用）
+//   3 = 往復ピンポン: 中心が素材を実時間で進み、終端で反転して戻る（三角波）
 // フィードバックは雲の出力を「素材と同じ時間軸」のバッファへ書き戻し、
 // 粒が素材 + 戻しとして拾う（素材内循環）。fb=0 では読みも書きもしない。
 void MelodicSampler::renderClouds(float* left, float* right, int numSamples) noexcept {
@@ -477,6 +479,17 @@ void MelodicSampler::renderClouds(float* left, float* right, int numSamples) noe
                     c.centre += centreAdvance;
                     if (c.centre >= frames)
                         c.centre -= frames;
+                } else if (mode == 3) {
+                    // 往復: 終端で反転して戻る（巻き戻しの飛びがない）
+                    const double last = static_cast<double>(frames - 1);
+                    c.centre += c.centreDir * centreAdvance;
+                    if (c.centre > last) {
+                        c.centre = std::max(0.0, 2.0 * last - c.centre);
+                        c.centreDir = -1.0;
+                    } else if (c.centre < 0.0) {
+                        c.centre = std::min(last, -c.centre);
+                        c.centreDir = 1.0;
+                    }
                 }
             }
 

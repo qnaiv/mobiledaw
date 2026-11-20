@@ -163,7 +163,7 @@ enum {
     MDAW_SAMPLER_GRANULAR_TIMING_RANDOM = 112, /* 粒発生の確率化 0〜1 */
     MDAW_SAMPLER_GRANULAR_SIZE_RANDOM = 113,   /* 粒ごとの長さのばらつき 0〜1 */
     MDAW_SAMPLER_GRANULAR_REVERSE = 114,  /* 粒が逆再生になる確率 0〜1 */
-    MDAW_SAMPLER_GRANULAR_POSITION_MODE = 115, /* 位置モード 0=全体クロール 1=曲位置同期 2=狭域ループ（整数） */
+    MDAW_SAMPLER_GRANULAR_POSITION_MODE = 115, /* 位置モード 0=全体クロール 1=曲位置同期 2=狭域ループ 3=往復ピンポン（整数） */
     MDAW_SAMPLER_GRANULAR_ROAM = 116,     /* 拾う位置の自律走査の深さ 0〜1（±1.5 秒まで） */
     MDAW_SAMPLER_GRANULAR_ROAM_SPEED = 117, /* 走査の速さ 0.01〜0.5 Hz */
     MDAW_SAMPLER_GRANULAR_FEEDBACK = 118, /* 粒の出力を素材の時間軸へ戻す量 0〜0.9 */

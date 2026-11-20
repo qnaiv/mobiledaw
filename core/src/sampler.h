@@ -123,6 +123,7 @@ private:
         static constexpr int kGrains = 48; // 密度 80/秒 × 粒 0.5 秒 = 同時 40 個を賄う
         int note = -1;
         double centre = 0.0;   // 読み中心（素材フレーム単位）
+        double centreDir = 1.0; // 往復（ピンポン）モードの進行方向（+1/-1）
         double baseRate = 1.0; // ノートの音程比（素材レート換算込み）
         float gain = 0.0f;
         float fade = 1.0f;

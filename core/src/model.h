@@ -74,7 +74,7 @@ struct GranularSamplerSettings {
     float timingRandom = 0.7f;   // 粒発生の確率化 0〜1
     float sizeRandom = 0.3f;     // 粒ごとの長さのばらつき 0〜1
     float reverseChance = 0.0f;  // 粒が逆再生になる確率 0〜1
-    float positionMode = 0.0f;   // 0=全体クロール 1=曲位置同期 2=狭域ループ（整数）
+    float positionMode = 0.0f;   // 0=全体クロール 1=曲位置同期 2=狭域ループ 3=往復ピンポン（整数）
     float roam = 0.2f;           // 拾う位置の自律走査の深さ 0〜1（±1.5 秒まで）
     float roamSpeed = 0.07f;     // 走査の速さ 0.01〜0.5 Hz
     float feedback = 0.3f;       // 粒の出力を素材の時間軸へ戻す量 0〜0.9
