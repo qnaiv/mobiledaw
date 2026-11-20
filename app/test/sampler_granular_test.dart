@@ -107,4 +107,55 @@ void main() {
     expect(samplerGranularValueOf(t, MdawParam.samplerGranularFreeze), 1);
     expect(samplerGranularValueOf(t, MdawParam.samplerGranularPitchDrift), 1.5);
   });
+
+  test('位置モード 3（往復ピンポン）が読み込める', () {
+    final t = _trackOf(_withGranular.replaceFirst('"positionMode": 1.0', '"positionMode": 3.0'));
+    expect(t.samplerGranularPositionMode, 3);
+    expect(samplerGranularValueOf(t, MdawParam.samplerGranularPositionMode), 3);
+  });
+
+  test('グラニュラー楽器プリセットの整合（Phase 2.6）', () {
+    expect(samplerGranularPresets.length, greaterThanOrEqualTo(2));
+    // 主要パラメータ（粒の大きさ・密度・霧・広がり）は全プリセットが持つ
+    const mainIds = [
+      MdawParam.samplerGranularSizeMs,
+      MdawParam.samplerGranularDensity,
+      MdawParam.samplerGranularTexture,
+      MdawParam.samplerGranularSpray,
+    ];
+    for (final preset in samplerGranularPresets) {
+      for (final id in mainIds) {
+        expect(preset.values.containsKey(id), isTrue, reason: '${preset.name} に $id が無い');
+      }
+      // 位置モードは 0〜3 の範囲（3=往復ピンポンを含む）
+      final mode = preset.values[MdawParam.samplerGranularPositionMode];
+      if (mode != null) expect(mode, inInclusiveRange(0, 3));
+      // 値は全てコア仕様の範囲内（samplerGranularParams＋トグル類）
+      for (final e in preset.values.entries) {
+        expect(e.key, inInclusiveRange(MdawParam.samplerGranular, MdawParam.samplerGranularPitchDrift),
+            reason: '${preset.name} の ID ${e.key}');
+      }
+    }
+    // フローズン・ドローンは往復モードを使う
+    final frozen = samplerGranularPresets.firstWhere((p) => p.name == 'フローズン・ドローン');
+    expect(frozen.values[MdawParam.samplerGranularPositionMode], 3);
+  });
+
+  test('グラニュラー FX プリセットの整合（Phase 2.6）', () {
+    expect(fxGranularPresets.length, greaterThanOrEqualTo(2));
+    final keys = fxParams.map((p) => p.key).toSet();
+    for (final preset in fxGranularPresets) {
+      expect(preset.values.isNotEmpty, isTrue);
+      for (final key in preset.values.keys) {
+        expect(keys.contains(key), isTrue, reason: '${preset.name} のキー $key が fxParams に無い');
+      }
+      // 主要パラメータ（濃さ・粒の大きさ・密度・霧・広がり）は全プリセットが持つ
+      for (final key in ['granular', 'granularSizeMs', 'granularDensity', 'granularTexture', 'granularSpray']) {
+        expect(preset.values.containsKey(key), isTrue, reason: '${preset.name} に $key が無い');
+      }
+    }
+    final cloud = fxGranularPresets.firstWhere((p) => p.name == 'アンビエント・クラウド');
+    expect(cloud.values['granular'], 0.85);
+    expect(cloud.values['granularTexture'], 0.85);
+  });
 }

@@ -52,13 +52,34 @@ void main() {
     final meta = fxUnitMetaOf('granular')!;
     final values = _defaults(meta);
     await tester.pumpWidget(_harness(meta, values));
-    final firstKnob = find.byType(ParamKnob).first;
-    final dial = find.descendant(of: firstKnob, matching: find.byType(GestureDetector));
+    // Phase 2.6 の主面: ノブは 濃さ／粒の大きさ／密度 の 3 つだけ
+    expect(find.byType(ParamKnob), findsNWidgets(3));
+    expect(find.text('濃さ'), findsOneWidget);
+    final sizeKnob = find.byWidgetPredicate((w) => w is ParamKnob && w.label == '粒の大きさ');
+    expect(sizeKnob, findsOneWidget);
+    final dial = find.descendant(of: sizeKnob, matching: find.byType(GestureDetector));
     await tester.drag(dial, const Offset(0, -80));
     await tester.pump();
     expect(values['granularSizeMs'], isNot(equals(120.0)));
     expect(values['granularSizeMs'], greaterThan(120.0));
     await tester.pump(const Duration(milliseconds: 400)); // ダブルタップ判定のタイマーを流す
+  });
+
+  testWidgets('グラニュラーのプリセットを選ぶと全パラメータに値が入る（Phase 2.6）', (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    final meta = fxUnitMetaOf('granular')!;
+    final values = _defaults(meta);
+    await tester.pumpWidget(_harness(meta, values));
+    await tester.tap(find.text('アンビエント・クラウド'));
+    await tester.pump();
+    expect(values['granular'], 0.85); // 濃さ
+    expect(values['granularSizeMs'], 240.0);
+    expect(values['granularTexture'], 0.85); // 霧
+    expect(values['granularFeedback'], 0.55); // 詳細側のパラメータにも入る
+    // 主面に無いパラメータ（ピッチ等）は「全パラメータ」側で到達できる
+    expect(find.text('全パラメータ'), findsOneWidget);
   });
 
   testWidgets('ディレイの音価セグメントと TIME 表示', (tester) async {
