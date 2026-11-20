@@ -39,7 +39,7 @@
 //   16分が跳ねるシャッフル。ローズ風エレピとカッティングでシティポップ寄り、サビは王道進行＋経過の減七。
 //   主旋律はあたたかいのこぎり波のシンセブラス風リード、合間に矩形波のリードが答える。
 //   ファイルは tools/demos/memory_shuffle.py。ドラムは Future Bass Pro キット
-enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst, kawaiiFb, nekomimi, memoryShuffle }
+enum DemoSong { futureBass, kawaii2, house, lofi, rnb, citySoul, technopop, rock, electronica, buruaka, buruakaInst, kawaiiFb, nekomimi, memoryShuffle, ambientCloud }
 
 /// デモ曲の取り込み先の曲 ID（デモごとに固定。曲の ID 体系は ProjectLibrary 参照）
 String demoProjectId(DemoSong d) => 'demo-${d.name}';
@@ -59,6 +59,7 @@ String demoLabel(DemoSong d) => switch (d) {
       DemoSong.kawaiiFb => 'kawaii フューチャーベース「ソーダ色シュガーパレード」（約1分50秒）',
       DemoSong.nekomimi => 'A.I.テクノ風テクノポップ「ネコミミ☆プロトコル」インスト（約2分）',
       DemoSong.memoryShuffle => 'A.I.テクノ風テクノポップ「メモリー☆シャッフル」インスト（約2分15秒）',
+      DemoSong.ambientCloud => 'アンビエント・クラウド（約40秒）',
     };
 
 /// 一覧に入るときの曲名
@@ -77,6 +78,7 @@ String demoTitle(DemoSong d) => switch (d) {
       DemoSong.kawaiiFb => 'デモ：ソーダ色シュガーパレード',
       DemoSong.nekomimi => 'デモ：ネコミミ☆プロトコル',
       DemoSong.memoryShuffle => 'デモ：メモリー☆シャッフル',
+      DemoSong.ambientCloud => 'デモ：アンビエント・クラウド',
     };
 
 /// 同梱のプロジェクトファイル
@@ -95,6 +97,7 @@ String demoAsset(DemoSong d) => switch (d) {
       DemoSong.kawaiiFb => 'assets/demos/kawaii_fb.json',
       DemoSong.nekomimi => 'assets/demos/nekomimi.json',
       DemoSong.memoryShuffle => 'assets/demos/memory_shuffle.json',
+      DemoSong.ambientCloud => 'assets/demos/ambient_cloud.json',
     };
 
 /// メニューに出すキット名
@@ -113,4 +116,5 @@ String demoKitName(DemoSong d) => switch (d) {
       DemoSong.kawaiiFb => 'Future Bass Pro と Kawaii Oneshots',
       DemoSong.nekomimi => 'Chiptune キット',
       DemoSong.memoryShuffle => 'Future Bass Pro キット',
+      DemoSong.ambientCloud => 'キットなし（シンセのみ）',
     };

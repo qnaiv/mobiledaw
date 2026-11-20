@@ -182,6 +182,24 @@ class MixerData {
       );
 }
 
+/// FX チェーンの1ユニット（コアの fxChain の写し）。type は 'granular' 等のキー。
+class FxUnitData {
+  const FxUnitData({required this.type, this.enabled = true, this.params = const {}});
+
+  final String type;
+  final bool enabled;
+  final Map<String, double> params; // そのユニットが担当する項目だけ
+
+  factory FxUnitData.fromJson(Map<String, Object?> j) => FxUnitData(
+        type: j['type'] is String ? j['type']! as String : '',
+        enabled: j['enabled'] != false,
+        params: {
+          for (final e in _map(j['params']).entries)
+            if (e.value is num) e.key: (e.value! as num).toDouble(),
+        },
+      );
+}
+
 class TrackData {
   const TrackData({
     required this.id,
@@ -194,7 +212,25 @@ class TrackData {
     this.samplerRootNote = 60,
     this.samplerGain = 1.0,
     this.samplerStart = 0.0,
+    this.samplerGranularEnabled = false,
+    this.samplerGranularSizeMs = 240.0,
+    this.samplerGranularDensity = 40.0,
+    this.samplerGranularPosition = 0.0,
+    this.samplerGranularSpray = 0.4,
+    this.samplerGranularTexture = 0.7,
+    this.samplerGranularPitchSpread = 0.3,
+    this.samplerGranularTimingRandom = 0.7,
+    this.samplerGranularSizeRandom = 0.3,
+    this.samplerGranularReverseChance = 0.0,
+    this.samplerGranularPositionMode = 0,
+    this.samplerGranularRoam = 0.2,
+    this.samplerGranularRoamSpeed = 0.07,
+    this.samplerGranularFeedback = 0.3,
+    this.samplerGranularFreeze = false,
+    this.samplerGranularPitchQuantize = false,
+    this.samplerGranularPitchDrift = 0.0,
     this.fx = const {},
+    this.fxChain = const [],
     required this.mixer,
   });
 
@@ -209,8 +245,32 @@ class TrackData {
   final double samplerGain; // 0〜2
   final double samplerStart; // 再生開始位置 0〜1
 
+  // グラニュラー楽器（素材全体を粒で鳴らすモード）。既定はコアの
+  // GranularSamplerSettings と一致させる。モード OFF の間は鳴り方に影響しない
+  final bool samplerGranularEnabled;
+  final double samplerGranularSizeMs; // 粒の長さ 10〜500 ms
+  final double samplerGranularDensity; // 粒/秒 1〜80
+  final double samplerGranularPosition; // 読み位置（素材全体に対する割合 0〜1）
+  final double samplerGranularSpray; // 拾う位置の散らばり 0〜1
+  final double samplerGranularTexture; // 質感 0〜1
+  final double samplerGranularPitchSpread; // 粒ピッチのばらつき 0〜12 半音
+  final double samplerGranularTimingRandom; // 発生の確率化 0〜1
+  final double samplerGranularSizeRandom; // 粒の長さのばらつき 0〜1
+  final double samplerGranularReverseChance; // 逆再生の確率 0〜1
+  final int samplerGranularPositionMode; // 0=全体クロール 1=曲位置同期 2=狭域ループ
+  final double samplerGranularRoam; // 位置の自律走査 0〜1
+  final double samplerGranularRoamSpeed; // 0.01〜0.5 Hz
+  final double samplerGranularFeedback; // 素材内循環 0〜0.9
+  final bool samplerGranularFreeze;
+  final bool samplerGranularPitchQuantize;
+  final double samplerGranularPitchDrift; // 0〜6 半音
+
   bool get isSampler => samplerKitId.isNotEmpty;
   final Map<String, double> fx; // reverb, ott, sidechain など
+  // フラットな fx は互換ビュー: fx（トラック直属＝サイドチェイン／センド）に、
+  // チェーンの「各種別の最初のユニット」の値を重ねたもの。従来の読み口（音色画面の
+  // 詳しく・マクロ・ミキサーのセンド）はこれを見れば移行前と同じに動く。
+  final List<FxUnitData> fxChain; // 順序付きの FX チェーン（旧形式の曲では空）
 
   bool get isKit => kitId.isNotEmpty;
   final MixerData mixer;
@@ -218,6 +278,19 @@ class TrackData {
   factory TrackData.fromJson(Map<String, Object?> j) {
     final instrument = _map(j['instrument']);
     final params = _map(instrument['params']);
+    final chain = _list(j['fxChain']).map(FxUnitData.fromJson).toList(growable: false);
+    final flatFx = <String, double>{
+      for (final e in _map(j['fx']).entries)
+        if (e.value is num) e.key: (e.value! as num).toDouble(),
+    };
+    // チェーン項目は最初の同種ユニットの値で互換ビューを組む（fxChain が無い旧形式では
+    // fx がそのまま全部入りなので何も足さない）
+    for (final unit in chain) {
+      for (final e in unit.params.entries) {
+        flatFx.putIfAbsent(e.key, () => e.value);
+      }
+    }
+    final granular = _map(_map(instrument['sampler'])['granular']);
     return TrackData(
       id: parseId(j['id']),
       name: j['name'] is String ? j['name']! as String : '',
@@ -236,10 +309,26 @@ class TrackData {
       samplerRootNote: _int(_map(instrument['sampler'])['rootNote'], 60),
       samplerGain: _double(_map(instrument['sampler'])['gain'], 1.0),
       samplerStart: _double(_map(instrument['sampler'])['start'], 0.0),
-      fx: {
-        for (final e in _map(j['fx']).entries)
-          if (e.value is num) e.key: (e.value! as num).toDouble(),
-      },
+      samplerGranularEnabled: _double(granular['enabled'], 0.0) >= 0.5,
+      samplerGranularSizeMs: _double(granular['sizeMs'], 240.0),
+      samplerGranularDensity: _double(granular['density'], 40.0),
+      samplerGranularPosition: _double(granular['position'], 0.0),
+      samplerGranularSpray: _double(granular['spray'], 0.4),
+      samplerGranularTexture: _double(granular['texture'], 0.7),
+      samplerGranularPitchSpread: _double(granular['pitchSpread'], 0.3),
+      samplerGranularTimingRandom: _double(granular['timingRandom'], 0.7),
+      samplerGranularSizeRandom: _double(granular['sizeRandom'], 0.3),
+      samplerGranularReverseChance: _double(granular['reverseChance'], 0.0),
+      samplerGranularPositionMode: _int(granular['positionMode'], 0),
+      samplerGranularRoam: _double(granular['roam'], 0.2),
+      samplerGranularRoamSpeed: _double(granular['roamSpeed'], 0.07),
+      samplerGranularFeedback: _double(granular['feedback'], 0.3),
+      samplerGranularFreeze: _double(granular['freeze'], 0.0) >= 0.5,
+      samplerGranularPitchQuantize:
+          _double(granular['pitchQuantize'], 0.0) >= 0.5,
+      samplerGranularPitchDrift: _double(granular['pitchDrift'], 0.0),
+      fx: flatFx,
+      fxChain: chain,
       mixer: MixerData.fromJson(_map(j['mixer'])),
     );
   }

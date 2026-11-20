@@ -88,6 +88,53 @@ abstract final class MdawParam {
   static const fxSidechainAttackS = 70;
   static const fxSidechainHoldS = 71;
   static const fxSidechainCurve = 72;
+  static const fxGranular = 73;
+  static const fxGranularSizeMs = 74;
+  static const fxGranularDensity = 75;
+  static const fxGranularPositionS = 76;
+  static const fxGranularSpray = 77;
+  static const fxGranularPitch = 78;
+  static const fxGranularPitchSpread = 79;
+  // グラニュラーの追加（87/88。FX ブロックの後ろはシンセ拡張が使うため飛び番）
+  static const fxGranularFreeze = 87;
+  static const fxGranularFeedback = 88;
+  // Phase 2（アンビエントFX）: グラニュラーの質感、シマー、テープ、ディレイ拡張
+  static const fxGranularTexture = 89;
+  static const fxGranularTimingRandom = 90;
+  static const fxGranularSizeRandom = 91;
+  static const fxGranularReverseChance = 92;
+  static const fxGranularRoam = 93;
+  static const fxGranularRoamSpeed = 94;
+  static const fxShimmer = 95;
+  static const fxShimmerSize = 96;
+  static const fxShimmerAmount = 97;
+  static const fxShimmerTone = 98;
+  static const fxTape = 99;
+  static const fxTapeWow = 100;
+  static const fxTapeSat = 101;
+  static const fxTapeHiss = 102;
+  static const fxDelayDiv = 103;
+  static const fxDelayPingpong = 104;
+
+  // グラニュラー楽器（Phase 2.5）: サンプラーの素材全体を粒で鳴らすモード。
+  // setTrackParam ではなく setTrackSamplerParam で設定する
+  static const samplerGranular = 105;
+  static const samplerGranularSizeMs = 106;
+  static const samplerGranularDensity = 107;
+  static const samplerGranularPosition = 108;
+  static const samplerGranularSpray = 109;
+  static const samplerGranularTexture = 110;
+  static const samplerGranularPitchSpread = 111;
+  static const samplerGranularTimingRandom = 112;
+  static const samplerGranularSizeRandom = 113;
+  static const samplerGranularReverseChance = 114;
+  static const samplerGranularPositionMode = 115;
+  static const samplerGranularRoam = 116;
+  static const samplerGranularRoamSpeed = 117;
+  static const samplerGranularFeedback = 118;
+  static const samplerGranularFreeze = 119;
+  static const samplerGranularPitchQuantize = 120;
+  static const samplerGranularPitchDrift = 121;
 
   // オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。setTrackParam では使わない
   static const trackGain = 56;
@@ -157,6 +204,11 @@ class MdawEngine {
         _latency = lib.lookupFunction<Double Function(_EnginePtr), double Function(_EnginePtr)>('mdaw_output_latency_ms'),
         _xruns = lib.lookupFunction<Int32 Function(_EnginePtr), int Function(_EnginePtr)>('mdaw_xrun_count'),
         _activeVoices = lib.lookupFunction<Int32 Function(_EnginePtr), int Function(_EnginePtr)>('mdaw_active_voices',
+            isLeaf: true),
+        _trackPeak = lib.lookupFunction<Float Function(_EnginePtr, Uint64), double Function(_EnginePtr, int)>(
+            'mdaw_track_peak',
+            isLeaf: true),
+        _masterPeak = lib.lookupFunction<Float Function(_EnginePtr), double Function(_EnginePtr)>('mdaw_master_peak',
             isLeaf: true) {
     _handle = _create();
   }
@@ -191,6 +243,8 @@ class MdawEngine {
   final double Function(_EnginePtr) _latency;
   final int Function(_EnginePtr) _xruns;
   final int Function(_EnginePtr) _activeVoices;
+  final double Function(_EnginePtr, int) _trackPeak;
+  final double Function(_EnginePtr) _masterPeak;
 
   int start() => _start(_handle);
   void stop() => _stop(_handle);
@@ -199,6 +253,10 @@ class MdawEngine {
   void noteOff(int note) => _noteOff(_handle, note);
   void allNotesOff() => _allNotesOff(_handle);
   void setParam(int id, double value) => _setParam(_handle, id, value);
+
+  /// ミキサーのメーター用：最後に読んでからのピーク（線形）。読むと 0 に戻る
+  double trackPeak(int trackId) => _trackPeak(_handle, trackId);
+  double masterPeak() => _masterPeak(_handle);
 
   EngineStatus status() => EngineStatus(
         sampleRate: _sampleRate(_handle),
@@ -271,6 +329,8 @@ class MdawEngine {
   late final _setTrackSampler = _lib.lookupFunction<
       Int32 Function(_EnginePtr, Uint64, Pointer<Utf8>, Pointer<Utf8>, Int32, Float, Float),
       int Function(_EnginePtr, int, Pointer<Utf8>, Pointer<Utf8>, int, double, double)>('mdaw_set_track_sampler');
+  late final _setTrackSamplerParam = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Float),
+      int Function(_EnginePtr, int, int, double)>('mdaw_set_track_sampler_param');
   late final _kitError = _lib.lookupFunction<Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>),
       Pointer<Utf8> Function(_EnginePtr, Pointer<Utf8>)>('mdaw_kit_error');
   late final _exportStart = _lib.lookupFunction<Int32 Function(_EnginePtr, Pointer<Utf8>, Uint64),
@@ -325,6 +385,16 @@ class MdawEngine {
       int Function(_EnginePtr, int, int, double)>('mdaw_set_track_param');
   late final _setTrackParamLive = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Float),
       int Function(_EnginePtr, int, int, double)>('mdaw_set_track_param_live', isLeaf: true);
+  late final _fxAddUnit = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32),
+      int Function(_EnginePtr, int, int)>('mdaw_fx_add_unit');
+  late final _fxRemoveUnit = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32),
+      int Function(_EnginePtr, int, int)>('mdaw_fx_remove_unit');
+  late final _fxMoveUnit = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Int32),
+      int Function(_EnginePtr, int, int, int)>('mdaw_fx_move_unit');
+  late final _fxSetUnitEnabled = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Int32),
+      int Function(_EnginePtr, int, int, int)>('mdaw_fx_set_unit_enabled');
+  late final _fxSetUnitParam = _lib.lookupFunction<Int32 Function(_EnginePtr, Uint64, Int32, Int32, Float),
+      int Function(_EnginePtr, int, int, int, double)>('mdaw_fx_set_unit_param');
   late final _beginGroup =
       _lib.lookupFunction<Void Function(_EnginePtr), void Function(_EnginePtr)>('mdaw_begin_edit_group');
   late final _endGroup =
@@ -417,6 +487,10 @@ class MdawEngine {
       malloc.free(ps);
     }
   }
+
+  /// グラニュラー楽器のパラメータを1つ変える（MdawParam.samplerGranular* の ID）。Undo できる
+  bool setTrackSamplerParam(int trackId, int paramId, double value) =>
+      _setTrackSamplerParam(_handle, trackId, paramId, value) != 0;
 
   /// キットが読めなければ理由、読めれば ''
   String kitError(String kitId) {
@@ -560,6 +634,17 @@ class MdawEngine {
   bool setTrackParam(int trackId, int paramId, double value) => _setTrackParam(_handle, trackId, paramId, value) != 0;
   bool setTrackParamLive(int trackId, int paramId, double value) =>
       _setTrackParamLive(_handle, trackId, paramId, value) != 0;
+
+  /// FX チェーンの編集（いずれも Undo できる）。unitType はコアの FxUnitType の並び
+  /// （0=lowcut … 10=reverb）。unitIndex はプロジェクト JSON の fxChain の並び順
+  bool fxAddUnit(int trackId, int unitType) => _fxAddUnit(_handle, trackId, unitType) != 0;
+  bool fxRemoveUnit(int trackId, int unitIndex) => _fxRemoveUnit(_handle, trackId, unitIndex) != 0;
+  bool fxMoveUnit(int trackId, int fromIndex, int toIndex) =>
+      _fxMoveUnit(_handle, trackId, fromIndex, toIndex) != 0;
+  bool fxSetUnitEnabled(int trackId, int unitIndex, bool enabled) =>
+      _fxSetUnitEnabled(_handle, trackId, unitIndex, enabled ? 1 : 0) != 0;
+  bool fxSetUnitParam(int trackId, int unitIndex, int paramId, double value) =>
+      _fxSetUnitParam(_handle, trackId, unitIndex, paramId, value) != 0;
 
   /// スライダーのように始まりと終わりが別のイベントになる操作用。必ず [endEditGroup] と対で
   void beginEditGroup() => _beginGroup(_handle);

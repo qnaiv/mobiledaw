@@ -210,6 +210,10 @@ class SongController extends ChangeNotifier {
   bool setTrackSampler(int trackId, String kitId, String soundName, int rootNote, double gain, double start) =>
       _edit(() => engine.setTrackSampler(trackId, kitId, soundName, rootNote, gain, start));
 
+  /// グラニュラー楽器のパラメータを1つ変える（MdawParam.samplerGranular* の ID）。Undo できる
+  bool setTrackSamplerParam(int trackId, int paramId, double value) =>
+      _edit(() => engine.setTrackSamplerParam(trackId, paramId, value));
+
   /// キットをダウンロード・削除したあと：コアに読み直してもらい、画面も描き直す
   void kitsChanged() {
     engine.reloadKits();
@@ -229,6 +233,24 @@ class SongController extends ChangeNotifier {
           }
         }));
   }
+
+  /// FX チェーンにユニットを足す（unitType は fxUnitMetas の並び＝コアの FxUnitType）。Undo できる
+  bool addFxUnit(int trackId, int unitType) => _edit(() => engine.fxAddUnit(trackId, unitType));
+
+  /// FX チェーンのユニットを消す。Undo できる
+  bool removeFxUnit(int trackId, int unitIndex) => _edit(() => engine.fxRemoveUnit(trackId, unitIndex));
+
+  /// FX チェーンのユニットを並べ替える。Undo できる
+  bool moveFxUnit(int trackId, int fromIndex, int toIndex) =>
+      _edit(() => engine.fxMoveUnit(trackId, fromIndex, toIndex));
+
+  /// FX チェーンのユニットの有効・無効を切り替える。Undo できる
+  bool setFxUnitEnabled(int trackId, int unitIndex, bool enabled) =>
+      _edit(() => engine.fxSetUnitEnabled(trackId, unitIndex, enabled));
+
+  /// FX チェーンの特定ユニットのパラメータを1つ変える。Undo できる
+  bool setFxUnitParam(int trackId, int unitIndex, int paramId, double value) =>
+      _edit(() => engine.fxSetUnitParam(trackId, unitIndex, paramId, value));
 
   /// クリップのオートメーション：[paramId] のレーンを丸ごと差し替える（Undo できる）。
   /// [points] は (tick, 値) の組。空ならレーンを消す
@@ -339,6 +361,10 @@ class SongController extends ChangeNotifier {
           delayFeedback: delayFeedback ?? a.delayFeedback,
         ));
   }
+
+  /// ミキサーのメーター用ピーク（最後に読んでからの最大値・線形。読むと 0 に戻る）
+  double trackPeak(int trackId) => engine.trackPeak(trackId);
+  double masterPeak() => engine.masterPeak();
 
   /// 指定したものだけ変える（他は今の値のまま）
   bool setMixer(int trackId, {double? gain, double? pan, bool? mute, bool? solo}) {
