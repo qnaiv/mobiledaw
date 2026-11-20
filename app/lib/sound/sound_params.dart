@@ -1,6 +1,7 @@
 // 音色・エフェクトのパラメータ表とプリセット。
 // コア（synth.cpp / fx.cpp の kSynthParamSpecs / kFxParamSpecs）と同じ範囲・既定値にそろえる。
 import 'dart:math' as math;
+import 'dart:ui' show Color;
 
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
@@ -111,8 +112,12 @@ const fxParams = <SoundParam>[
   SoundParam(MdawParam.fxSaturation, 'saturation', 'サチュレーション（太く歪ませる）', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.fxChorus, 'chorus', 'コーラス（揺らして広げる）', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.fxOtt, 'ott', 'OTT（派手に・密度を出す）', 0, 1, 0, unit: '%'),
-  SoundParam(MdawParam.fxDelay, 'delay', 'ディレイ（付点8分）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxDelay, 'delay', 'ディレイ', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.fxDelayFeedback, 'delayFeedback', 'ディレイの繰り返し', 0, 0.9, 0.35, unit: '%'),
+  SoundParam(MdawParam.fxDelayDiv, 'delayDiv', 'ディレイの長さ（0=4分、1=付点8分、2=8分、3=16分、4=1小節）', 0, 4, 1,
+      scale: ParamScale.integer),
+  SoundParam(MdawParam.fxDelayPingpong, 'delayPingpong', 'ピンポン（左右を交互に跳ねる）', 0, 1, 0,
+      scale: ParamScale.toggle),
   SoundParam(MdawParam.fxReverb, 'reverb', 'リバーブ', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.fxReverbSize, 'reverbSize', 'リバーブの広さ', 0, 1, 0.6, unit: '%'),
   SoundParam(MdawParam.fxSidechain, 'sidechain', 'パンプ（キックで引っ込む）', 0, 1, 0, unit: '%'),
@@ -143,10 +148,100 @@ const fxParams = <SoundParam>[
   SoundParam(MdawParam.fxStutter, 'stutter', 'スタッター', 0, 1, 0, unit: '%'),
   SoundParam(MdawParam.fxStutterDiv, 'stutterDiv', 'スタッターの長さ（0=2分、1=4分、2=付点8分、3=8分、4=16分）', 0, 4, 3,
       scale: ParamScale.integer),
+  SoundParam(MdawParam.fxGranular, 'granular', 'グラニュラー（直近の音を粒で撒く）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxGranularSizeMs, 'granularSizeMs', '粒の大きさ', 10, 500, 120,
+      scale: ParamScale.log, unit: 'ms'),
+  SoundParam(MdawParam.fxGranularDensity, 'granularDensity', '粒の密度（1秒あたり）', 1, 80, 24),
+  SoundParam(MdawParam.fxGranularPositionS, 'granularPositionS', '拾う位置（何秒前か）', 0, 3.9, 0.35, unit: 's'),
+  SoundParam(MdawParam.fxGranularSpray, 'granularSpray', '位置の散らばり', 0, 1, 0.3, unit: '%'),
+  SoundParam(MdawParam.fxGranularPitch, 'granularPitch', '粒のピッチ', -24, 24, 0, unit: 'st'),
+  SoundParam(MdawParam.fxGranularPitchSpread, 'granularPitchSpread', 'ピッチの散らばり', 0, 12, 0, unit: 'st'),
+  SoundParam(MdawParam.fxGranularFreeze, 'granularFreeze', 'フリーズ（今の音を凍らせて回す）', 0, 1, 0,
+      scale: ParamScale.toggle),
+  SoundParam(MdawParam.fxGranularFeedback, 'granularFeedback', 'フィードバック（粒を戻して伸ばす）', 0, 0.9, 0.25, unit: '%'),
+  SoundParam(MdawParam.fxGranularTexture, 'granularTexture', '質感（粒の輪郭と霧の溶け具合）', 0, 1, 0.6, unit: '%'),
+  SoundParam(MdawParam.fxGranularTimingRandom, 'granularTimingRandom', '発生のランダムさ（非同期の雲）', 0, 1, 0.7, unit: '%'),
+  SoundParam(MdawParam.fxGranularSizeRandom, 'granularSizeRandom', '粒の長さのばらつき', 0, 1, 0.3, unit: '%'),
+  SoundParam(MdawParam.fxGranularReverseChance, 'granularReverseChance', '逆再生の確率', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxGranularRoam, 'granularRoam', '位置の漂い（自律走査）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxGranularRoamSpeed, 'granularRoamSpeed', '漂いの速さ', 0.01, 0.5, 0.07,
+      scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.fxShimmer, 'shimmer', 'シマーリバーブ', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxShimmerSize, 'shimmerSize', 'シマーの広さ', 0, 1, 0.65, unit: '%'),
+  SoundParam(MdawParam.fxShimmerAmount, 'shimmerAmount', 'オクターブの戻し（きらめき）', 0, 1, 0.5, unit: '%'),
+  SoundParam(MdawParam.fxShimmerTone, 'shimmerTone', 'シマーの明るさ', 0, 1, 0.6, unit: '%'),
+  SoundParam(MdawParam.fxTape, 'tape', 'テープ（揺れと劣化）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.fxTapeWow, 'tapeWow', 'ワウフラッター（ピッチの揺れ）', 0, 1, 0.4, unit: '%'),
+  SoundParam(MdawParam.fxTapeSat, 'tapeSat', 'テープの太さ（飽和）', 0, 1, 0.3, unit: '%'),
+  SoundParam(MdawParam.fxTapeHiss, 'tapeHiss', 'ヒスノイズ', 0, 1, 0, unit: '%'),
 ];
 
 final allSoundParams = [...synthParams, ...fxParams];
 final _byKey = {for (final p in allSoundParams) p.key: p};
+
+/// グラニュラー楽器（サンプラーのグラニュラーモード）のパラメータ表。
+/// コア（sampler.cpp の kGranularSamplerParamSpecs）と同じ範囲・既定値にそろえる。
+/// キーは保存 JSON の sampler.granular 内の名前。allSoundParams には混ぜない
+/// （設定経路が setTrackSamplerParam で別なため）。モード切替・位置モード・
+/// フリーズ・量子化はトグル／セグメントで出すのでこの表には入れていない
+const samplerGranularParams = <SoundParam>[
+  SoundParam(MdawParam.samplerGranularSizeMs, 'sizeMs', '粒の大きさ', 10, 500, 240, scale: ParamScale.log, unit: 'ms'),
+  SoundParam(MdawParam.samplerGranularDensity, 'density', '粒の密度（1秒あたり）', 1, 80, 40),
+  SoundParam(MdawParam.samplerGranularPosition, 'position', '読み位置（素材全体の割合）', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.samplerGranularSpray, 'spray', '位置の散らばり', 0, 1, 0.4, unit: '%'),
+  SoundParam(MdawParam.samplerGranularTexture, 'texture', '質感（粒の輪郭と霧の溶け具合）', 0, 1, 0.7, unit: '%'),
+  SoundParam(MdawParam.samplerGranularPitchSpread, 'pitchSpread', 'ピッチの散らばり', 0, 12, 0.3, unit: 'st'),
+  SoundParam(MdawParam.samplerGranularTimingRandom, 'timingRandom', '発生のランダムさ（非同期の雲）', 0, 1, 0.7, unit: '%'),
+  SoundParam(MdawParam.samplerGranularSizeRandom, 'sizeRandom', '粒の長さのばらつき', 0, 1, 0.3, unit: '%'),
+  SoundParam(MdawParam.samplerGranularReverseChance, 'reverseChance', '逆再生の確率', 0, 1, 0, unit: '%'),
+  SoundParam(MdawParam.samplerGranularRoam, 'roam', '位置の漂い（自律走査）', 0, 1, 0.2, unit: '%'),
+  SoundParam(MdawParam.samplerGranularRoamSpeed, 'roamSpeed', '漂いの速さ', 0.01, 0.5, 0.07,
+      scale: ParamScale.log, unit: 'Hz'),
+  SoundParam(MdawParam.samplerGranularFeedback, 'feedback', 'フィードバック（素材内循環）', 0, 0.9, 0.3, unit: '%'),
+  SoundParam(MdawParam.samplerGranularPitchDrift, 'pitchDrift', 'ピッチの漂い', 0, 6, 0, unit: 'st'),
+];
+
+/// グラニュラー楽器のパラメータの現在値（TrackData の samplerGranular* から読む）
+double samplerGranularValueOf(TrackData t, int paramId) {
+  switch (paramId) {
+    case MdawParam.samplerGranular:
+      return t.samplerGranularEnabled ? 1 : 0;
+    case MdawParam.samplerGranularSizeMs:
+      return t.samplerGranularSizeMs;
+    case MdawParam.samplerGranularDensity:
+      return t.samplerGranularDensity;
+    case MdawParam.samplerGranularPosition:
+      return t.samplerGranularPosition;
+    case MdawParam.samplerGranularSpray:
+      return t.samplerGranularSpray;
+    case MdawParam.samplerGranularTexture:
+      return t.samplerGranularTexture;
+    case MdawParam.samplerGranularPitchSpread:
+      return t.samplerGranularPitchSpread;
+    case MdawParam.samplerGranularTimingRandom:
+      return t.samplerGranularTimingRandom;
+    case MdawParam.samplerGranularSizeRandom:
+      return t.samplerGranularSizeRandom;
+    case MdawParam.samplerGranularReverseChance:
+      return t.samplerGranularReverseChance;
+    case MdawParam.samplerGranularPositionMode:
+      return t.samplerGranularPositionMode.toDouble();
+    case MdawParam.samplerGranularRoam:
+      return t.samplerGranularRoam;
+    case MdawParam.samplerGranularRoamSpeed:
+      return t.samplerGranularRoamSpeed;
+    case MdawParam.samplerGranularFeedback:
+      return t.samplerGranularFeedback;
+    case MdawParam.samplerGranularFreeze:
+      return t.samplerGranularFreeze ? 1 : 0;
+    case MdawParam.samplerGranularPitchQuantize:
+      return t.samplerGranularPitchQuantize ? 1 : 0;
+    case MdawParam.samplerGranularPitchDrift:
+      return t.samplerGranularPitchDrift;
+    default:
+      return 0;
+  }
+}
 
 /// 大きいつまみ。1本で複数のパラメータを動かす
 class SoundMacro {
@@ -222,6 +317,63 @@ final lfoParams = pickParams(['lfoWave', 'lfoSync', 'lfoDiv', 'lfoCutoff', 'lfoP
 
 /// FM と、音程に引きずられない母音フィルター
 final voiceParams = pickParams(['fm', 'fmRatio', 'formant', 'formantVowel']);
+
+/// FX チェーンのユニット種別ごとの表示情報（名前・色・担当パラメータ）。
+/// 並びはコアの FxUnitType（mdaw_fx_add_unit の unit_type）と一致させること。
+class FxUnitMeta {
+  const FxUnitMeta(this.type, this.name, this.color, this.paramKeys);
+
+  final String type; // 保存ファイルのキー（'granular' 等）
+  final String name; // 日本語の表示名
+  final Color color; // カードの色ドット・詳細画面のアクセント
+  final List<String> paramKeys; // このユニットが担当するパラメータ（表示順）
+
+  /// このユニットのパラメータ表（詳細画面のスライダー用）
+  List<SoundParam> get params => pickParams(paramKeys);
+}
+
+const fxUnitMetas = <FxUnitMeta>[
+  FxUnitMeta('lowcut', 'ローカット', Color(0xFF5C7CFA), ['lowCutHz']),
+  FxUnitMeta('eq', 'EQ', Color(0xFF35C4B5),
+      ['eqLowDb', 'eqLowHz', 'eqMidDb', 'eqMidHz', 'eqMidQ', 'eqHighDb', 'eqHighHz']),
+  FxUnitMeta('saturation', 'サチュレーション', Color(0xFFF0A13C), ['saturation']),
+  FxUnitMeta('chorus', 'コーラス', Color(0xFFBA68C8), ['chorus']),
+  FxUnitMeta('comp', 'コンプ', Color(0xFFEF7D54),
+      ['comp', 'compThresholdDb', 'compRatio', 'compAttackMs', 'compReleaseMs', 'compMakeupDb']),
+  FxUnitMeta('ott', 'OTT', Color(0xFFE879C6), ['ott']),
+  FxUnitMeta('bitcrush', 'ビットクラッシュ', Color(0xFFA1887F), ['bitcrush']),
+  FxUnitMeta('stutter', 'スタッター', Color(0xFFFFD54F), ['stutter', 'stutterDiv']),
+  FxUnitMeta('granular', 'グラニュラー', Color(0xFF7E57C2), [
+    'granular', 'granularSizeMs', 'granularDensity', 'granularPositionS', 'granularSpray',
+    'granularPitch', 'granularPitchSpread', 'granularFreeze', 'granularFeedback',
+    'granularTexture', 'granularTimingRandom', 'granularSizeRandom', 'granularReverseChance',
+    'granularRoam', 'granularRoamSpeed',
+  ]),
+  FxUnitMeta('delay', 'ディレイ', Color(0xFF81C784), ['delay', 'delayFeedback', 'delayDiv', 'delayPingpong']),
+  FxUnitMeta('reverb', 'リバーブ', Color(0xFF4DD0E1), ['reverb', 'reverbSize']),
+  FxUnitMeta('shimmer', 'シマーリバーブ', Color(0xFF3B82F6), ['shimmer', 'shimmerSize', 'shimmerAmount', 'shimmerTone']),
+  FxUnitMeta('tape', 'テープ', Color(0xFFF59E0B), ['tape', 'tapeWow', 'tapeSat', 'tapeHiss']),
+];
+
+/// 種別キーから表示情報を引く（知らない種別は null）
+FxUnitMeta? fxUnitMetaOf(String type) {
+  for (final m in fxUnitMetas) {
+    if (m.type == type) return m;
+  }
+  return null;
+}
+
+/// コアへ渡すユニット種別の番号（fxUnitMetas の並び＝コアの FxUnitType の並び）
+int fxUnitTypeIndex(String type) => fxUnitMetas.indexWhere((m) => m.type == type);
+
+/// 1トラックのチェーン上限（コアの kMaxFxUnits と揃える）
+const int kMaxFxUnits = 16;
+
+/// トラック直属の FX パラメータ（チェーンに入らない: パンプ系とセンド）
+final trackLevelFxParams = pickParams([
+  'sidechain', 'sidechainReleaseS', 'sidechainSource', 'sidechainAttackS', 'sidechainHoldS',
+  'sidechainCurve', 'sendReverb', 'sendDelay',
+]);
 
 // tools/demos/future_bass.py の音色（Chords・Lead・Bell・Bass・Kick・Clap・Hats・Riser）＋よく使う形
 const soundPresets = <SoundPreset>[

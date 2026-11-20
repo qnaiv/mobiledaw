@@ -1,13 +1,18 @@
-// ミキサー：トラックごとの音量・パン・ミュート・ソロ。
-// トラック名をタップすると下から出る。全トラックが並ぶので、聴きながらバランスを取れる。
-import 'dart:math' as math;
+// ミキサー：チャンネルストリップの横並び（パン・センド・フェーダー・M/S・レベルメーター）。
+// トラック名をタップすると下から出る。マスターは右端に固定。
+// レベルメーターは 50ms ごとにコアのピーク（読むと 0 に戻る保持値）を読み、
+// こちらの側で減衰させて表示する。
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../model/project.dart';
 import '../sound/sound_params.dart';
 import '../ui/theme.dart';
+import 'channel_strip.dart';
 import 'song_controller.dart';
+
+export 'channel_strip.dart' show gainLabel, panLabel;
 
 Future<void> showMixerSheet(BuildContext context, SongController song, {int? focusTrackId}) {
   return showModalBottomSheet<void>(
@@ -18,86 +23,54 @@ Future<void> showMixerSheet(BuildContext context, SongController song, {int? foc
   );
 }
 
-/// 音量（倍率）を dB の文字に
-String gainLabel(double gain) {
-  if (gain <= 0.0005) return '-∞ dB';
-  final db = 20 * math.log(gain) / math.ln10;
-  return '${db >= 0 ? '+' : ''}${db.toStringAsFixed(1)} dB';
-}
-
-String panLabel(double pan) {
-  final v = (pan * 100).round();
-  if (v == 0) return 'C';
-  return v < 0 ? 'L${-v}' : 'R$v';
-}
-
-class _MixerSheet extends StatelessWidget {
+class _MixerSheet extends StatefulWidget {
   const _MixerSheet({required this.song, this.focusTrackId});
 
   final SongController song;
   final int? focusTrackId;
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.8),
-        child: ListenableBuilder(
-          listenable: song,
-          builder: (context, _) {
-            final tracks = song.project.tracks;
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
-                  child: Row(
-                    children: [
-                      const Text('ミキサー', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                      const Spacer(),
-                      IconButton(
-                        tooltip: '元に戻す',
-                        onPressed: song.canUndo ? song.undo : null,
-                        icon: const Icon(Icons.undo),
-                      ),
-                    ],
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text('再生しながら動かせます。M＝消音、S＝そのトラックだけ鳴らす。数字をダブルタップで戻す',
-                      style: TextStyle(fontSize: 11, color: DawColors.muted)),
-                ),
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-                    children: [
-                      _MasterCard(song: song),
-                      _AuxCard(song: song),
-                      for (final t in tracks)
-                        _MixerRow(song: song, track: t, focused: t.id == focusTrackId),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
+  State<_MixerSheet> createState() => _MixerSheetState();
 }
 
-class _MixerRow extends StatelessWidget {
-  const _MixerRow({required this.song, required this.track, required this.focused});
+class _MixerSheetState extends State<_MixerSheet> {
+  int? _selectedTrackId;
+  final Map<int, ValueNotifier<double>> _peaks = {};
+  final ValueNotifier<double> _masterPeak = ValueNotifier<double>(0);
+  Timer? _peakTimer;
 
-  final SongController song;
-  final TrackData track;
-  final bool focused;
+  SongController get song => widget.song;
 
-  Future<void> _rename(BuildContext context) async {
+  @override
+  void initState() {
+    super.initState();
+    _selectedTrackId = widget.focusTrackId;
+    _peakTimer = Timer.periodic(const Duration(milliseconds: 50), (_) => _pollPeaks());
+  }
+
+  @override
+  void dispose() {
+    _peakTimer?.cancel();
+    for (final n in _peaks.values) {
+      n.dispose();
+    }
+    _masterPeak.dispose();
+    super.dispose();
+  }
+
+  ValueNotifier<double> _peakOf(int trackId) => _peaks.putIfAbsent(trackId, () => ValueNotifier<double>(0));
+
+  /// コアの保持ピークを読み、表示値を「読み値か、減衰した前回値の大きい方」にする
+  void _pollPeaks() {
+    if (!mounted) return;
+    for (final t in song.project.tracks) {
+      final n = _peakOf(t.id);
+      n.value = nextMeterLevel(song.trackPeak(t.id), n.value);
+    }
+    _masterPeak.value = nextMeterLevel(song.masterPeak(), _masterPeak.value);
+  }
+
+  Future<void> _rename(BuildContext context, TrackData track) async {
     final controller = TextEditingController(text: track.name);
     final name = await showDialog<String>(
       context: context,
@@ -121,135 +94,119 @@ class _MixerRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final m = track.mixer;
-    final color = Color(track.color);
-    final anySolo = song.project.tracks.any((t) => t.mixer.solo);
-    final silent = m.mute || (anySolo && !m.solo);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.fromLTRB(10, 6, 6, 6),
-      decoration: BoxDecoration(
-        color: DawColors.background,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: focused ? color : DawColors.line, width: focused ? 1.5 : 1),
-      ),
-      child: Opacity(
-        opacity: silent ? 0.5 : 1,
-        child: Column(
-          children: [
-            Row(
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.88),
+        child: ListenableBuilder(
+          listenable: song,
+          builder: (context, _) {
+            final tracks = song.project.tracks;
+            final anySolo = tracks.any((t) => t.mixer.solo);
+            final revParam = allSoundParams.firstWhere((e) => e.key == 'sendReverb');
+            final dlyParam = allSoundParams.firstWhere((e) => e.key == 'sendDelay');
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _rename(context),
-                    child: Row(
-                      children: [
-                        Flexible(
-                          child: Text(track.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(fontWeight: FontWeight.w700)),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(Icons.edit, size: 14, color: DawColors.muted),
-                      ],
-                    ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 4),
+                  child: Row(
+                    children: [
+                      const Text('ミキサー', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: '元に戻す',
+                        onPressed: song.canUndo ? song.undo : null,
+                        icon: const Icon(Icons.undo),
+                      ),
+                    ],
                   ),
                 ),
-                _Toggle(
-                  label: 'M',
-                  on: m.mute,
-                  onColor: DawColors.danger,
-                  onTap: () => song.setMixer(track.id, mute: !m.mute),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('再生しながら動かせます。M＝消音、S＝そのトラックだけ鳴らす。フェーダーはダブルタップで 0 dB、ノブはダブルタップで戻ります',
+                      style: TextStyle(fontSize: 11, color: DawColors.muted)),
                 ),
-                const SizedBox(width: 6),
-                _Toggle(
-                  label: 'S',
-                  on: m.solo,
-                  onColor: DawColors.accent,
-                  onTap: () => song.setMixer(track.id, solo: !m.solo),
+                const SizedBox(height: 8),
+                // ストリップ列（横スクロール）＋マスター固定。下揃えでフェーダーの位置を合わせる
+                SizedBox(
+                  height: 392,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              for (final t in tracks)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: _stripFor(t, anySolo, revParam, dlyParam),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      MasterStrip(
+                        gain: song.project.master.gain,
+                        peak: _masterPeak,
+                        onGainChanged: (v) => song.setMaster(gain: v),
+                        onGainStart: song.beginGesture,
+                        onGainEnd: (_) => song.endGesture(),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                    children: [
+                      _MasterCard(song: song),
+                      _AuxCard(song: song),
+                    ],
+                  ),
                 ),
               ],
-            ),
-            _SliderLine(
-              icon: Icons.volume_up,
-              value: m.gain,
-              min: 0,
-              max: 2,
-              label: gainLabel(m.gain),
-              color: color,
-              // 右の数字をダブルタップで 0 dB に戻す
-              resetTo: 1,
-              song: song,
-              onChanged: (v) => song.setMixer(track.id, gain: v),
-            ),
-            _SliderLine(
-              icon: Icons.swap_horiz,
-              value: m.pan,
-              min: -1,
-              max: 1,
-              label: panLabel(m.pan),
-              color: color,
-              resetTo: 0,
-              song: song,
-              onChanged: (v) => song.setMixer(track.id, pan: (v.abs() < 0.04) ? 0 : v),
-            ),
-            Theme(
-              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 4),
-                title: const Text('EQ・コンプ・センド', style: TextStyle(fontSize: 12, color: DawColors.muted)),
-                initiallyExpanded: focused,
-                children: [
-                  for (final key in _mixKeys) _FxSlider(song: song, track: track, paramKey: key, color: color),
-                ],
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
-}
 
-const _mixKeys = [
-  'eqLowDb',
-  'eqMidDb',
-  'eqMidHz',
-  'eqHighDb',
-  'comp',
-  'compThresholdDb',
-  'sendReverb',
-  'sendDelay',
-  'bitcrush',
-  'stutter',
-];
-
-class _FxSlider extends StatelessWidget {
-  const _FxSlider({required this.song, required this.track, required this.paramKey, required this.color});
-
-  final SongController song;
-  final TrackData track;
-  final String paramKey;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = allSoundParams.firstWhere((e) => e.key == paramKey);
-    final v = p.valueOf(track);
-    return _SliderLine(
-      icon: Icons.tune,
-      value: v,
-      min: p.min,
-      max: p.max,
-      label: p.format(v),
-      color: color,
-      resetTo: p.def,
-      song: song,
-      onChanged: (next) => song.setSound(track.id, p.id, next),
+  Widget _stripFor(TrackData t, bool anySolo, SoundParam revParam, SoundParam dlyParam) {
+    final m = t.mixer;
+    return ChannelStrip(
+      name: t.name,
+      color: Color(t.color),
+      selected: t.id == _selectedTrackId,
+      dimmed: m.mute || (anySolo && !m.solo),
+      gain: m.gain,
+      pan: m.pan,
+      mute: m.mute,
+      solo: m.solo,
+      sendReverbParam: revParam,
+      sendReverb: revParam.valueOf(t),
+      sendDelayParam: dlyParam,
+      sendDelay: dlyParam.valueOf(t),
+      peak: _peakOf(t.id),
+      onSelect: () => setState(() => _selectedTrackId = t.id),
+      onRename: () => _rename(context, t),
+      onGainChanged: (v) => song.setMixer(t.id, gain: v),
+      onGainStart: song.beginGesture,
+      onGainEnd: (_) => song.endGesture(),
+      onPanChanged: (v) => song.setMixer(t.id, pan: v.abs() < 0.04 ? 0 : v),
+      onSendChanged: (p, v) => song.setSound(t.id, p.id, v),
+      onKnobStart: song.beginGesture,
+      onKnobEnd: (_) => song.endGesture(),
+      onMuteToggle: () => song.setMixer(t.id, mute: !m.mute),
+      onSoloToggle: () => song.setMixer(t.id, solo: !m.solo),
     );
   }
 }
@@ -262,19 +219,8 @@ class _MasterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = song.project.master;
     return _BusCard(
-      title: 'マスター',
+      title: 'マスター仕上げ（音量は右端のストリップで）',
       children: [
-        _SliderLine(
-          icon: Icons.volume_up,
-          value: m.gain,
-          min: 0.5,
-          max: 6,
-          label: gainLabel(m.gain),
-          color: DawColors.accent,
-          resetTo: 3.2,
-          song: song,
-          onChanged: (v) => song.setMaster(gain: v),
-        ),
         _SliderLine(
           icon: Icons.compress,
           value: m.glue,
@@ -464,35 +410,6 @@ class _SliderLine extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _Toggle extends StatelessWidget {
-  const _Toggle({required this.label, required this.on, required this.onColor, required this.onTap});
-
-  final String label;
-  final bool on;
-  final Color onColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        width: 36,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: on ? onColor : DawColors.panel,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: on ? onColor : DawColors.line),
-        ),
-        child: Text(label,
-            style: TextStyle(fontWeight: FontWeight.w800, color: on ? DawColors.background : DawColors.muted)),
       ),
     );
   }
