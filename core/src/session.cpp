@@ -137,10 +137,9 @@ void Session::previewTrack(Id trackId) {
 
 bool Session::setTrackParamLive(Id trackId, int paramId, float value) {
     const int slot = slotOf(trackId);
-    const bool synthMain = paramId >= 0 && paramId < MDAW_PARAM_COUNT;
-    const bool synthExt = paramId >= MDAW_PARAM_EXT_FIRST && paramId < MDAW_PARAM_EXT_END;
-    const bool fx = paramId >= MDAW_FX_FIRST && paramId < MDAW_FX_END;
-    if (slot < 0 || !(synthMain || synthExt || fx))
+    // 振り分けは範囲ではなく仕様表で引く（シンセ／FX のいずれかに在る ID だけ通す）
+    const bool known = isSynthParamId(paramId) || isFxParamId(paramId);
+    if (slot < 0 || !known)
         return false;
     return engine_.setTrackParam(slot, paramId, value);
 }

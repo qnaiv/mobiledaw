@@ -142,6 +142,8 @@ bool getSynthParam(const SynthParams& s, int id, float& out) noexcept {
     return true;
 }
 
+bool isSynthParamId(int paramId) noexcept { return findSpec(paramId) != nullptr; }
+
 bool setSynthParam(SynthParams& s, int id, float value) noexcept {
     const auto* spec = findSpec(id);
     if (spec == nullptr || !std::isfinite(value))

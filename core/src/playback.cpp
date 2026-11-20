@@ -53,6 +53,8 @@ std::unique_ptr<PlaybackSnapshot> buildSnapshot(const Project& project, const Ki
         st.id = t.id;
         st.synth = t.synth;
         st.fx = t.fx;
+        // チェーンが空ならフラット値から固定順フルチェーン（全段有効）を組む（互換経路）
+        st.fxChain = t.fxChain.empty() ? defaultFxChain(t.fx, true) : fxChainFromVector(t.fxChain);
         if (!t.kitId.empty() && kits)
             st.kit = kits(t.kitId);
         if (t.isSampler() && kits) {

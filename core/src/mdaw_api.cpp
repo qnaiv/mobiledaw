@@ -140,7 +140,15 @@ int32_t mdaw_set_track_sampler(mdaw_engine* e, mdaw_id track, const char* kit, c
     settings.rootNote = root_note;
     settings.gain = gain;
     settings.start = start;
+    // グラニュラーの設定はこの差し替えでは触らない（既存の設定を保つ）
+    if (e != nullptr)
+        if (const auto* t = e->session.project().findTrack(track))
+            settings.granular = t->sampler.granular;
     return run(e, std::make_unique<mdaw::SetTrackSampler>(track, std::move(settings)));
+}
+
+int32_t mdaw_set_track_sampler_param(mdaw_engine* e, mdaw_id track, int32_t param_id, float value) {
+    return run(e, std::make_unique<mdaw::SetTrackSamplerParam>(track, param_id, value));
 }
 
 const char* mdaw_kit_error(mdaw_engine* e, const char* kit) {
@@ -286,6 +294,28 @@ int32_t mdaw_set_track_param(mdaw_engine* e, mdaw_id track, int32_t param, float
     return run(e, std::make_unique<mdaw::SetTrackSynthParam>(track, param, value));
 }
 
+int32_t mdaw_fx_add_unit(mdaw_engine* e, mdaw_id track, int32_t unit_type) {
+    if (unit_type < 0 || unit_type >= mdaw::kNumFxUnitTypes)
+        return 0;
+    return run(e, std::make_unique<mdaw::AddFxUnit>(track, static_cast<mdaw::FxUnitType>(unit_type)));
+}
+
+int32_t mdaw_fx_remove_unit(mdaw_engine* e, mdaw_id track, int32_t unit_index) {
+    return run(e, std::make_unique<mdaw::RemoveFxUnit>(track, unit_index));
+}
+
+int32_t mdaw_fx_move_unit(mdaw_engine* e, mdaw_id track, int32_t from_index, int32_t to_index) {
+    return run(e, std::make_unique<mdaw::MoveFxUnit>(track, from_index, to_index));
+}
+
+int32_t mdaw_fx_set_unit_enabled(mdaw_engine* e, mdaw_id track, int32_t unit_index, int32_t enabled) {
+    return run(e, std::make_unique<mdaw::SetFxUnitEnabled>(track, unit_index, enabled != 0));
+}
+
+int32_t mdaw_fx_set_unit_param(mdaw_engine* e, mdaw_id track, int32_t unit_index, int32_t param_id, float value) {
+    return run(e, std::make_unique<mdaw::SetFxUnitParam>(track, unit_index, param_id, value));
+}
+
 int32_t mdaw_set_track_param_live(mdaw_engine* e, mdaw_id track, int32_t param, float value) {
     return e && e->session.setTrackParamLive(track, param, value) ? 1 : 0;
 }
@@ -317,5 +347,13 @@ double mdaw_output_latency_ms(mdaw_engine* e) { return e && e->output ? e->outpu
 int32_t mdaw_xrun_count(mdaw_engine* e) { return e && e->output ? e->output->xrunCount() : -1; }
 int64_t mdaw_frames_rendered(mdaw_engine* e) { return e ? e->engine.framesRendered() : 0; }
 int32_t mdaw_active_voices(mdaw_engine* e) { return e ? e->engine.activeVoices() : 0; }
+
+float mdaw_track_peak(mdaw_engine* e, mdaw_id track_id) {
+    if (e == nullptr)
+        return 0.0f;
+    const int slot = e->session.slotOf(track_id);
+    return slot >= 0 ? e->engine.trackPeak(slot) : 0.0f;
+}
+float mdaw_master_peak(mdaw_engine* e) { return e ? e->engine.masterPeak() : 0.0f; }
 
 } // extern "C"

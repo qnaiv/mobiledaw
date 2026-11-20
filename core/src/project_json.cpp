@@ -2,6 +2,7 @@
 
 #include "automation.h"
 #include "kit.h"
+#include "sampler.h"
 
 #include <cinttypes>
 #include <cstdio>
@@ -72,8 +73,38 @@ var synthToVar(const SynthParams& s) { return paramsToVar(s, kSynthParamSpecs, k
 SynthParams synthFromVar(const var& o) {
     return paramsFromVar<SynthParams>(o, kSynthParamSpecs, kNumSynthParamSpecs, setSynthParam);
 }
-var fxToVar(const FxParams& f) { return paramsToVar(f, kFxParamSpecs, kNumFxParamSpecs); }
+// 保存する "fx" はトラック直属（サイドチェイン／センド）だけ。チェーン項目は fxChain 側に書く
+var fxToVar(const FxParams& f) {
+    auto o = object();
+    for (int i = 0; i < kNumFxParamSpecs; ++i)
+        if (kFxParamSpecs[i].unit < 0)
+            put(o, kFxParamSpecs[i].key, f.*(kFxParamSpecs[i].member));
+    return o;
+}
 FxParams fxFromVar(const var& o) { return paramsFromVar<FxParams>(o, kFxParamSpecs, kNumFxParamSpecs, setFxParam); }
+
+// ユニットの params は、その種別が担当する項目だけを書く
+var fxUnitParamsToVar(const FxUnit& u) {
+    auto o = object();
+    for (int i = 0; i < kNumFxParamSpecs; ++i)
+        if (kFxParamSpecs[i].unit == static_cast<int>(u.type))
+            put(o, kFxParamSpecs[i].key, u.params.*(kFxParamSpecs[i].member));
+    return o;
+}
+
+var fxChainToVar(const Track& t) {
+    // チェーンが空のトラックは、フラット値から組んだ移行チェーンを書く
+    const auto chain = t.fxChain.empty() ? fxChainToVector(defaultFxChain(t.fx, false)) : t.fxChain;
+    juce::Array<var> arr;
+    for (const auto& u : chain) {
+        auto o = object();
+        put(o, "type", fxUnitTypeKey(u.type));
+        put(o, "enabled", u.enabled);
+        put(o, "params", fxUnitParamsToVar(u));
+        arr.add(o);
+    }
+    return var(arr);
+}
 
 } // namespace
 
@@ -108,11 +139,23 @@ std::string projectToJson(const Project& p) {
             put(sampler, "rootNote", t.sampler.rootNote);
             put(sampler, "gain", t.sampler.gain);
             put(sampler, "start", t.sampler.start);
+            // グラニュラー楽器の設定（既定と違うときだけ書く。キーは仕様表が正）
+            if (t.sampler.granular != GranularSamplerSettings{}) {
+                auto granular = object();
+                for (int i = 0; i < kNumGranularSamplerParamSpecs; ++i) {
+                    const auto& spec = kGranularSamplerParamSpecs[i];
+                    float v = 0.0f;
+                    if (getGranularSamplerParam(t.sampler.granular, spec.id, v))
+                        put(granular, spec.key, v);
+                }
+                put(sampler, "granular", granular);
+            }
             put(instrument, "sampler", sampler);
         }
         put(instrument, "params", synthToVar(t.synth)); // キットにしてもシンセの設定は残す
         put(o, "instrument", instrument);
         put(o, "fx", fxToVar(t.fx));
+        put(o, "fxChain", fxChainToVar(t));
         auto mixer = object();
         put(mixer, "gain", t.mixer.gain);
         put(mixer, "pan", t.mixer.pan);
@@ -257,9 +300,51 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
                     t.sampler.rootNote = static_cast<int>(std::clamp<int64_t>(integer(s, "rootNote", 60), 0, 127));
                     t.sampler.gain = static_cast<float>(std::clamp(num(s, "gain", 1.0), 0.0, 2.0));
                     t.sampler.start = static_cast<float>(std::clamp(num(s, "start", 0.0), 0.0, 1.0));
+                    // グラニュラー楽器の設定（無ければ既定 = モード OFF。丸めは仕様表）
+                    const auto gr = get(s, "granular");
+                    if (gr.isObject()) {
+                        for (int i = 0; i < kNumGranularSamplerParamSpecs; ++i) {
+                            const auto& spec = kGranularSamplerParamSpecs[i];
+                            if (!get(gr, spec.key).isVoid())
+                                setGranularSamplerParam(t.sampler.granular, spec.id,
+                                                        static_cast<float>(num(gr, spec.key, 0.0)));
+                        }
+                    }
                 }
             }
             t.fx = fxFromVar(get(o, "fx"));
+            if (const auto* chainArr = get(o, "fxChain").getArray()) {
+                // 新形式: fxChain が正。知らない種別は読み飛ばし、上限で切り詰める
+                for (const auto& uo : *chainArr) {
+                    if (static_cast<int>(t.fxChain.size()) >= kMaxFxUnits)
+                        break;
+                    FxUnitType type;
+                    if (!fxUnitTypeFromKey(get(uo, "type").toString().toRawUTF8(), type))
+                        continue;
+                    FxUnit u;
+                    u.type = type;
+                    u.enabled = boolean(uo, "enabled", true);
+                    const auto po = get(uo, "params");
+                    for (int i = 0; i < kNumFxParamSpecs; ++i) {
+                        const auto& s = kFxParamSpecs[i];
+                        if (s.unit != static_cast<int>(type))
+                            continue;
+                        setFxParam(u.params, s.id, static_cast<float>(num(po, s.key, u.params.*(s.member))));
+                    }
+                    t.fxChain.push_back(u);
+                }
+                // フラット互換ビューを作り直す: 直属は fx の値、チェーン項目は最初のユニットから
+                FxParams merged;
+                for (int i = 0; i < kNumFxParamSpecs; ++i)
+                    if (kFxParamSpecs[i].unit < 0)
+                        merged.*(kFxParamSpecs[i].member) = t.fx.*(kFxParamSpecs[i].member);
+                mergeChainIntoFlat(merged, t.fxChain);
+                t.fx = merged;
+            } else {
+                // 移行: fxChain の無い旧プロジェクトは、フラット値から固定順フルチェーンを組む。
+                // enabled は「その段が実際に効く状態か」で決め、値は旧値をそのまま写すので音は変わらない
+                t.fxChain = fxChainToVector(defaultFxChain(t.fx, false));
+            }
             const auto m = get(o, "mixer");
             t.mixer.gain = static_cast<float>(std::clamp(num(m, "gain", 0.8), 0.0, 2.0));
             t.mixer.pan = static_cast<float>(std::clamp(num(m, "pan", 0.0), -1.0, 1.0));
@@ -354,6 +439,26 @@ bool projectFromJson(const std::string& json, Project& out, std::string& error) 
         p.aux.reverbSize = static_cast<float>(std::clamp(num(a, "reverbSize", d.reverbSize), 0.0, 1.0));
         p.aux.delayReturn = static_cast<float>(std::clamp(num(a, "delayReturn", d.delayReturn), 0.0, 2.0));
         p.aux.delayFeedback = static_cast<float>(std::clamp(num(a, "delayFeedback", d.delayFeedback), 0.0, 0.9));
+    }
+
+    // 移行の仕上げ: オートメーションのレーンがあるパラメータは、対象の最初のユニットを
+    // 有効にしておく（旧形式では段は常時存在し、レーンは必ず当たっていたため。
+    // 量そのものはレーンが決めるので、有効化だけでは音は変わらない）
+    for (auto& t : p.tracks) {
+        for (const auto& c : p.clips) {
+            if (c.trackId != t.id)
+                continue;
+            for (const auto& lane : c.automation) {
+                FxUnitType unit;
+                if (!fxParamUnit(lane.paramId, unit))
+                    continue;
+                for (auto& u : t.fxChain)
+                    if (u.type == unit) {
+                        u.enabled = true;
+                        break;
+                    }
+            }
+        }
     }
 
     if (p.tracks.empty()) {

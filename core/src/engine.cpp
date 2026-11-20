@@ -24,6 +24,9 @@ Engine::~Engine() {
 
 void Engine::prepare(double sampleRate) {
     sampleRate_.store(sampleRate, std::memory_order_relaxed);
+    for (auto& p : trackPeaks_)
+        p.store(0.0f, std::memory_order_relaxed);
+    masterPeak_.store(0.0f, std::memory_order_relaxed);
     for (auto* b : {&bufL_, &bufR_, &prevL_, &prevR_, &mixL_, &mixR_, &sendRevL_, &sendRevR_, &sendDlyL_, &sendDlyR_})
         b->assign(kMaxBlock, 0.0f);
     preview_.prepare(sampleRate, kMaxBlock);
@@ -84,10 +87,8 @@ void Engine::handle(const Event& e) noexcept {
         case Event::Type::TrackParam:
             if (e.slot < kMaxSlots) {
                 auto& s = slots_[e.slot];
-                if (e.index >= MDAW_FX_FIRST && e.index < MDAW_FX_END) {
-                    FxParams f = s.fx.params();
-                    if (setFxParam(f, e.index, e.value))
-                        s.fx.setParams(f);
+                if (isFxParamId(e.index)) {
+                    s.fx.setParam(e.index, e.value);
                 } else {
                     s.synth.setParam(e.index, e.value);
                 }
@@ -174,7 +175,7 @@ void Engine::resetAutomatedSlots() noexcept {
         auto& s = slots_[static_cast<size_t>(i)];
         const auto& t = current_->tracks[static_cast<size_t>(i)];
         s.synth.setParams(t.synth);
-        s.fx.setParams(t.fx);
+        s.fx.setChain(t.fxChain, t.fx);
         s.autoGain = -1.0f;
     }
 }
@@ -192,10 +193,9 @@ void Engine::applyAutomation(double tick) noexcept {
         auto& s = slots_[lane.slot];
         if (lane.paramId == MDAW_PARAM_TRACK_GAIN) {
             s.autoGain = std::clamp(v, 0.0f, 2.0f);
-        } else if (lane.paramId >= MDAW_FX_FIRST && lane.paramId < MDAW_FX_END) {
-            FxParams f = s.fx.params();
-            if (setFxParam(f, lane.paramId, v))
-                s.fx.setParams(f);
+        } else if (isFxParamId(lane.paramId)) {
+            // FX レーンは「そのパラメータを持つ最初の有効ユニット」に当てる（TrackFx 側の仕様）
+            s.fx.setParamAutomated(lane.paramId, v);
         } else {
             s.synth.setParam(lane.paramId, v);
         }
@@ -246,17 +246,19 @@ void Engine::adoptPendingSnapshot() noexcept {
             if (t != nullptr) {
                 s.synth.setParams(t->synth);
                 s.snapParams = t->synth;
-                s.fx.setParams(t->fx);
+                s.fx.setChain(t->fxChain, t->fx);
                 s.snapFx = t->fx;
+                s.snapChain = t->fxChain;
             }
         } else if (t != nullptr) {
             if (s.snapParams != t->synth) {
                 s.synth.setParams(t->synth);
                 s.snapParams = t->synth;
             }
-            if (s.snapFx != t->fx) {
-                s.fx.setParams(t->fx);
+            if (s.snapFx != t->fx || s.snapChain != t->fxChain) {
+                s.fx.setChain(t->fxChain, t->fx);
                 s.snapFx = t->fx;
+                s.snapChain = t->fxChain;
             }
         }
         s.fx.setTempo(current_->tempo);
@@ -273,6 +275,7 @@ void Engine::adoptPendingSnapshot() noexcept {
         const SamplerSettings wantSettings = t != nullptr ? t->sampler : SamplerSettings{};
         if (wantSound != s.samplerSound || wantSettings != s.snapSampler) {
             s.sampler.setSound(wantSound, wantSettings.rootNote, wantSettings.gain, wantSettings.start);
+            s.sampler.setGranularSettings(wantSettings.granular);
             s.samplerSound = wantSound;
             s.snapSampler = wantSettings;
         }
@@ -346,6 +349,12 @@ void Engine::fireDueEvents() noexcept {
 
 void Engine::renderSegment(float* out, int n, int channels) noexcept {
     const auto un = static_cast<size_t>(n);
+    // グラニュラー楽器の「曲位置同期」用に、曲全体に対する再生位置の割合を渡す
+    if (current_ != nullptr && current_->loopEndTicks > 0) {
+        const double frac = std::clamp(position_ / static_cast<double>(current_->loopEndTicks), 0.0, 1.0);
+        for (auto& s : slots_)
+            s.sampler.setSongPosition(frac);
+    }
     std::fill(mixL_.begin(), mixL_.begin() + n, 0.0f);
     std::fill(mixR_.begin(), mixR_.begin() + n, 0.0f);
     std::fill(sendRevL_.begin(), sendRevL_.begin() + n, 0.0f);
@@ -437,6 +446,7 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
         const float sendD = fx.sendDelay;
         if (sendR > 0.0f || sendD > 0.0f)
             fedAux = true;
+        float blkPeak = 0.0f; // メーター用：このトラックがミックスへ出す音のピーク
         for (size_t i = 0; i < un; ++i) {
             float g = 1.0f;
             if (depth > 0.0f) {
@@ -456,6 +466,7 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
             }
             const float sl = bufL_[i] * gl * g;
             const float srgt = bufR_[i] * gr * g;
+            blkPeak = std::max(blkPeak, std::max(std::abs(sl), std::abs(srgt)));
             mixL_[i] += sl;
             mixR_[i] += srgt;
             if (sendR > 0.0f) {
@@ -469,6 +480,7 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
             gl += stepL;
             gr += stepR;
         }
+        raisePeak(trackPeaks_[static_cast<size_t>(si)], blkPeak);
         s.gainL = endL;
         s.gainR = endR;
     }
@@ -488,6 +500,12 @@ void Engine::renderSegment(float* out, int n, int channels) noexcept {
 
     if (masterEnabled_)
         master_.process(mixL_.data(), mixR_.data(), n);
+
+    // メーター用：最終ミックスのピーク
+    float mixPeak = 0.0f;
+    for (size_t i = 0; i < un; ++i)
+        mixPeak = std::max(mixPeak, std::max(std::abs(mixL_[i]), std::abs(mixR_[i])));
+    raisePeak(masterPeak_, mixPeak);
 
     for (size_t i = 0; i < un; ++i) {
         const float l = mixL_[i];

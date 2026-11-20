@@ -1,6 +1,7 @@
 #include "commands.h"
 
 #include "kit.h"
+#include "sampler.h"
 
 #include "mdaw.h"
 
@@ -397,6 +398,25 @@ void SetTrackSampler::revert(Project& p) {
         t->sampler = old_;
 }
 
+bool SetTrackSamplerParam::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    auto next = t->sampler;
+    if (!setGranularSamplerParam(next.granular, paramId_, value_))
+        return false;
+    if (next == t->sampler)
+        return false;
+    old_ = t->sampler;
+    t->sampler = next;
+    return true;
+}
+
+void SetTrackSamplerParam::revert(Project& p) {
+    if (auto* t = p.findTrack(trackId_))
+        t->sampler = old_;
+}
+
 bool SetProjectTitle::apply(Project& p) {
     auto t = title_;
     const auto notSpace = [](unsigned char c) { return !std::isspace(c); };
@@ -523,16 +543,68 @@ void SetKey::revert(Project& p) {
 
 //==============================================================================
 namespace {
-// シンセの音色とエフェクトを同じ ID の並びで読み書きする
+// シンセの音色とエフェクトを同じ ID の並びで読み書きする（振り分けは仕様表引き）。
+// FX のチェーン項目は「そのパラメータを持つ最初のユニット」が読み書きの対象で、
+// トラック直属（サイドチェイン／センド）は従来どおりフラット値が対象。
+// チェーンが空のトラックは、フラット値から固定順フルチェーンを実体化して扱う
+// （全段有効で実体化するので、オートメーションやフラット書き込みの当て先が必ずある。
+// 各段は量 0 で内部バイパスするため音は変わらない）。
+void materializeChain(Track& t) {
+    if (t.fxChain.empty())
+        t.fxChain = fxChainToVector(defaultFxChain(t.fx, true));
+}
+
 bool getTrackParam(const Track& t, int id, float& out) {
-    if (id >= MDAW_FX_FIRST && id < MDAW_FX_END)
+    if (isFxParamId(id)) {
+        FxUnitType unit;
+        if (fxParamUnit(id, unit)) {
+            for (const auto& u : t.fxChain)
+                if (u.type == unit)
+                    return getFxParam(u.params, id, out);
+            return getFxParam(t.fx, id, out); // チェーンが無ければフラット値
+        }
         return getFxParam(t.fx, id, out);
+    }
     return getSynthParam(t.synth, id, out);
 }
+
 bool setTrackParam(Track& t, int id, float value) {
-    if (id >= MDAW_FX_FIRST && id < MDAW_FX_END)
+    if (isFxParamId(id)) {
+        FxUnitType unit;
+        if (fxParamUnit(id, unit)) {
+            materializeChain(t);
+            for (auto& u : t.fxChain) {
+                if (u.type != unit)
+                    continue;
+                if (!setFxParam(u.params, id, value))
+                    return false;
+                setFxParam(t.fx, id, value); // フラット互換ビューも同期する
+                // 値が音に効く状態になったら自動で有効化する
+                // （プリセット／マクロ等のフラット書き込みで従来どおり鳴るように）
+                if (!u.enabled && fxStageAffectsSound(unit, u.params))
+                    u.enabled = true;
+                return true;
+            }
+            return false;
+        }
         return setFxParam(t.fx, id, value);
+    }
     return setSynthParam(t.synth, id, value);
+}
+
+// チェーン編集コマンド共通: 巻き戻し用の控えを取り、チェーンを実体化する
+bool prepareChainEdit(Track& t, FxParams& oldFx, std::vector<FxUnit>& oldChain) {
+    oldFx = t.fx;
+    oldChain = t.fxChain;
+    materializeChain(t);
+    return true;
+}
+
+void revertChainEdit(Project& p, Id trackId, const FxParams& oldFx, const std::vector<FxUnit>& oldChain) {
+    if (auto* t = p.findTrack(trackId)) {
+        t->fx = oldFx;
+        t->fxChain = oldChain;
+    }
 }
 } // namespace
 
@@ -540,6 +612,11 @@ bool SetTrackSynthParam::apply(Project& p) {
     auto* t = p.findTrack(trackId_);
     if (t == nullptr || !getTrackParam(*t, paramId_, old_))
         return false;
+    fxTouched_ = isFxParamId(paramId_);
+    if (fxTouched_) {
+        oldFx_ = t->fx;
+        oldChain_ = t->fxChain;
+    }
     Track next = *t;
     if (!setTrackParam(next, paramId_, value_))
         return false;
@@ -552,9 +629,120 @@ bool SetTrackSynthParam::apply(Project& p) {
 }
 
 void SetTrackSynthParam::revert(Project& p) {
-    if (auto* t = p.findTrack(trackId_))
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return;
+    if (fxTouched_) {
+        t->fx = oldFx_;
+        t->fxChain = oldChain_;
+    } else {
         setTrackParam(*t, paramId_, old_);
+    }
 }
+
+//==============================================================================
+bool AddFxUnit::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    const int effective = t->fxChain.empty() ? kNumFxUnitTypes : static_cast<int>(t->fxChain.size());
+    if (effective >= kMaxFxUnits)
+        return false;
+    prepareChainEdit(*t, oldFx_, oldChain_);
+    if (static_cast<int>(t->fxChain.size()) >= kMaxFxUnits)
+        return false;
+    // 新しいユニットは既定値から（既存ユニットの値を写さない）
+    t->fxChain.push_back(makeFxUnit(type_, FxParams{}));
+    return true;
+}
+
+void AddFxUnit::revert(Project& p) { revertChainEdit(p, trackId_, oldFx_, oldChain_); }
+
+//==============================================================================
+bool RemoveFxUnit::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    const int effective = t->fxChain.empty() ? kNumFxUnitTypes : static_cast<int>(t->fxChain.size());
+    if (index_ < 0 || index_ >= effective)
+        return false;
+    prepareChainEdit(*t, oldFx_, oldChain_);
+    if (index_ < 0 || index_ >= static_cast<int>(t->fxChain.size()))
+        return false;
+    t->fxChain.erase(t->fxChain.begin() + index_);
+    mergeChainIntoFlat(t->fx, t->fxChain);
+    return true;
+}
+
+void RemoveFxUnit::revert(Project& p) { revertChainEdit(p, trackId_, oldFx_, oldChain_); }
+
+//==============================================================================
+bool MoveFxUnit::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    const int effective = t->fxChain.empty() ? kNumFxUnitTypes : static_cast<int>(t->fxChain.size());
+    if (from_ < 0 || from_ >= effective || to_ < 0 || to_ >= effective || from_ == to_)
+        return false;
+    prepareChainEdit(*t, oldFx_, oldChain_);
+    const int n = static_cast<int>(t->fxChain.size());
+    if (from_ < 0 || from_ >= n || to_ < 0 || to_ >= n || from_ == to_)
+        return false;
+    FxUnit u = t->fxChain[static_cast<size_t>(from_)];
+    t->fxChain.erase(t->fxChain.begin() + from_);
+    t->fxChain.insert(t->fxChain.begin() + to_, u);
+    mergeChainIntoFlat(t->fx, t->fxChain);
+    return true;
+}
+
+void MoveFxUnit::revert(Project& p) { revertChainEdit(p, trackId_, oldFx_, oldChain_); }
+
+//==============================================================================
+bool SetFxUnitEnabled::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    const int effective = t->fxChain.empty() ? kNumFxUnitTypes : static_cast<int>(t->fxChain.size());
+    if (index_ < 0 || index_ >= effective)
+        return false;
+    prepareChainEdit(*t, oldFx_, oldChain_);
+    if (index_ < 0 || index_ >= static_cast<int>(t->fxChain.size()))
+        return false;
+    auto& u = t->fxChain[static_cast<size_t>(index_)];
+    if (u.enabled == enabled_)
+        return false;
+    u.enabled = enabled_;
+    return true;
+}
+
+void SetFxUnitEnabled::revert(Project& p) { revertChainEdit(p, trackId_, oldFx_, oldChain_); }
+
+//==============================================================================
+bool SetFxUnitParam::apply(Project& p) {
+    auto* t = p.findTrack(trackId_);
+    if (t == nullptr)
+        return false;
+    const int effective = t->fxChain.empty() ? kNumFxUnitTypes : static_cast<int>(t->fxChain.size());
+    if (index_ < 0 || index_ >= effective)
+        return false;
+    prepareChainEdit(*t, oldFx_, oldChain_);
+    if (index_ < 0 || index_ >= static_cast<int>(t->fxChain.size()))
+        return false;
+    auto& u = t->fxChain[static_cast<size_t>(index_)];
+    FxUnitType owner;
+    if (!fxParamUnit(paramId_, owner) || owner != u.type)
+        return false; // そのユニットのパラメータではない
+    float old = 0.0f;
+    if (!getFxParam(u.params, paramId_, old) || !setFxParam(u.params, paramId_, value_))
+        return false;
+    getFxParam(u.params, paramId_, applied_);
+    if (applied_ == old)
+        return false;
+    mergeChainIntoFlat(t->fx, t->fxChain);
+    return true;
+}
+
+void SetFxUnitParam::revert(Project& p) { revertChainEdit(p, trackId_, oldFx_, oldChain_); }
 
 //==============================================================================
 bool SetClipAutomation::apply(Project& p) {
