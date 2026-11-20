@@ -269,6 +269,134 @@ TEST(fx_reverb_and_delay_leave_a_tail) {
     CHECK(fx.tailSeconds() > 1.0);
 }
 
+TEST(fx_granular_params_clamp_and_roundtrip) {
+    FxParams f;
+    CHECK(setFxParam(f, MDAW_FX_GRANULAR, 0.7f));
+    CHECK(f.granular == 0.7f);
+    CHECK(setFxParam(f, MDAW_FX_GRANULAR_SIZE_MS, 9999.0f));
+    CHECK(f.granularSizeMs == 500.0f);
+    CHECK(setFxParam(f, MDAW_FX_GRANULAR_PITCH, -99.0f));
+    CHECK(f.granularPitch == -24.0f);
+    float out = 0.0f;
+    CHECK(getFxParam(f, MDAW_FX_GRANULAR_DENSITY, out));
+    CHECK(out == 24.0f); // 既定値のまま
+
+    // 名前ベースの保存で往復しても値が保たれる
+    Project proj;
+    Track t;
+    t.id = 3;
+    t.fx.granular = 0.8f;
+    t.fx.granularPitch = 12.0f;
+    t.fx.granularSpray = 0.5f;
+    proj.tracks.push_back(t);
+    Project back;
+    std::string error;
+    CHECK(projectFromJson(projectToJson(proj), back, error));
+    CHECK(back.tracks.size() == 1);
+    CHECK(back.tracks[0].fx == t.fx);
+}
+
+TEST(fx_granular_bypass_is_bit_identical) {
+    // 既定（granular = 0）では他の段も含め完全な素通しで、1 サンプルも変わらない
+    TrackFx fx;
+    fx.prepare(kRate, 256);
+    fx.setParams(FxParams{});
+    std::vector<float> l(256), r(256), l0(256), r0(256);
+    double phase = 0.0;
+    for (int block = 0; block < 20; ++block) {
+        for (int i = 0; i < 256; ++i) {
+            l[static_cast<size_t>(i)] = r[static_cast<size_t>(i)] = 0.4f * static_cast<float>(std::sin(phase));
+            phase += 2.0 * 3.14159265 * 440.0 / kRate;
+        }
+        l0 = l;
+        r0 = r;
+        fx.process(l.data(), r.data(), 256);
+        CHECK(l == l0);
+        CHECK(r == r0);
+    }
+}
+
+TEST(fx_granular_cloud_sounds_and_tails) {
+    TrackFx fx;
+    fx.prepare(kRate, 256);
+    FxParams p;
+    p.granular = 1.0f;
+    p.granularSizeMs = 120.0f;
+    p.granularDensity = 30.0f;
+    p.granularPositionS = 0.2f;
+    p.granularSpray = 0.2f;
+    p.granularFeedback = 0.0f; // Phase 1 で足した戻しは切って、v1 の雲の振る舞いだけを見る
+    fx.setParams(p);
+    // 440Hz を 1 秒入れてから 1 秒無音にし、出力を全部ためる
+    const int total = 48000 * 2;
+    std::vector<float> out(static_cast<size_t>(total));
+    std::vector<float> l(256), r(256);
+    double phase = 0.0;
+    bool finite = true;
+    for (int done = 0; done < total; done += 256) {
+        for (int i = 0; i < 256; ++i) {
+            const float v = done + i < 48000 ? 0.5f * static_cast<float>(std::sin(phase)) : 0.0f;
+            l[static_cast<size_t>(i)] = r[static_cast<size_t>(i)] = v;
+            phase += 2.0 * 3.14159265 * 440.0 / kRate;
+        }
+        fx.process(l.data(), r.data(), 256);
+        for (int i = 0; i < 256; ++i) {
+            out[static_cast<size_t>(done + i)] = l[static_cast<size_t>(i)];
+            finite = finite && std::isfinite(l[static_cast<size_t>(i)]);
+        }
+    }
+    const float during = rms(out, 24000, 48000);       // 鳴らしている後半
+    const float tail = rms(out, 50400, 60000);         // 止めてから 0.05〜0.25 秒
+    const float dead = rms(out, 81600, 96000);         // 止めてから 0.7 秒より後
+    const float peak = peakAbs(out);
+    std::printf("  グラニュラー 再生中 %.4f / 尾 %.4f / 消えた後 %.5f / ピーク %.3f\n", during, tail, dead, peak);
+    CHECK(finite);
+    CHECK(during > 0.03f);
+    CHECK(tail > 0.01f);   // 入力が止まっても、少し前の音を拾う粒が残る
+    CHECK(dead < 0.003f);  // リングが無音で上書きされれば雲も消える
+    CHECK(peak < 2.0f);
+    CHECK(fx.tailSeconds() > 0.4); // 位置 0.2 + 粒 0.12 + 余裕
+}
+
+TEST(fx_granular_pitch_up_raises_zero_crossings) {
+    auto crossings = [](float pitchSt) {
+        TrackFx fx;
+        fx.prepare(kRate, 256);
+        FxParams p;
+        p.granular = 1.0f;
+        p.granularSizeMs = 200.0f;
+        p.granularDensity = 40.0f;
+        p.granularPositionS = 0.05f;
+        p.granularSpray = 0.0f;
+        p.granularPitch = pitchSt;
+        p.granularPitchSpread = 0.0f;
+        fx.setParams(p);
+        std::vector<float> l(256), r(256);
+        double phase = 0.0;
+        int count = 0;
+        float prev = 0.0f;
+        for (int done = 0; done < 48000 * 2; done += 256) {
+            for (int i = 0; i < 256; ++i) {
+                l[static_cast<size_t>(i)] = r[static_cast<size_t>(i)] = 0.5f * static_cast<float>(std::sin(phase));
+                phase += 2.0 * 3.14159265 * 220.0 / kRate;
+            }
+            fx.process(l.data(), r.data(), 256);
+            if (done >= 48000) // 後半 1 秒だけ数える
+                for (int i = 0; i < 256; ++i) {
+                    const float v = l[static_cast<size_t>(i)];
+                    if ((prev < 0.0f && v >= 0.0f) || (prev >= 0.0f && v < 0.0f))
+                        ++count;
+                    prev = v;
+                }
+        }
+        return count;
+    };
+    const int base = crossings(0.0f), up = crossings(12.0f);
+    std::printf("  ゼロ交差 そのまま %d / +12半音 %d\n", base, up);
+    CHECK(base > 300);          // 220Hz なら 1 秒で約 440 回
+    CHECK(up > base * 8 / 5);   // +12 半音でほぼ 2 倍になる
+}
+
 TEST(fx_ott_lifts_quiet_and_tames_loud) {
     auto level = [](float amp, float depth) {
         TrackFx fx;
