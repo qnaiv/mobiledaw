@@ -243,6 +243,98 @@ double samplerGranularValueOf(TrackData t, int paramId) {
   }
 }
 
+/// グラニュラー FX のプリセット（Phase 2.6）。選ぶと担当パラメータ全部に値が入る
+/// （キーは fxParams の key、値は実値）。保存形式は従来のパラメータそのもの。
+class FxGranularPreset {
+  const FxGranularPreset(this.name, this.values);
+
+  final String name;
+  final Map<String, double> values;
+}
+
+const fxGranularPresets = <FxGranularPreset>[
+  FxGranularPreset('アンビエント・クラウド', {
+    'granular': 0.85, 'granularSizeMs': 240, 'granularDensity': 55, 'granularPositionS': 1.2,
+    'granularSpray': 0.6, 'granularPitch': 0, 'granularPitchSpread': 0.4, 'granularFreeze': 0,
+    'granularFeedback': 0.55, 'granularTexture': 0.85, 'granularTimingRandom': 0.7,
+    'granularSizeRandom': 0.5, 'granularReverseChance': 0.15, 'granularRoam': 0.4,
+    'granularRoamSpeed': 0.07,
+  }),
+  FxGranularPreset('フローズン・ドローン', {
+    'granular': 0.9, 'granularSizeMs': 400, 'granularDensity': 30, 'granularPositionS': 0.8,
+    'granularSpray': 0.3, 'granularPitch': 0, 'granularPitchSpread': 0.2, 'granularFreeze': 1,
+    'granularFeedback': 0.7, 'granularTexture': 1.0, 'granularTimingRandom': 0.9,
+    'granularSizeRandom': 0.4, 'granularReverseChance': 0, 'granularRoam': 0.15,
+    'granularRoamSpeed': 0.05,
+  }),
+  FxGranularPreset('うす霧', {
+    'granular': 0.45, 'granularSizeMs': 300, 'granularDensity': 35, 'granularPositionS': 0.5,
+    'granularSpray': 0.5, 'granularPitch': 0, 'granularPitchSpread': 0.3, 'granularFreeze': 0,
+    'granularFeedback': 0.35, 'granularTexture': 0.8, 'granularTimingRandom': 0.8,
+    'granularSizeRandom': 0.3, 'granularReverseChance': 0.05, 'granularRoam': 0.3,
+    'granularRoamSpeed': 0.07,
+  }),
+  FxGranularPreset('キラキラ', {
+    'granular': 0.6, 'granularSizeMs': 60, 'granularDensity': 70, 'granularPositionS': 0.25,
+    'granularSpray': 0.7, 'granularPitch': 12, 'granularPitchSpread': 3, 'granularFreeze': 0,
+    'granularFeedback': 0.3, 'granularTexture': 0.4, 'granularTimingRandom': 0.6,
+    'granularSizeRandom': 0.6, 'granularReverseChance': 0.1, 'granularRoam': 0.5,
+    'granularRoamSpeed': 0.12,
+  }),
+];
+
+/// グラニュラー楽器（サンプラー）のプリセット（Phase 2.6）。キーは MdawParam の ID。
+/// 楽器には mix が無い（素材そのものが音源）ため、粒の質感側だけで組む。
+class SamplerGranularPreset {
+  const SamplerGranularPreset(this.name, this.values);
+
+  final String name;
+  final Map<int, double> values;
+}
+
+const samplerGranularPresets = <SamplerGranularPreset>[
+  SamplerGranularPreset('アンビエント・クラウド', {
+    MdawParam.samplerGranularSizeMs: 240, MdawParam.samplerGranularDensity: 50,
+    MdawParam.samplerGranularPosition: 0, MdawParam.samplerGranularSpray: 0.6,
+    MdawParam.samplerGranularTexture: 0.85, MdawParam.samplerGranularPitchSpread: 0.4,
+    MdawParam.samplerGranularTimingRandom: 0.7, MdawParam.samplerGranularSizeRandom: 0.5,
+    MdawParam.samplerGranularReverseChance: 0.1, MdawParam.samplerGranularPositionMode: 0,
+    MdawParam.samplerGranularRoam: 0.3, MdawParam.samplerGranularRoamSpeed: 0.07,
+    MdawParam.samplerGranularFeedback: 0.45, MdawParam.samplerGranularFreeze: 0,
+    MdawParam.samplerGranularPitchQuantize: 1, MdawParam.samplerGranularPitchDrift: 1.5,
+  }),
+  SamplerGranularPreset('フローズン・ドローン', {
+    MdawParam.samplerGranularSizeMs: 420, MdawParam.samplerGranularDensity: 26,
+    MdawParam.samplerGranularPosition: 0, MdawParam.samplerGranularSpray: 0.35,
+    MdawParam.samplerGranularTexture: 1.0, MdawParam.samplerGranularPitchSpread: 0.2,
+    MdawParam.samplerGranularTimingRandom: 0.9, MdawParam.samplerGranularSizeRandom: 0.4,
+    MdawParam.samplerGranularReverseChance: 0, MdawParam.samplerGranularPositionMode: 3,
+    MdawParam.samplerGranularRoam: 0.1, MdawParam.samplerGranularRoamSpeed: 0.05,
+    MdawParam.samplerGranularFeedback: 0.6, MdawParam.samplerGranularFreeze: 0,
+    MdawParam.samplerGranularPitchQuantize: 0, MdawParam.samplerGranularPitchDrift: 0.5,
+  }),
+  SamplerGranularPreset('うす霧', {
+    MdawParam.samplerGranularSizeMs: 320, MdawParam.samplerGranularDensity: 34,
+    MdawParam.samplerGranularPosition: 0, MdawParam.samplerGranularSpray: 0.5,
+    MdawParam.samplerGranularTexture: 0.8, MdawParam.samplerGranularPitchSpread: 0.3,
+    MdawParam.samplerGranularTimingRandom: 0.8, MdawParam.samplerGranularSizeRandom: 0.3,
+    MdawParam.samplerGranularReverseChance: 0.05, MdawParam.samplerGranularPositionMode: 3,
+    MdawParam.samplerGranularRoam: 0.35, MdawParam.samplerGranularRoamSpeed: 0.09,
+    MdawParam.samplerGranularFeedback: 0.3, MdawParam.samplerGranularFreeze: 0,
+    MdawParam.samplerGranularPitchQuantize: 0, MdawParam.samplerGranularPitchDrift: 0,
+  }),
+  SamplerGranularPreset('キラキラ', {
+    MdawParam.samplerGranularSizeMs: 70, MdawParam.samplerGranularDensity: 68,
+    MdawParam.samplerGranularPosition: 0, MdawParam.samplerGranularSpray: 0.7,
+    MdawParam.samplerGranularTexture: 0.45, MdawParam.samplerGranularPitchSpread: 2.5,
+    MdawParam.samplerGranularTimingRandom: 0.6, MdawParam.samplerGranularSizeRandom: 0.6,
+    MdawParam.samplerGranularReverseChance: 0.1, MdawParam.samplerGranularPositionMode: 0,
+    MdawParam.samplerGranularRoam: 0.5, MdawParam.samplerGranularRoamSpeed: 0.15,
+    MdawParam.samplerGranularFeedback: 0.25, MdawParam.samplerGranularFreeze: 0,
+    MdawParam.samplerGranularPitchQuantize: 1, MdawParam.samplerGranularPitchDrift: 0,
+  }),
+];
+
 /// 大きいつまみ。1本で複数のパラメータを動かす
 class SoundMacro {
   const SoundMacro(this.label, this.hint, this.read, this.write);

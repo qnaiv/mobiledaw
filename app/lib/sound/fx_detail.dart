@@ -111,7 +111,7 @@ class FxUnitDetailBody extends StatelessWidget {
     );
   }
 
-  Widget _slider(String key, {bool prominent = false, Color? color}) {
+  Widget _slider(String key, {bool prominent = false, Color? color, String? label}) {
     final p = _p(key);
     final v = controls.valueOf(p);
     if (p.scale == ParamScale.toggle) return _toggleRow(key);
@@ -121,7 +121,7 @@ class FxUnitDetailBody extends StatelessWidget {
         children: [
           SizedBox(
             width: 118,
-            child: Text(p.label,
+            child: Text(label ?? p.label,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: prominent ? 13 : 12, fontWeight: prominent ? FontWeight.w700 : FontWeight.w400)),
@@ -187,6 +187,32 @@ class FxUnitDetailBody extends StatelessWidget {
 
   // ---- 種別ごとのレイアウト -----------------------------------------------------
 
+  /// グラニュラーのプリセット行（Phase 2.6）: 選ぶと全パラメータに値が入る
+  Widget _granularPresets(Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Wrap(
+        spacing: 6,
+        runSpacing: 6,
+        children: [
+          for (final preset in fxGranularPresets)
+            ActionChip(
+              label: Text(preset.name, style: const TextStyle(fontSize: 12)),
+              avatar: Icon(Icons.auto_awesome, size: 14, color: color),
+              onPressed: () {
+                controls.beginGesture();
+                for (final e in preset.values.entries) {
+                  final p = meta.params.where((x) => x.key == e.key);
+                  if (p.isNotEmpty) controls.write(p.first, e.value);
+                }
+                controls.endGesture();
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
   List<Widget> _granular(Color color) {
     final pos = _p('granularPositionS');
     return [
@@ -200,16 +226,16 @@ class FxUnitDetailBody extends StatelessWidget {
         color: color,
         dim: DawColors.muted,
       ), height: 96),
+      _granularPresets(color),
+      // 主面は音楽的な名前の主要パラメータだけ（濃さ／粒の大きさ／密度／霧／広がり）。
+      // 位置・ピッチ・フィードバック等は下の「全パラメータ」で触れる
       _knobRow([
-        _knob('granularSizeMs', '大きさ', color),
+        _knob('granular', '濃さ', color),
+        _knob('granularSizeMs', '粒の大きさ', color),
         _knob('granularDensity', '密度', color),
-        _knob('granularPitch', 'ピッチ', color),
-        _knob('granular', '量', color),
       ]),
-      _slider('granularPositionS'),
-      _slider('granularSpray'),
-      _slider('granularTexture'),
-      _slider('granularFeedback'),
+      _slider('granularTexture', label: '霧（粒の輪郭と溶け具合）'),
+      _slider('granularSpray', label: '広がり（位置の散らばり）'),
       _freezeToggle(color),
     ];
   }

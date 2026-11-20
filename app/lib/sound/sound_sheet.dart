@@ -1,6 +1,7 @@
 // 音色シート：トラック名タップで出る。楽器（VSTi のように選ぶ）→ プリセット（セレクトボックス）
-// → 楽器専用パネル → 大きいつまみ → 必要なら「詳しく」。
+// → 楽器専用パネル → エフェクト チェーン（常時表示）→ 大きいつまみ → 詳細ページ（セグメント切替）。
 // つまみは再生しながら動かせて、離すまでが1回の Undo。
+// 折りたたみ（ExpansionTile）は使わない：チェーンも詳細も開かずに見えるのが Phase 3.5 の再編方針。
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -10,11 +11,13 @@ import '../arrange/mixer_sheet.dart';
 import '../arrange/song_controller.dart';
 import '../arrange/timeline_math.dart';
 import '../engine/mdaw_ffi.dart';
+import '../kits/kit_store.dart';
 import '../kits/kits_screen.dart';
 import '../model/project.dart';
 import '../ui/theme.dart';
 import 'bounce_section.dart';
 import 'fx_detail.dart';
+import 'granularize_section.dart';
 import 'sound_params.dart';
 import 'wave_painters.dart';
 import 'waveform_peaks.dart';
@@ -142,70 +145,102 @@ String _instrumentOf(TrackData t) {
 
 SoundParam _paramOf(String key) => allSoundParams.firstWhere((p) => p.key == key);
 
+/// 音色シートが SongController に求める読み書き面。シートの中身（パネル群）は
+/// この面だけに依存させ、ウィジェットテストではフェイクに差し替えられるようにする
+/// （Phase 3 の FxUnitControls と同じ分離。エンジン FFI には触れない）。
+abstract class SoundSheetActions {
+  ProjectData get project;
+  KitStore get kits;
+
+  /// 値が変わったときに鳴る通知（詳細シート等の再描画用）
+  Listenable get changes;
+  bool get canUndo;
+  bool get canRedo;
+  void undo();
+  void redo();
+  void beginGesture();
+  void endGesture();
+  bool setSound(int trackId, int paramId, double value);
+  void setSounds(int trackId, Map<int, double> values);
+  void previewTrack(int trackId);
+  void auditionChord(List<int> notes);
+  void auditionSequence(List<List<int>> chords, {Duration each});
+  void audition(int pitch, {double velocity});
+  bool setTrackKit(int trackId, String kitId);
+  bool setTrackSampler(int trackId, String kitId, String soundName, int rootNote, double gain, double start);
+  bool setTrackSamplerParam(int trackId, int paramId, double value);
+  bool addFxUnit(int trackId, int unitType);
+  bool removeFxUnit(int trackId, int unitIndex);
+  bool moveFxUnit(int trackId, int fromIndex, int toIndex);
+  bool setFxUnitEnabled(int trackId, int unitIndex, bool enabled);
+  bool setFxUnitParam(int trackId, int unitIndex, int paramId, double value);
+}
+
+/// 本番用：SongController へそのまま委譲する
+class SongSoundActions implements SoundSheetActions {
+  const SongSoundActions(this.song);
+
+  final SongController song;
+
+  @override
+  ProjectData get project => song.project;
+  @override
+  KitStore get kits => song.kits;
+  @override
+  Listenable get changes => song;
+  @override
+  bool get canUndo => song.canUndo;
+  @override
+  bool get canRedo => song.canRedo;
+  @override
+  void undo() => song.undo();
+  @override
+  void redo() => song.redo();
+  @override
+  void beginGesture() => song.beginGesture();
+  @override
+  void endGesture() => song.endGesture();
+  @override
+  bool setSound(int trackId, int paramId, double value) => song.setSound(trackId, paramId, value);
+  @override
+  void setSounds(int trackId, Map<int, double> values) => song.setSounds(trackId, values);
+  @override
+  void previewTrack(int trackId) => song.previewTrack(trackId);
+  @override
+  void auditionChord(List<int> notes) => song.auditionChord(notes);
+  @override
+  void auditionSequence(List<List<int>> chords, {Duration each = const Duration(milliseconds: 600)}) =>
+      song.auditionSequence(chords, each: each);
+  @override
+  void audition(int pitch, {double velocity = 0.8}) => song.audition(pitch, velocity: velocity);
+  @override
+  bool setTrackKit(int trackId, String kitId) => song.setTrackKit(trackId, kitId);
+  @override
+  bool setTrackSampler(int trackId, String kitId, String soundName, int rootNote, double gain, double start) =>
+      song.setTrackSampler(trackId, kitId, soundName, rootNote, gain, start);
+  @override
+  bool setTrackSamplerParam(int trackId, int paramId, double value) => song.setTrackSamplerParam(trackId, paramId, value);
+  @override
+  bool addFxUnit(int trackId, int unitType) => song.addFxUnit(trackId, unitType);
+  @override
+  bool removeFxUnit(int trackId, int unitIndex) => song.removeFxUnit(trackId, unitIndex);
+  @override
+  bool moveFxUnit(int trackId, int fromIndex, int toIndex) => song.moveFxUnit(trackId, fromIndex, toIndex);
+  @override
+  bool setFxUnitEnabled(int trackId, int unitIndex, bool enabled) => song.setFxUnitEnabled(trackId, unitIndex, enabled);
+  @override
+  bool setFxUnitParam(int trackId, int unitIndex, int paramId, double value) =>
+      song.setFxUnitParam(trackId, unitIndex, paramId, value);
+}
+
 class _SoundSheet extends StatelessWidget {
   const _SoundSheet({required this.song, required this.trackId});
 
   final SongController song;
   final int trackId;
 
-  void _audition(TrackData track) {
-    if (track.isSampler) {
-      // サンプラーは基準音程を中心に短い和音で試聴（エンジン側でスロットのサンプラーが鳴る）
-      final root = track.samplerRootNote;
-      song.auditionChord([root, root + 4, root + 7]);
-      return;
-    }
-    song.previewTrack(trackId);
-    final kit = track.isKit ? song.kits.installed(track.kitId) : null;
-    if (kit != null) {
-      // キットは最初の数音を順に
-      song.auditionSequence([for (final n in kit.notes.take(4)) [n]], each: const Duration(milliseconds: 280));
-    } else {
-      song.auditionChord(const [60, 63, 67, 70]);
-    }
-  }
-
   Future<void> _pickKit(BuildContext context) async {
     await Navigator.of(context).push(MaterialPageRoute<String>(builder: (_) => KitsScreen(song: song, pickFor: trackId)));
-    song.previewTrack(trackId);
-  }
-
-  void _selectInstrument(BuildContext context, TrackData track, String inst) {
-    if (inst == _instrumentOf(track)) return;
-    if (inst == _kSampler) {
-      // 入っているキットがあれば最初のキットの最初の音、無ければ探す画面へ
-      final have = song.kits.installedKits();
-      if (have.isEmpty) {
-        _pickKit(context);
-      } else {
-        final kit = have.first;
-        song.setTrackSampler(trackId, kit.id, kit.sounds.isEmpty ? '' : kit.sounds.first.name, 60, 1.0, 0.0);
-        song.previewTrack(trackId);
-      }
-      return;
-    }
-    // サンプラーから他の楽器へ移るときはサンプラーを外す（設定はコア側に残らないので注意：
-    // 再度サンプラーを選ぶと既定値から。キット／シンセの設定は従来どおり残る）
-    if (track.isSampler) {
-      song.setTrackSampler(trackId, '', '', 60, 1.0, 0.0);
-    }
-    if (inst == _kKit) {
-      // 入っているキットがあれば最初のもの、無ければ探す画面へ
-      final have = song.kits.installedKits();
-      if (have.isEmpty) {
-        _pickKit(context);
-      } else {
-        song.setTrackKit(trackId, have.first.id);
-        song.previewTrack(trackId);
-      }
-      return;
-    }
-    if (track.isKit) song.setTrackKit(trackId, '');
-    if (inst == _kAnalog) {
-      song.setSound(trackId, MdawParam.wtTable, 0);
-    } else if ((track.synth['wtTable'] ?? 0) < 1) {
-      song.setSound(trackId, MdawParam.wtTable, 1);
-    }
     song.previewTrack(trackId);
   }
 
@@ -219,112 +254,223 @@ class _SoundSheet extends StatelessWidget {
           builder: (context, _) {
             final track = song.project.track(trackId);
             if (track == null) return const SizedBox(height: 120, child: Center(child: Text('トラックがありません')));
-            final inst = _instrumentOf(track);
-            final instColor = _instColors[inst]!;
-            return ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              children: [
-                // シートを開いたまま曲を再生・停止できる小さな再生バー
-                _SheetTransport(song: song),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(color: Color(track.color), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text('${track.name} の音色',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(border: Border.all(color: instColor), borderRadius: BorderRadius.circular(999)),
-                      child: Text(_instNames[inst]!, style: TextStyle(fontSize: 10, color: instColor, fontWeight: FontWeight.w700)),
-                    ),
-                    IconButton(
-                        tooltip: '試聴', onPressed: () => _audition(track), icon: const Icon(Icons.play_circle_outline)),
-                    IconButton(
-                      tooltip: 'ミキサー',
-                      onPressed: () => showMixerSheet(context, song, focusTrackId: trackId),
-                      icon: const Icon(Icons.tune),
-                    ),
-                    IconButton(
-                      tooltip: '元に戻す',
-                      onPressed: song.canUndo ? song.undo : null,
-                      icon: const Icon(Icons.undo),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const _Caption('楽器'),
-                Row(
-                  children: [
-                    _InstCard(
-                      icon: Icons.graphic_eq,
-                      name: 'アナログ',
-                      sub: 'のこぎり／矩形',
-                      color: _instColors[_kAnalog]!,
-                      selected: inst == _kAnalog,
-                      onTap: () => _selectInstrument(context, track, _kAnalog),
-                    ),
-                    const SizedBox(width: 8),
-                    _InstCard(
-                      icon: Icons.waves,
-                      name: 'ウェーブテーブル',
-                      sub: '波形が変化',
-                      color: _instColors[_kWavetable]!,
-                      selected: inst == _kWavetable,
-                      onTap: () => _selectInstrument(context, track, _kWavetable),
-                    ),
-                    const SizedBox(width: 8),
-                    _InstCard(
-                      icon: Icons.grid_view,
-                      name: 'ドラムキット',
-                      sub: 'パッドで鳴らす',
-                      color: _instColors[_kKit]!,
-                      selected: inst == _kKit,
-                      onTap: () => _selectInstrument(context, track, _kKit),
-                    ),
-                    const SizedBox(width: 8),
-                    _InstCard(
-                      icon: Icons.music_note,
-                      name: 'サンプラー',
-                      sub: '音を鍵盤で',
-                      color: _instColors[_kSampler]!,
-                      selected: inst == _kSampler,
-                      onTap: () => _selectInstrument(context, track, _kSampler),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (inst == _kSampler) ...[
-                  _SamplerPanel(song: song, track: track, onBrowse: () => _pickKit(context)),
-                  const SizedBox(height: 8),
-                  for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(song: song, track: track, macro: m),
-                  _FxChainSection(song: song, track: track),
-                  _DetailSection(title: '詳しく：パンプ・センド', song: song, track: track, params: trackLevelFxParams),
-                ] else if (inst == _kKit) ...[
-                  _KitPanel(song: song, track: track, onBrowse: () => _pickKit(context)),
-                  const SizedBox(height: 8),
-                  for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(song: song, track: track, macro: m),
-                  _FxChainSection(song: song, track: track),
-                  _DetailSection(title: '詳しく：パンプ・センド', song: song, track: track, params: trackLevelFxParams),
-                ] else if (inst == _kWavetable) ...[
-                  _WavetablePanel(song: song, track: track),
-                ] else ...[
-                  _AnalogPanel(song: song, track: track),
-                ],
-              ],
+            return SoundSheetContent(
+              actions: SongSoundActions(song),
+              track: track,
+              onBrowseKit: () => _pickKit(context),
+              onOpenMixer: () => showMixerSheet(context, song, focusTrackId: trackId),
+              // シートを開いたまま曲を再生・停止できる小さな再生バー
+              header: _SheetTransport(song: song),
+              bounceSection: BounceSection(song: song, track: track),
+              granularizeSection: GranularizeSection(song: song, track: track),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// 音色シートの中身（再生バーを除く本体）。並びは全楽器共通で
+/// [楽器カード] → [音源パネル] → [エフェクト チェーン（常時表示）] → [マクロ] →
+/// [詳細ページ（シンセのみ）] → [パンプ・センド]。
+/// テストからはフェイクの [actions] で直接 pump できる。
+class SoundSheetContent extends StatelessWidget {
+  const SoundSheetContent({
+    super.key,
+    required this.actions,
+    required this.track,
+    required this.onBrowseKit,
+    required this.onOpenMixer,
+    this.header,
+    this.bounceSection,
+    this.granularizeSection,
+  });
+
+  final SoundSheetActions actions;
+  final TrackData track;
+  final VoidCallback onBrowseKit;
+  final VoidCallback onOpenMixer;
+
+  /// 先頭に出す再生バー（本番は _SheetTransport。テストでは省略可）
+  final Widget? header;
+
+  /// サンプラーパネル末尾に出すバウンス節（本番は BounceSection。テストでは省略可）
+  final Widget? bounceSection;
+
+  /// 末尾に出すグラニュラー化節（本番は GranularizeSection。サンプラー以外で表示。
+  /// テストでは省略可）
+  final Widget? granularizeSection;
+
+  void _audition() {
+    if (track.isSampler) {
+      // サンプラーは基準音程を中心に短い和音で試聴（エンジン側でスロットのサンプラーが鳴る）
+      final root = track.samplerRootNote;
+      actions.auditionChord([root, root + 4, root + 7]);
+      return;
+    }
+    actions.previewTrack(track.id);
+    final kit = track.isKit ? actions.kits.installed(track.kitId) : null;
+    if (kit != null) {
+      // キットは最初の数音を順に
+      actions.auditionSequence([for (final n in kit.notes.take(4)) [n]], each: const Duration(milliseconds: 280));
+    } else {
+      actions.auditionChord(const [60, 63, 67, 70]);
+    }
+  }
+
+  void _selectInstrument(BuildContext context, String inst) {
+    if (inst == _instrumentOf(track)) return;
+    if (inst == _kSampler) {
+      // 入っているキットがあれば最初のキットの最初の音、無ければ探す画面へ
+      final have = actions.kits.installedKits();
+      if (have.isEmpty) {
+        onBrowseKit();
+      } else {
+        final kit = have.first;
+        actions.setTrackSampler(track.id, kit.id, kit.sounds.isEmpty ? '' : kit.sounds.first.name, 60, 1.0, 0.0);
+        actions.previewTrack(track.id);
+      }
+      return;
+    }
+    // サンプラーから他の楽器へ移るときはサンプラーを外す（設定はコア側に残らないので注意：
+    // 再度サンプラーを選ぶと既定値から。キット／シンセの設定は従来どおり残る）
+    if (track.isSampler) {
+      actions.setTrackSampler(track.id, '', '', 60, 1.0, 0.0);
+    }
+    if (inst == _kKit) {
+      // 入っているキットがあれば最初のもの、無ければ探す画面へ
+      final have = actions.kits.installedKits();
+      if (have.isEmpty) {
+        onBrowseKit();
+      } else {
+        actions.setTrackKit(track.id, have.first.id);
+        actions.previewTrack(track.id);
+      }
+      return;
+    }
+    if (track.isKit) actions.setTrackKit(track.id, '');
+    if (inst == _kAnalog) {
+      actions.setSound(track.id, MdawParam.wtTable, 0);
+    } else if ((track.synth['wtTable'] ?? 0) < 1) {
+      actions.setSound(track.id, MdawParam.wtTable, 1);
+    }
+    actions.previewTrack(track.id);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final inst = _instrumentOf(track);
+    final instColor = _instColors[inst]!;
+    return ListView(
+      shrinkWrap: true,
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        if (header != null) ...[
+          header!,
+          const SizedBox(height: 12),
+        ],
+        Row(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: Color(track.color), shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text('${track.name} の音色',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(border: Border.all(color: instColor), borderRadius: BorderRadius.circular(999)),
+              child: Text(_instNames[inst]!, style: TextStyle(fontSize: 10, color: instColor, fontWeight: FontWeight.w700)),
+            ),
+            IconButton(tooltip: '試聴', onPressed: _audition, icon: const Icon(Icons.play_circle_outline)),
+            IconButton(
+              tooltip: 'ミキサー',
+              onPressed: onOpenMixer,
+              icon: const Icon(Icons.tune),
+            ),
+            IconButton(
+              tooltip: '元に戻す',
+              onPressed: actions.canUndo ? actions.undo : null,
+              icon: const Icon(Icons.undo),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        const _Caption('楽器'),
+        Row(
+          children: [
+            _InstCard(
+              icon: Icons.graphic_eq,
+              name: 'アナログ',
+              sub: 'のこぎり／矩形',
+              color: _instColors[_kAnalog]!,
+              selected: inst == _kAnalog,
+              onTap: () => _selectInstrument(context, _kAnalog),
+            ),
+            const SizedBox(width: 8),
+            _InstCard(
+              icon: Icons.waves,
+              name: 'ウェーブテーブル',
+              sub: '波形が変化',
+              color: _instColors[_kWavetable]!,
+              selected: inst == _kWavetable,
+              onTap: () => _selectInstrument(context, _kWavetable),
+            ),
+            const SizedBox(width: 8),
+            _InstCard(
+              icon: Icons.grid_view,
+              name: 'ドラムキット',
+              sub: 'パッドで鳴らす',
+              color: _instColors[_kKit]!,
+              selected: inst == _kKit,
+              onTap: () => _selectInstrument(context, _kKit),
+            ),
+            const SizedBox(width: 8),
+            _InstCard(
+              icon: Icons.music_note,
+              name: 'サンプラー',
+              sub: '音を鍵盤で',
+              color: _instColors[_kSampler]!,
+              selected: inst == _kSampler,
+              onTap: () => _selectInstrument(context, _kSampler),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (inst == _kSampler) ...[
+          _SamplerPanel(actions: actions, track: track, onBrowse: onBrowseKit, bounceSection: bounceSection),
+          const SizedBox(height: 12),
+          _FxChainSection(actions: actions, track: track),
+          const SizedBox(height: 8),
+          for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(actions: actions, track: track, macro: m),
+          _PumpSendSection(actions: actions, track: track),
+        ] else if (inst == _kKit) ...[
+          _KitPanel(actions: actions, track: track, onBrowse: onBrowseKit),
+          const SizedBox(height: 12),
+          _FxChainSection(actions: actions, track: track),
+          const SizedBox(height: 8),
+          for (final m in soundMacros.where((m) => m.label == 'パンプ')) _MacroSlider(actions: actions, track: track, macro: m),
+          _PumpSendSection(actions: actions, track: track),
+        ] else if (inst == _kWavetable) ...[
+          _WavetablePanel(actions: actions, track: track),
+        ] else ...[
+          _AnalogPanel(actions: actions, track: track),
+        ],
+        // グラニュラー化の入口は素材化したいトラック側に置く（サンプラーは
+        // パネル内のバウンス節が入口なので除く）
+        if (inst != _kSampler && granularizeSection != null) ...[
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          granularizeSection!,
+        ],
+      ],
     );
   }
 }
@@ -369,9 +515,9 @@ class _InstCard extends StatelessWidget {
 
 /// プリセットのセレクトボックス（楽器に合うものだけ。現在の値と一致すればそれが選ばれて見える）
 class _PresetSelect extends StatelessWidget {
-  const _PresetSelect({required this.song, required this.track, required this.presets});
+  const _PresetSelect({required this.actions, required this.track, required this.presets});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final List<SoundPreset> presets;
 
@@ -410,9 +556,9 @@ class _PresetSelect extends StatelessWidget {
             onChanged: (name) {
               if (name == null) return;
               final p = presets.firstWhere((e) => e.name == name);
-              song.setSounds(track.id, p.allValues);
-              song.previewTrack(track.id);
-              song.auditionChord(p.category == 'ドラム' ? const [48] : const [60, 63, 67, 70]);
+              actions.setSounds(track.id, p.allValues);
+              actions.previewTrack(track.id);
+              actions.auditionChord(p.category == 'ドラム' ? const [48] : const [60, 63, 67, 70]);
             },
           ),
         ),
@@ -421,27 +567,30 @@ class _PresetSelect extends StatelessWidget {
   }
 }
 
-void _macrosAndSections({
-  required List<Widget> into,
-  required SongController song,
+/// シンセ共通の後半の並び：[エフェクト チェーン] → [大きいつまみ] → [詳細ページ] → [パンプ・センド]
+List<Widget> _synthTail({
+  required SoundSheetActions actions,
   required TrackData track,
-  required List<(String, List<SoundParam>)> sections,
+  required Color color,
+  required bool wavetable,
 }) {
-  into.add(const _Caption('大きいつまみ'));
-  for (final m in soundMacros) {
-    into.add(_MacroSlider(song: song, track: track, macro: m));
-  }
-  into.add(const SizedBox(height: 8));
-  for (final (title, params) in sections) {
-    into.add(_DetailSection(title: title, song: song, track: track, params: params));
-  }
+  return [
+    const SizedBox(height: 12),
+    _FxChainSection(actions: actions, track: track),
+    const SizedBox(height: 8),
+    const _Caption('大きいつまみ'),
+    for (final m in soundMacros) _MacroSlider(actions: actions, track: track, macro: m),
+    const SizedBox(height: 12),
+    _SynthDetailPages(actions: actions, track: track, color: color, wavetable: wavetable),
+    _PumpSendSection(actions: actions, track: track),
+  ];
 }
 
 /// アナログ・シンセの専用パネル（アンバー：波形・フィルター特性・ADSR が見える）
 class _AnalogPanel extends StatelessWidget {
-  const _AnalogPanel({required this.song, required this.track});
+  const _AnalogPanel({required this.actions, required this.track});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
 
   @override
@@ -450,87 +599,74 @@ class _AnalogPanel extends StatelessWidget {
     final wave = _paramOf('wave');
     final cutoff = _paramOf('cutoffHz');
     final res = _paramOf('resonance');
-    final children = <Widget>[
-      _PresetSelect(song: song, track: track, presets: [for (final p in soundPresets) if (!p.isWavetable) p]),
-      const SizedBox(height: 12),
-      Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        decoration: BoxDecoration(border: Border.all(color: DawColors.line), borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('ANALOG', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
-            _ParamRow(song: song, track: track, param: wave),
-            CustomPaint(
-              size: const Size.fromHeight(72),
-              painter: AnalogWavePainter(
-                square: wave.valueOf(track) >= 0.5,
-                unison: _paramOf('unison').valueOf(track).round(),
-                color: color,
-                dim: DawColors.muted,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PresetSelect(actions: actions, track: track, presets: [for (final p in soundPresets) if (!p.isWavetable) p]),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          decoration: BoxDecoration(border: Border.all(color: DawColors.line), borderRadius: BorderRadius.circular(14)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('ANALOG', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
+              _ParamRow(actions: actions, track: track, param: wave),
+              CustomPaint(
+                size: const Size.fromHeight(72),
+                painter: AnalogWavePainter(
+                  square: wave.valueOf(track) >= 0.5,
+                  unison: _paramOf('unison').valueOf(track).round(),
+                  color: color,
+                  dim: DawColors.muted,
+                ),
               ),
-            ),
-            const _Caption('フィルター特性'),
-            CustomPaint(
-              size: const Size.fromHeight(52),
-              painter: FilterCurvePainter(
-                cutoffUnit: cutoff.toUnit(cutoff.valueOf(track)),
-                resUnit: res.toUnit(res.valueOf(track)),
-                color: color,
-                dim: DawColors.muted,
+              const _Caption('フィルター特性'),
+              CustomPaint(
+                size: const Size.fromHeight(52),
+                painter: FilterCurvePainter(
+                  cutoffUnit: cutoff.toUnit(cutoff.valueOf(track)),
+                  resUnit: res.toUnit(res.valueOf(track)),
+                  color: color,
+                  dim: DawColors.muted,
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Wrap(
-                spacing: 18,
-                children: [
-                  _SynthKnob(song: song, track: track, param: cutoff, label: 'カットオフ', color: color),
-                  _SynthKnob(song: song, track: track, param: res, label: 'レゾナンス', color: color),
-                ],
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Wrap(
+                  spacing: 18,
+                  children: [
+                    _SynthKnob(actions: actions, track: track, param: cutoff, label: 'カットオフ', color: color),
+                    _SynthKnob(actions: actions, track: track, param: res, label: 'レゾナンス', color: color),
+                  ],
+                ),
               ),
-            ),
-            const _Caption('エンベロープ（ADSR）'),
-            CustomPaint(
-              size: const Size.fromHeight(52),
-              painter: AdsrPainter(
-                a: _paramOf('attackS').toUnit(_paramOf('attackS').valueOf(track)),
-                d: _paramOf('decayS').toUnit(_paramOf('decayS').valueOf(track)),
-                s: _paramOf('sustain').valueOf(track),
-                r: _paramOf('releaseS').toUnit(_paramOf('releaseS').valueOf(track)),
-                color: color,
-                dim: DawColors.muted,
+              const _Caption('エンベロープ（ADSR）'),
+              CustomPaint(
+                size: const Size.fromHeight(52),
+                painter: AdsrPainter(
+                  a: _paramOf('attackS').toUnit(_paramOf('attackS').valueOf(track)),
+                  d: _paramOf('decayS').toUnit(_paramOf('decayS').valueOf(track)),
+                  s: _paramOf('sustain').valueOf(track),
+                  r: _paramOf('releaseS').toUnit(_paramOf('releaseS').valueOf(track)),
+                  color: color,
+                  dim: DawColors.muted,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 12),
-    ];
-    _macrosAndSections(
-      into: children,
-      song: song,
-      track: track,
-      sections: [
-        ('詳しく：オシレーター', analogOscParams),
-        ('詳しく：フィルター', filterParams),
-        ('詳しく：エンベロープ', envParams),
-        ('詳しく：演奏（グライド・モノ）', playParams),
-        ('詳しく：LFO（揺らしの拡張）', lfoParams),
-        ('詳しく：FM・フォルマント', voiceParams),
+        ..._synthTail(actions: actions, track: track, color: color, wavetable: false),
       ],
     );
-    children.add(_FxChainSection(song: song, track: track));
-    children.add(_DetailSection(title: '詳しく：パンプ・センド', song: song, track: track, params: trackLevelFxParams));
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
   }
 }
 
 /// ウェーブテーブル・シンセの専用パネル（ティール：波形モーフが見える）
 class _WavetablePanel extends StatelessWidget {
-  const _WavetablePanel({required this.song, required this.track});
+  const _WavetablePanel({required this.actions, required this.track});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
 
   @override
@@ -543,98 +679,330 @@ class _WavetablePanel extends StatelessWidget {
     final table = tableParam.valueOf(track).round();
     final pos = posParam.valueOf(track);
     final warp = warpParam.valueOf(track).round();
-    final children = <Widget>[
-      _PresetSelect(song: song, track: track, presets: [for (final p in soundPresets) if (p.isWavetable) p]),
-      const SizedBox(height: 12),
-      Container(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-        decoration: BoxDecoration(border: Border.all(color: DawColors.line), borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('WAVETABLE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
-            const SizedBox(height: 6),
-            CustomPaint(
-              size: const Size.fromHeight(104),
-              painter: WtWavePainter(
-                table: table,
-                pos: pos,
-                warp: warp,
-                warpAmt: warpAmtParam.valueOf(track),
-                color: color,
-                ghost: DawColors.muted,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PresetSelect(actions: actions, track: track, presets: [for (final p in soundPresets) if (p.isWavetable) p]),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+          decoration: BoxDecoration(border: Border.all(color: DawColors.line), borderRadius: BorderRadius.circular(14)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('WAVETABLE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
+              const SizedBox(height: 6),
+              CustomPaint(
+                size: const Size.fromHeight(104),
+                painter: WtWavePainter(
+                  table: table,
+                  pos: pos,
+                  warp: warp,
+                  warpAmt: warpAmtParam.valueOf(track),
+                  color: color,
+                  ghost: DawColors.muted,
+                ),
               ),
-            ),
-            CustomPaint(
-              size: const Size.fromHeight(22),
-              painter: WtStripPainter(table: table, pos: pos, color: color, dim: DawColors.muted),
-            ),
-            const _Caption('テーブル'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final (id, name) in wtTableNames)
-                  _MiniChip(
-                    label: name,
-                    color: color,
-                    selected: table == id,
-                    onTap: () => song.setSound(track.id, MdawParam.wtTable, id.toDouble()),
-                  ),
-              ],
-            ),
-            _ParamRow(song: song, track: track, param: posParam),
-            const _Caption('ワープ'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final (id, name) in const [(0, 'なし'), (1, '曲げる'), (2, '絞る'), (3, 'シンク')])
-                  _MiniChip(
-                    label: name,
-                    color: color,
-                    selected: warp == id,
-                    onTap: () => song.setSound(track.id, MdawParam.wtWarp, id.toDouble()),
-                  ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Wrap(
-                spacing: 18,
+              CustomPaint(
+                size: const Size.fromHeight(22),
+                painter: WtStripPainter(table: table, pos: pos, color: color, dim: DawColors.muted),
+              ),
+              const _Caption('テーブル'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  _SynthKnob(song: song, track: track, param: warpAmtParam, label: 'ワープ量', color: color),
+                  for (final (id, name) in wtTableNames)
+                    _MiniChip(
+                      label: name,
+                      color: color,
+                      selected: table == id,
+                      onTap: () => actions.setSound(track.id, MdawParam.wtTable, id.toDouble()),
+                    ),
                 ],
               ),
+              _ParamRow(actions: actions, track: track, param: posParam),
+              const _Caption('ワープ'),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final (id, name) in const [(0, 'なし'), (1, '曲げる'), (2, '絞る'), (3, 'シンク')])
+                    _MiniChip(
+                      label: name,
+                      color: color,
+                      selected: warp == id,
+                      onTap: () => actions.setSound(track.id, MdawParam.wtWarp, id.toDouble()),
+                    ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Wrap(
+                  spacing: 18,
+                  children: [
+                    _SynthKnob(actions: actions, track: track, param: warpAmtParam, label: 'ワープ量', color: color),
+                  ],
+                ),
+              ),
+              const _Caption('テーブルの位置を揺らす（LFO）'),
+              _ParamRow(actions: actions, track: track, param: _paramOf('wtLfoRate')),
+              _ParamRow(actions: actions, track: track, param: _paramOf('wtLfoAmount')),
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text('カスタム波形（WAVを読み込む／波形を描く）は準備中です', style: TextStyle(fontSize: 11, color: DawColors.muted)),
+              ),
+            ],
+          ),
+        ),
+        ..._synthTail(actions: actions, track: track, color: color, wavetable: true),
+      ],
+    );
+  }
+}
+
+/// シンセの詳細ページ（旧「詳しく：〜」折りたたみ群の置き換え、Phase 3.5）。
+/// セグメントで [音源|フィルター|エンベロープ|LFO|演奏] を切り替え、各ページは
+/// 視覚要素（波形／カーブ／グラフ）＋ノブ主体のレイアウトにする。
+/// 旧セクションのパラメータは全てどこかのページに置く（対応は PHASE35-HANDOFF 参照）。
+class _SynthDetailPages extends StatefulWidget {
+  const _SynthDetailPages({required this.actions, required this.track, required this.color, required this.wavetable});
+
+  final SoundSheetActions actions;
+  final TrackData track;
+  final Color color;
+  final bool wavetable;
+
+  @override
+  State<_SynthDetailPages> createState() => _SynthDetailPagesState();
+}
+
+class _SynthDetailPagesState extends State<_SynthDetailPages> {
+  int _page = 0;
+
+  SoundSheetActions get actions => widget.actions;
+  TrackData get track => widget.track;
+  Color get color => widget.color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      decoration: BoxDecoration(border: Border.all(color: DawColors.line), borderRadius: BorderRadius.circular(14)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('DETAIL', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.2, color: color)),
+          const SizedBox(height: 8),
+          SegmentChips(
+            options: const [(0, '音源'), (1, 'フィルター'), (2, 'エンベロープ'), (3, 'LFO'), (4, '演奏')],
+            selected: _page,
+            color: color,
+            onSelected: (v) => setState(() => _page = v),
+          ),
+          const SizedBox(height: 6),
+          switch (_page) {
+            0 => _oscPage(),
+            1 => _filterPage(),
+            2 => _envPage(),
+            3 => _lfoPage(),
+            _ => _playPage(),
+          },
+        ],
+      ),
+    );
+  }
+
+  /// 音源ページ：波形＋ユニゾン系ノブ＋FM・フォルマント
+  /// （旧「詳しく：オシレーター／ユニゾン」＋「詳しく：FM・フォルマント」）
+  Widget _oscPage() {
+    final wave = _paramOf('wave');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.wavetable)
+          CustomPaint(
+            size: const Size.fromHeight(64),
+            painter: WtWavePainter(
+              table: _paramOf('wtTable').valueOf(track).round(),
+              pos: _paramOf('wtPos').valueOf(track),
+              warp: _paramOf('wtWarp').valueOf(track).round(),
+              warpAmt: _paramOf('wtWarpAmount').valueOf(track),
+              color: color,
+              ghost: DawColors.muted,
             ),
-            const _Caption('テーブルの位置を揺らす（LFO）'),
-            _ParamRow(song: song, track: track, param: _paramOf('wtLfoRate')),
-            _ParamRow(song: song, track: track, param: _paramOf('wtLfoAmount')),
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text('カスタム波形（WAVを読み込む／波形を描く）は準備中です', style: TextStyle(fontSize: 11, color: DawColors.muted)),
+          )
+        else
+          CustomPaint(
+            size: const Size.fromHeight(56),
+            painter: AnalogWavePainter(
+              square: wave.valueOf(track) >= 0.5,
+              unison: _paramOf('unison').valueOf(track).round(),
+              color: color,
+              dim: DawColors.muted,
+            ),
+          ),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: widget.wavetable
+              ? const [('unison', '本数'), ('detuneCents', 'ずらし幅'), ('width', '広がり'), ('blend', 'ブレンド')]
+              : const [
+                  ('unison', '本数'),
+                  ('detuneCents', 'ずらし幅'),
+                  ('width', '広がり'),
+                  ('blend', 'ブレンド'),
+                  ('osc', 'オシレーター'),
+                  ('sub', 'サブ'),
+                  ('noise', 'ノイズ'),
+                  ('drive', '歪み'),
+                ],
+        ),
+        const _Caption('FM・フォルマント'),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [('fm', 'FMの深さ'), ('fmRatio', '周波数比'), ('formant', 'フォルマント')],
+        ),
+        Row(
+          children: [
+            const SizedBox(width: 130, child: Text('母音', style: TextStyle(fontSize: 12))),
+            SegmentChips(
+              options: const [(0, 'ア'), (1, 'エ'), (2, 'イ'), (3, 'オ'), (4, 'ウ')],
+              selected: _paramOf('formantVowel').valueOf(track).round(),
+              color: color,
+              onSelected: (v) => actions.setSound(track.id, MdawParam.formantVowel, v.toDouble()),
             ),
           ],
         ),
-      ),
-      const SizedBox(height: 12),
-    ];
-    _macrosAndSections(
-      into: children,
-      song: song,
-      track: track,
-      sections: [
-        ('詳しく：ユニゾン', unisonParams),
-        ('詳しく：フィルター', filterParams),
-        ('詳しく：エンベロープ', envParams),
-        ('詳しく：演奏（グライド・モノ）', playParams),
-        ('詳しく：LFO（揺らしの拡張）', lfoParams),
-        ('詳しく：FM・フォルマント', voiceParams),
       ],
     );
-    children.add(_FxChainSection(song: song, track: track));
-    children.add(_DetailSection(title: '詳しく：パンプ・センド', song: song, track: track, params: trackLevelFxParams));
-    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children);
+  }
+
+  /// フィルターページ：特性カーブ＋全パラメータをノブで（旧「詳しく：フィルター」）
+  Widget _filterPage() {
+    final cutoff = _paramOf('cutoffHz');
+    final res = _paramOf('resonance');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomPaint(
+          size: const Size.fromHeight(64),
+          painter: FilterCurvePainter(
+            cutoffUnit: cutoff.toUnit(cutoff.valueOf(track)),
+            resUnit: res.toUnit(res.valueOf(track)),
+            color: color,
+            dim: DawColors.muted,
+          ),
+        ),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [
+            ('cutoffHz', 'カットオフ'),
+            ('resonance', 'レゾナンス'),
+            ('filterEnv', '開く量'),
+            ('filterEnvDecayS', '閉じる時間'),
+            ('keyTrack', 'キートラック'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// エンベロープページ：ADSR グラフ＋ノブ（旧「詳しく：エンベロープ」）
+  Widget _envPage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomPaint(
+          size: const Size.fromHeight(64),
+          painter: AdsrPainter(
+            a: _paramOf('attackS').toUnit(_paramOf('attackS').valueOf(track)),
+            d: _paramOf('decayS').toUnit(_paramOf('decayS').valueOf(track)),
+            s: _paramOf('sustain').valueOf(track),
+            r: _paramOf('releaseS').toUnit(_paramOf('releaseS').valueOf(track)),
+            color: color,
+            dim: DawColors.muted,
+          ),
+        ),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [('attackS', 'アタック'), ('decayS', 'ディケイ'), ('sustain', 'サステイン'), ('releaseS', 'リリース')],
+        ),
+        const _Caption('音程エンベロープ・音量'),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [('pitchEnv', '音程の動き'), ('pitchEnvDecayS', '戻る時間'), ('masterGain', '音色の音量')],
+        ),
+      ],
+    );
+  }
+
+  /// LFO ページ：波形プレビュー＋波形／同期の選択＋宛先ノブ（旧「詳しく：LFO」）
+  Widget _lfoPage() {
+    final sync = _paramOf('lfoSync').valueOf(track) >= 0.5;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomPaint(
+          size: const Size.fromHeight(56),
+          painter: LfoWavePainter(wave: _paramOf('lfoWave').valueOf(track).round(), color: color, dim: DawColors.muted),
+        ),
+        const _Caption('LFOの波形'),
+        SegmentChips(
+          options: const [(0, '正弦'), (1, '三角'), (2, '矩形'), (3, 'のこぎり')],
+          selected: _paramOf('lfoWave').valueOf(track).round(),
+          color: color,
+          onSelected: (v) => actions.setSound(track.id, MdawParam.lfoWave, v.toDouble()),
+        ),
+        _ParamRow(actions: actions, track: track, param: _paramOf('lfoSync')),
+        if (sync) ...[
+          const _Caption('LFOの周期（テンポ同期）'),
+          SegmentChips(
+            options: const [(0, '1小節'), (1, '4分'), (2, '付点8分'), (3, '8分'), (4, '16分')],
+            selected: _paramOf('lfoDiv').valueOf(track).round(),
+            color: color,
+            onSelected: (v) => actions.setSound(track.id, MdawParam.lfoDiv, v.toDouble()),
+          ),
+        ],
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [('lfoCutoff', '明るさへ'), ('lfoPitch', '音程へ'), ('lfoAmp', '音量へ')],
+        ),
+        _ParamRow(actions: actions, track: track, param: _paramOf('lfoRetrig')),
+      ],
+    );
+  }
+
+  /// 演奏ページ：グライドのカーブ＋グライド／モノ（旧「詳しく：演奏」）
+  Widget _playPage() {
+    final glide = _paramOf('glideS');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomPaint(
+          size: const Size.fromHeight(64),
+          painter: GlidePainter(glideUnit: glide.toUnit(glide.valueOf(track)), color: color, dim: DawColors.muted),
+        ),
+        _KnobRow(
+          actions: actions,
+          track: track,
+          color: color,
+          knobs: const [('glideS', 'グライド')],
+        ),
+        _ParamRow(actions: actions, track: track, param: _paramOf('mono')),
+      ],
+    );
   }
 }
 
@@ -671,16 +1039,16 @@ class _MiniChip extends StatelessWidget {
 
 /// キットのトラック：使っているキット、パッド（タップで試聴）、別のキットに替える
 class _KitPanel extends StatelessWidget {
-  const _KitPanel({required this.song, required this.track, required this.onBrowse});
+  const _KitPanel({required this.actions, required this.track, required this.onBrowse});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final VoidCallback onBrowse;
 
   @override
   Widget build(BuildContext context) {
-    final kit = song.kits.installed(track.kitId);
-    final installed = song.kits.installedKits();
+    final kit = actions.kits.installed(track.kitId);
+    final installed = actions.kits.installedKits();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -698,8 +1066,8 @@ class _KitPanel extends StatelessWidget {
                       ],
                       onChanged: (id) {
                         if (id == null) return;
-                        song.setTrackKit(track.id, id);
-                        song.previewTrack(track.id);
+                        actions.setTrackKit(track.id, id);
+                        actions.previewTrack(track.id);
                       },
                     ),
             ),
@@ -727,8 +1095,8 @@ class _KitPanel extends StatelessWidget {
               for (final snd in kit.sounds)
                 InkWell(
                   onTap: () {
-                    song.previewTrack(track.id);
-                    song.audition(snd.note, velocity: 0.9);
+                    actions.previewTrack(track.id);
+                    actions.audition(snd.note, velocity: 0.9);
                   },
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
@@ -774,9 +1142,9 @@ class _Caption extends StatelessWidget {
 }
 
 class _MacroSlider extends StatelessWidget {
-  const _MacroSlider({required this.song, required this.track, required this.macro});
+  const _MacroSlider({required this.actions, required this.track, required this.macro});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final SoundMacro macro;
 
@@ -812,9 +1180,9 @@ class _MacroSlider extends StatelessWidget {
               ),
               child: Slider(
                 value: value,
-                onChangeStart: (_) => song.beginGesture(),
-                onChanged: (u) => song.setSounds(track.id, macro.write(u)),
-                onChangeEnd: (_) => song.endGesture(),
+                onChangeStart: (_) => actions.beginGesture(),
+                onChanged: (u) => actions.setSounds(track.id, macro.write(u)),
+                onChangeEnd: (_) => actions.endGesture(),
               ),
             ),
           ),
@@ -829,31 +1197,43 @@ class _MacroSlider extends StatelessWidget {
   }
 }
 
-class _DetailSection extends StatelessWidget {
-  const _DetailSection({required this.title, required this.song, required this.track, required this.params});
+/// セクション見出し（折りたたみの代わりに、常時表示セクションの題として使う）
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
 
-  final String title;
-  final SongController song;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 10, bottom: 2),
+        child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+      );
+}
+
+/// パンプ・センド節：トラック直属のパラメータ（旧「詳しく：パンプ・センド」）。
+/// 折りたたみをやめて常時表示のセクションにした（Phase 3.5）。
+class _PumpSendSection extends StatelessWidget {
+  const _PumpSendSection({required this.actions, required this.track});
+
+  final SoundSheetActions actions;
   final TrackData track;
-  final List<SoundParam> params;
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: Text(title, style: const TextStyle(fontSize: 14)),
-        children: [for (final p in params) _ParamRow(song: song, track: track, param: p)],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle('パンプ・センド'),
+        for (final p in trackLevelFxParams) _ParamRow(actions: actions, track: track, param: p),
+      ],
     );
   }
 }
 
 class _ParamRow extends StatelessWidget {
-  const _ParamRow({required this.song, required this.track, required this.param});
+  const _ParamRow({required this.actions, required this.track, required this.param});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final SoundParam param;
 
@@ -875,7 +1255,7 @@ class _ParamRow extends StatelessWidget {
                 ButtonSegment(value: true, label: Text(labels.$2)),
               ],
               selected: {on},
-              onSelectionChanged: (s) => song.setSound(track.id, param.id, s.first ? 1 : 0),
+              onSelectionChanged: (s) => actions.setSound(track.id, param.id, s.first ? 1 : 0),
             ),
           ],
         ),
@@ -892,14 +1272,14 @@ class _ParamRow extends StatelessWidget {
           Expanded(
             child: Slider(
               value: param.toUnit(v),
-              onChangeStart: (_) => song.beginGesture(),
-              onChanged: (u) => song.setSound(track.id, param.id, param.fromUnit(u)),
-              onChangeEnd: (_) => song.endGesture(),
+              onChangeStart: (_) => actions.beginGesture(),
+              onChanged: (u) => actions.setSound(track.id, param.id, param.fromUnit(u)),
+              onChangeEnd: (_) => actions.endGesture(),
             ),
           ),
           GestureDetector(
             // ダブルタップで既定値に戻す
-            onDoubleTap: () => song.setSound(track.id, param.id, param.def),
+            onDoubleTap: () => actions.setSound(track.id, param.id, param.def),
             child: SizedBox(
               width: 70,
               child: Text(param.format(v),
@@ -915,9 +1295,9 @@ class _ParamRow extends StatelessWidget {
 
 /// シンセ系パラメータのノブ（ドラッグ中は1回の Undo にまとめる）
 class _SynthKnob extends StatelessWidget {
-  const _SynthKnob({required this.song, required this.track, required this.param, required this.label, required this.color});
+  const _SynthKnob({required this.actions, required this.track, required this.param, required this.label, required this.color});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final SoundParam param;
   final String label;
@@ -931,56 +1311,82 @@ class _SynthKnob extends StatelessWidget {
       valueText: param.format(v),
       unit: param.toUnit(v),
       color: color,
-      onChangeStart: song.beginGesture,
-      onChanged: (u) => song.setSound(track.id, param.id, param.fromUnit(u)),
-      onChangeEnd: (_) => song.endGesture(),
-      onReset: () => song.setSound(track.id, param.id, param.def),
+      onChangeStart: actions.beginGesture,
+      onChanged: (u) => actions.setSound(track.id, param.id, param.fromUnit(u)),
+      onChangeEnd: (_) => actions.endGesture(),
+      onReset: () => actions.setSound(track.id, param.id, param.def),
     );
   }
 }
 
-/// FX チェーン節：ユニットのカード列（色ドット・名前・有効スイッチ・↑↓・削除）と
-/// 「＋追加」パレット。カードの名前タップでそのユニットの詳細シートを開く。
-class _FxChainSection extends StatelessWidget {
-  const _FxChainSection({required this.song, required this.track});
+/// ノブの横並び（詳細ページの主要パラメータ用）
+class _KnobRow extends StatelessWidget {
+  const _KnobRow({required this.actions, required this.track, required this.color, required this.knobs});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
+  final Color color;
+
+  /// (パラメータのキー, ノブ下の短いラベル)
+  final List<(String, String)> knobs;
 
   @override
   Widget build(BuildContext context) {
-    final chain = track.fxChain;
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        title: const Text('エフェクト チェーン', style: TextStyle(fontSize: 14)),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 10,
         children: [
-          if (chain.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('チェーンはまだありません。「＋追加」から足せます', style: TextStyle(fontSize: 12, color: DawColors.muted)),
-            ),
-          for (var i = 0; i < chain.length; i++)
-            _FxUnitCard(song: song, track: track, index: i, isFirst: i == 0, isLast: i == chain.length - 1),
-          ListTile(
-            dense: true,
-            enabled: chain.length < kMaxFxUnits,
-            leading: const Icon(Icons.add, size: 20),
-            title: Text(chain.length < kMaxFxUnits ? 'ユニットを追加' : 'ユニットは最大 $kMaxFxUnits 個まで',
-                style: const TextStyle(fontSize: 13)),
-            onTap: () => _showFxUnitPalette(context, song, track),
-          ),
+          for (final (key, label) in knobs)
+            _SynthKnob(actions: actions, track: track, param: _paramOf(key), label: label, color: color),
         ],
       ),
     );
   }
 }
 
-class _FxUnitCard extends StatelessWidget {
-  const _FxUnitCard({required this.song, required this.track, required this.index, required this.isFirst, required this.isLast});
+/// FX チェーン節：ユニットのカード列（色ドット・名前・有効スイッチ・↑↓・削除）と
+/// 「＋追加」パレット。常時表示（折りたたみなし）で、音源パネルの直下に置く（Phase 3.5）。
+/// カードの名前タップでそのユニットの詳細シートを開く。
+class _FxChainSection extends StatelessWidget {
+  const _FxChainSection({required this.actions, required this.track});
 
-  final SongController song;
+  final SoundSheetActions actions;
+  final TrackData track;
+
+  @override
+  Widget build(BuildContext context) {
+    final chain = track.fxChain;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle('エフェクト チェーン'),
+        if (chain.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Text('チェーンはまだありません。「ユニットを追加」から足せます', style: TextStyle(fontSize: 12, color: DawColors.muted)),
+          ),
+        for (var i = 0; i < chain.length; i++)
+          _FxUnitCard(actions: actions, track: track, index: i, isFirst: i == 0, isLast: i == chain.length - 1),
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          enabled: chain.length < kMaxFxUnits,
+          leading: const Icon(Icons.add, size: 20),
+          title: Text(chain.length < kMaxFxUnits ? 'ユニットを追加' : 'ユニットは最大 $kMaxFxUnits 個まで',
+              style: const TextStyle(fontSize: 13)),
+          onTap: () => _showFxUnitPalette(context, actions, track),
+        ),
+      ],
+    );
+  }
+}
+
+class _FxUnitCard extends StatelessWidget {
+  const _FxUnitCard({required this.actions, required this.track, required this.index, required this.isFirst, required this.isLast});
+
+  final SoundSheetActions actions;
   final TrackData track;
   final int index;
   final bool isFirst;
@@ -1004,7 +1410,7 @@ class _FxUnitCard extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: InkWell(
-              onTap: () => _showFxUnitDetail(context, song, track.id, index),
+              onTap: () => _showFxUnitDetail(context, actions, track.id, index),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Text(name,
@@ -1018,23 +1424,23 @@ class _FxUnitCard extends StatelessWidget {
           IconButton(
             tooltip: '上へ',
             visualDensity: VisualDensity.compact,
-            onPressed: isFirst ? null : () => song.moveFxUnit(track.id, index, index - 1),
+            onPressed: isFirst ? null : () => actions.moveFxUnit(track.id, index, index - 1),
             icon: const Icon(Icons.keyboard_arrow_up, size: 20),
           ),
           IconButton(
             tooltip: '下へ',
             visualDensity: VisualDensity.compact,
-            onPressed: isLast ? null : () => song.moveFxUnit(track.id, index, index + 1),
+            onPressed: isLast ? null : () => actions.moveFxUnit(track.id, index, index + 1),
             icon: const Icon(Icons.keyboard_arrow_down, size: 20),
           ),
           Switch(
             value: unit.enabled,
-            onChanged: (v) => song.setFxUnitEnabled(track.id, index, v),
+            onChanged: (v) => actions.setFxUnitEnabled(track.id, index, v),
           ),
           IconButton(
             tooltip: '削除',
             visualDensity: VisualDensity.compact,
-            onPressed: () => song.removeFxUnit(track.id, index),
+            onPressed: () => actions.removeFxUnit(track.id, index),
             icon: const Icon(Icons.close, size: 18),
           ),
         ],
@@ -1044,7 +1450,7 @@ class _FxUnitCard extends StatelessWidget {
 }
 
 /// 追加パレット：全ユニット種別の一覧（同じ種別も重ねて足せる）
-void _showFxUnitPalette(BuildContext context, SongController song, TrackData track) {
+void _showFxUnitPalette(BuildContext context, SoundSheetActions actions, TrackData track) {
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: DawColors.panel,
@@ -1064,7 +1470,7 @@ void _showFxUnitPalette(BuildContext context, SongController song, TrackData tra
               ),
               title: Text(fxUnitMetas[i].name, style: const TextStyle(fontSize: 13)),
               onTap: () {
-                song.addFxUnit(track.id, i);
+                actions.addFxUnit(track.id, i);
                 Navigator.of(context).pop();
               },
             ),
@@ -1074,21 +1480,21 @@ void _showFxUnitPalette(BuildContext context, SongController song, TrackData tra
   );
 }
 
-void _showFxUnitDetail(BuildContext context, SongController song, int trackId, int index) {
+void _showFxUnitDetail(BuildContext context, SoundSheetActions actions, int trackId, int index) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     backgroundColor: DawColors.panel,
-    builder: (context) => _FxUnitDetailSheet(song: song, trackId: trackId, index: index),
+    builder: (context) => _FxUnitDetailSheet(actions: actions, trackId: trackId, index: index),
   );
 }
 
 /// ユニットの詳細シート：種別ごとの専用レイアウト（FxUnitDetailBody）で出す。
 /// 無効なユニットは、値を動かした時点で自動で有効になる。
 class _FxUnitDetailSheet extends StatelessWidget {
-  const _FxUnitDetailSheet({required this.song, required this.trackId, required this.index});
+  const _FxUnitDetailSheet({required this.actions, required this.trackId, required this.index});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final int trackId;
   final int index;
 
@@ -1098,9 +1504,9 @@ class _FxUnitDetailSheet extends StatelessWidget {
       child: ConstrainedBox(
         constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.78),
         child: ListenableBuilder(
-          listenable: song,
+          listenable: actions.changes,
           builder: (context, _) {
-            final track = song.project.track(trackId);
+            final track = actions.project.track(trackId);
             if (track == null || index < 0 || index >= track.fxChain.length) {
               return const SizedBox(height: 120, child: Center(child: Text('ユニットがありません')));
             }
@@ -1111,12 +1517,12 @@ class _FxUnitDetailSheet extends StatelessWidget {
               valueOf: (p) => unit.params[p.key] ?? p.def,
               write: (p, v) {
                 // 無効なユニットは、値を動かしたら使えるように自動で有効化する
-                if (!unit.enabled) song.setFxUnitEnabled(track.id, index, true);
-                song.setFxUnitParam(track.id, index, p.id, v);
+                if (!unit.enabled) actions.setFxUnitEnabled(track.id, index, true);
+                actions.setFxUnitParam(track.id, index, p.id, v);
               },
-              beginGesture: song.beginGesture,
-              endGesture: song.endGesture,
-              tempo: song.project.tempo,
+              beginGesture: actions.beginGesture,
+              endGesture: actions.endGesture,
+              tempo: actions.project.tempo,
             );
             return ListView(
               shrinkWrap: true,
@@ -1136,7 +1542,7 @@ class _FxUnitDetailSheet extends StatelessWidget {
                     ),
                     Switch(
                       value: unit.enabled,
-                      onChanged: (v) => song.setFxUnitEnabled(track.id, index, v),
+                      onChanged: (v) => actions.setFxUnitEnabled(track.id, index, v),
                     ),
                   ],
                 ),
@@ -1160,11 +1566,14 @@ String _noteName(int note) {
 /// サンプラーのトラック：素材キットと音の選択、基準音程、音量、開始位置。
 /// 素材の実波形（取れなければ見本波形）を出し、グラニュラー時は粒の散布も重ねる
 class _SamplerPanel extends StatefulWidget {
-  const _SamplerPanel({required this.song, required this.track, required this.onBrowse});
+  const _SamplerPanel({required this.actions, required this.track, required this.onBrowse, this.bounceSection});
 
-  final SongController song;
+  final SoundSheetActions actions;
   final TrackData track;
   final VoidCallback onBrowse;
+
+  /// 末尾のバウンス節（エンジン書き出しに直結するためシート側から渡す。テストでは省略可）
+  final Widget? bounceSection;
 
   @override
   State<_SamplerPanel> createState() => _SamplerPanelState();
@@ -1174,7 +1583,10 @@ class _SamplerPanelState extends State<_SamplerPanel> {
   List<double>? _peaks;
   String _peaksKey = '';
 
-  SongController get song => widget.song;
+  /// グラニュラーの「細かく調整」を開いているか（主面はプリセット＋主要パラメータだけ）
+  bool _showGranularDetail = false;
+
+  SoundSheetActions get actions => widget.actions;
   TrackData get track => widget.track;
 
   @override
@@ -1196,7 +1608,7 @@ class _SamplerPanelState extends State<_SamplerPanel> {
     _peaksKey = key;
     _peaks = null;
     if (track.samplerKitId.isEmpty || track.samplerSoundName.isEmpty) return;
-    final root = song.kits.root.path;
+    final root = actions.kits.root.path;
     unawaited(loadKitSoundPeaks(kitsRootPath: root, kitId: track.samplerKitId, soundName: track.samplerSoundName)
         .then((p) {
       if (mounted && _peaksKey == key) setState(() => _peaks = p);
@@ -1204,13 +1616,21 @@ class _SamplerPanelState extends State<_SamplerPanel> {
   }
 
   void _commit(String kitId, String soundName, int rootNote, double gain, double start) {
-    song.setTrackSampler(track.id, kitId, soundName, rootNote, gain, start);
-    song.previewTrack(track.id);
+    actions.setTrackSampler(track.id, kitId, soundName, rootNote, gain, start);
+    actions.previewTrack(track.id);
   }
 
   void _granular(int paramId, double value) {
-    song.setTrackSamplerParam(track.id, paramId, value);
-    song.previewTrack(track.id);
+    actions.setTrackSamplerParam(track.id, paramId, value);
+    actions.previewTrack(track.id);
+  }
+
+  /// プリセット適用: 全パラメータを書いてから 1 回だけ試聴する
+  void _granularPreset(SamplerGranularPreset preset) {
+    for (final e in preset.values.entries) {
+      actions.setTrackSamplerParam(track.id, e.key, e.value);
+    }
+    actions.previewTrack(track.id);
   }
 
   String _granularFormat(SoundParam p, double v) {
@@ -1260,8 +1680,8 @@ class _SamplerPanelState extends State<_SamplerPanel> {
   @override
   Widget build(BuildContext context) {
     final color = _instColors[_kSampler]!;
-    final kit = song.kits.installed(track.samplerKitId);
-    final installed = song.kits.installedKits();
+    final kit = actions.kits.installed(track.samplerKitId);
+    final installed = actions.kits.installedKits();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1281,7 +1701,7 @@ class _SamplerPanelState extends State<_SamplerPanel> {
                       ],
                       onChanged: (id) {
                         if (id == null) return;
-                        final next = song.kits.installed(id);
+                        final next = actions.kits.installed(id);
                         _commit(id, next == null || next.sounds.isEmpty ? '' : next.sounds.first.name,
                             track.samplerRootNote, track.samplerGain, track.samplerStart);
                       },
@@ -1312,7 +1732,7 @@ class _SamplerPanelState extends State<_SamplerPanel> {
                   selected: track.samplerSoundName == snd.name,
                   onTap: () {
                     _commit(track.samplerKitId, snd.name, track.samplerRootNote, track.samplerGain, track.samplerStart);
-                    song.audition(track.samplerRootNote);
+                    actions.audition(track.samplerRootNote);
                   },
                 ),
             ],
@@ -1393,10 +1813,24 @@ class _SamplerPanelState extends State<_SamplerPanel> {
           if (track.samplerGranularEnabled) ...[
             const _Caption('読み位置の動き'),
             SegmentChips(
-              options: const [(0, '全体を這う'), (1, '曲位置に同期'), (2, '狭いループ')],
+              options: const [(0, '全体を這う'), (1, '曲位置に同期'), (2, '狭いループ'), (3, '往復（ピンポン）')],
               selected: track.samplerGranularPositionMode,
               color: color,
               onSelected: (m) => _granular(MdawParam.samplerGranularPositionMode, m.toDouble()),
+            ),
+            const SizedBox(height: 8),
+            const _Caption('プリセット（選ぶと粒の質感が一式入ります）'),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final preset in samplerGranularPresets)
+                  ActionChip(
+                    label: Text(preset.name, style: const TextStyle(fontSize: 12)),
+                    avatar: Icon(Icons.auto_awesome, size: 14, color: color),
+                    onPressed: () => _granularPreset(preset),
+                  ),
+              ],
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -1405,7 +1839,7 @@ class _SamplerPanelState extends State<_SamplerPanel> {
               children: [
                 for (final key in const ['sizeMs', 'density'])
                   _CommitKnob(
-                    label: key == 'sizeMs' ? '大きさ' : '密度',
+                    label: key == 'sizeMs' ? '粒の大きさ' : '密度',
                     param: _sgParam(key),
                     value: samplerGranularValueOf(track, _sgParam(key).id),
                     color: color,
@@ -1414,36 +1848,67 @@ class _SamplerPanelState extends State<_SamplerPanel> {
                   ),
               ],
             ),
-            for (final p in samplerGranularParams)
-              if (p.key != 'sizeMs' && p.key != 'density')
+            // 主面の主要パラメータは音楽的な名前で（霧＝質感、広がり＝散らばり）
+            for (final (key, label) in const [('texture', '霧（粒の輪郭と溶け具合）'), ('spray', '広がり（位置の散らばり）')])
+              _CommitSlider(
+                label: label,
+                value: samplerGranularValueOf(track, _sgParam(key).id),
+                min: _sgParam(key).min,
+                max: _sgParam(key).max,
+                format: (v) => _granularFormat(_sgParam(key), v),
+                onCommit: (v) => _granular(_sgParam(key).id, v),
+              ),
+            Row(
+              children: [
+                const Expanded(child: _Caption('細かく調整')),
+                Switch(
+                  value: _showGranularDetail,
+                  activeThumbColor: color,
+                  onChanged: (v) => setState(() => _showGranularDetail = v),
+                ),
+              ],
+            ),
+            if (_showGranularDetail) ...[
+              for (final key in const [
+                'position',
+                'pitchSpread',
+                'timingRandom',
+                'sizeRandom',
+                'reverseChance',
+                'roam',
+                'roamSpeed',
+                'feedback',
+                'pitchDrift',
+              ])
                 _CommitSlider(
-                  label: p.label,
-                  value: samplerGranularValueOf(track, p.id),
-                  min: p.min,
-                  max: p.max,
-                  format: (v) => _granularFormat(p, v),
-                  onCommit: (v) => _granular(p.id, v),
+                  label: _sgParam(key).label,
+                  value: samplerGranularValueOf(track, _sgParam(key).id),
+                  min: _sgParam(key).min,
+                  max: _sgParam(key).max,
+                  format: (v) => _granularFormat(_sgParam(key), v),
+                  onCommit: (v) => _granular(_sgParam(key).id, v),
                 ),
-            Row(
-              children: [
-                const Expanded(child: _Caption('フリーズ（読み位置を凍らせる）')),
-                Switch(
-                  value: track.samplerGranularFreeze,
-                  activeThumbColor: color,
-                  onChanged: (v) => _granular(MdawParam.samplerGranularFreeze, v ? 1 : 0),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                const Expanded(child: _Caption('ピッチ量子化（粒を和音の音程に寄せる）')),
-                Switch(
-                  value: track.samplerGranularPitchQuantize,
-                  activeThumbColor: color,
-                  onChanged: (v) => _granular(MdawParam.samplerGranularPitchQuantize, v ? 1 : 0),
-                ),
-              ],
-            ),
+              Row(
+                children: [
+                  const Expanded(child: _Caption('フリーズ（読み位置を凍らせる）')),
+                  Switch(
+                    value: track.samplerGranularFreeze,
+                    activeThumbColor: color,
+                    onChanged: (v) => _granular(MdawParam.samplerGranularFreeze, v ? 1 : 0),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  const Expanded(child: _Caption('ピッチ量子化（粒を和音の音程に寄せる）')),
+                  Switch(
+                    value: track.samplerGranularPitchQuantize,
+                    activeThumbColor: color,
+                    onChanged: (v) => _granular(MdawParam.samplerGranularPitchQuantize, v ? 1 : 0),
+                  ),
+                ],
+              ),
+            ],
             const Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text('粒は鍵盤の音程で鳴ります。ノートオフでは雲がゆっくり（0.4秒）消えます',
@@ -1451,9 +1916,11 @@ class _SamplerPanelState extends State<_SamplerPanel> {
             ),
           ],
         ],
-        const SizedBox(height: 12),
-        const Divider(height: 1),
-        BounceSection(song: song, track: track),
+        if (widget.bounceSection != null) ...[
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          widget.bounceSection!,
+        ],
       ],
     );
   }

@@ -1,9 +1,9 @@
-// バウンス素材の作成（Phase 2.5）: 選んだトラックをソロで書き出し（コアの
-// トラック単体レンダー）、キットとして登録して、このトラックのサンプラー素材に
-// する。素材の参照は通常のサンプラーと同じ（kitId + 音の名前）でプロジェクトに残る。
+// バウンス素材の作成: 選んだトラックをソロで書き出し（コアのトラック単体
+// レンダー）、キットとして登録して、このトラックのサンプラー素材にする。
+// 素材の参照は通常のサンプラーと同じ（kitId + 音の名前）でプロジェクトに残る。
 // 書き出したキットは端末のキット置き場に残るので、プロジェクトを開き直しても鳴る。
+// Phase 2.6: 配置単位の部分バウンスと、書き出し元をミュートする「置き換え」を追加。
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import '../arrange/song_controller.dart';
 import '../engine/mdaw_ffi.dart';
 import '../model/project.dart';
 import '../ui/theme.dart';
+import 'bounce_core.dart';
 
 class BounceSection extends StatefulWidget {
   const BounceSection({super.key, required this.song, required this.track});
@@ -27,6 +28,10 @@ class BounceSection extends StatefulWidget {
 
 class _BounceSectionState extends State<BounceSection> {
   int? _sourceId;
+  bool _partial = false;
+  int? _rangeStartId; // 配置 ID（部分バウンスの開始）
+  int? _rangeEndId; // 配置 ID（部分バウンスの終了）
+  bool _muteSource = true; // 置き換え：書き出し元をミュートする
   bool _busy = false;
   double _progress = 0;
   String? _status;
@@ -43,24 +48,25 @@ class _BounceSectionState extends State<BounceSection> {
 
   int get _source => _sourceId ?? (_tracks.firstWhere((t) => t.id != widget.track.id, orElse: () => widget.track).id);
 
-  /// キット ID は [a-z0-9-] のみ・48 字以内（コアの isValidKitId に合わせる）
-  String _newKitId() {
-    var base = (widget.song.projectId ?? 'project')
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9-]'), '-')
-        .replaceAll(RegExp(r'-+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-    if (base.isEmpty) base = 'project';
-    final stamp = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
-    var id = 'bounce-$base-$stamp';
-    if (id.length > 48) id = id.substring(0, 48).replaceAll(RegExp(r'-+$'), '');
-    return id;
+  TrackData get _sourceTrack => _tracks.firstWhere((t) => t.id == _source, orElse: () => widget.track);
+
+  List<PlacementData> get _placements => placementsOf(widget.song.project, _source);
+
+  /// 部分バウンスの範囲（小節）。未選択・不正なら null
+  ({int startBar, int endBar})? get _range {
+    if (!_partial) return null;
+    final ps = _placements;
+    if (ps.isEmpty) return null;
+    final start = ps.firstWhere((p) => p.id == _rangeStartId, orElse: () => ps.first);
+    final end = ps.firstWhere((p) => p.id == _rangeEndId, orElse: () => ps.last);
+    if (end.endBar <= start.startBar) return null;
+    return (startBar: start.startBar, endBar: end.endBar);
   }
 
   Future<void> _start() async {
     final song = widget.song;
-    final source = _tracks.firstWhere((t) => t.id == _source, orElse: () => widget.track);
-    final kitId = _newKitId();
+    final source = _sourceTrack;
+    final kitId = newBounceKitId(song.projectId);
     final soundName = source.name.isEmpty ? 'フレーズ' : source.name;
     final dir = Directory('${song.kits.root.path}/$kitId');
     final wavPath = '${dir.path}/phrase.wav';
@@ -108,15 +114,17 @@ class _BounceSectionState extends State<BounceSection> {
 
   Future<void> _finish(String kitId, String soundName, Directory dir) async {
     final song = widget.song;
+    final source = _sourceTrack;
+    final range = _range;
     try {
+      // 部分バウンスは書き出し WAV を配置の区間だけに切り詰める
+      if (range != null) {
+        final ok = await trimWavFileToBars(
+            File('${dir.path}/phrase.wav'), song.project, range.startBar, range.endBar);
+        if (!ok) throw StateError('trim failed');
+      }
       // 書き出し WAV をそのまま素材にするキットを登録する
-      await File('${dir.path}/kit.json').writeAsString(jsonEncode({
-        'name': 'バウンス素材',
-        'version': 1,
-        'sounds': [
-          {'name': soundName, 'file': 'phrase.wav', 'note': 60, 'gain': 1.0},
-        ],
-      }));
+      await writeBounceKitJson(dir, soundName);
     } on Object {
       if (mounted) {
         setState(() {
@@ -130,17 +138,23 @@ class _BounceSectionState extends State<BounceSection> {
     song.kitsChanged(); // コアにキットを読み直してもらう
     song.setTrackSampler(widget.track.id, kitId, soundName, 60, 1.0, 0.0);
     song.setTrackSamplerParam(widget.track.id, MdawParam.samplerGranular, 1);
+    // 置き換え: 書き出し元が裏で鳴り続けないようミュートする（受け先自身は除く）
+    final replaced = _muteSource && source.id != widget.track.id;
+    if (replaced) song.setMixer(source.id, mute: true);
     song.previewTrack(widget.track.id);
     if (mounted) {
       setState(() {
         _busy = false;
-        _status = '「$soundName」を素材にしてグラニュラーを ON にしました';
+        _status = '「$soundName」を素材にしてグラニュラーを ON にしました'
+            '${range != null ? '（${range.startBar + 1}〜${range.endBar}小節だけ）' : ''}'
+            '${replaced ? '。元のトラックはミュートしました' : ''}';
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final ps = _placements;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -156,16 +170,76 @@ class _BounceSectionState extends State<BounceSection> {
                 items: [
                   for (final t in _tracks) DropdownMenuItem(value: t.id, child: Text(t.name.isEmpty ? '（無題）' : t.name)),
                 ],
-                onChanged: _busy ? null : (id) => setState(() => _sourceId = id),
+                onChanged: _busy
+                    ? null
+                    : (id) => setState(() {
+                          _sourceId = id;
+                          _rangeStartId = null;
+                          _rangeEndId = null;
+                        }),
               ),
             ),
             const SizedBox(width: 8),
             FilledButton.tonal(
-              onPressed: _busy || _tracks.isEmpty ? null : _start,
+              onPressed: _busy || _tracks.isEmpty || (_partial && _range == null) ? null : _start,
               child: Text(_busy ? '書き出し中…' : '書き出して素材にする'),
             ),
           ],
         ),
+        if (ps.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Text('範囲', style: TextStyle(fontSize: 12, color: DawColors.muted)),
+              const SizedBox(width: 8),
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: false, label: Text('全体')),
+                  ButtonSegment(value: true, label: Text('部分（配置）')),
+                ],
+                selected: {_partial},
+                onSelectionChanged: _busy ? null : (s) => setState(() => _partial = s.first),
+              ),
+            ],
+          ),
+          if (_partial) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Text('開始', style: TextStyle(fontSize: 12, color: DawColors.muted)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: ps.any((p) => p.id == _rangeStartId) ? _rangeStartId : ps.first.id,
+                    items: [for (final p in ps) DropdownMenuItem(value: p.id, child: Text(placementLabel(p)))],
+                    onChanged: _busy ? null : (id) => setState(() => _rangeStartId = id),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('終了', style: TextStyle(fontSize: 12, color: DawColors.muted)),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: DropdownButton<int>(
+                    isExpanded: true,
+                    value: ps.any((p) => p.id == _rangeEndId) ? _rangeEndId : ps.last.id,
+                    items: [for (final p in ps) DropdownMenuItem(value: p.id, child: Text(placementLabel(p)))],
+                    onChanged: _busy ? null : (id) => setState(() => _rangeEndId = id),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+        if (_source != widget.track.id)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: const Text('元のトラックをミュートする（置き換え）', style: TextStyle(fontSize: 12)),
+            value: _muteSource,
+            onChanged: _busy ? null : (v) => setState(() => _muteSource = v ?? true),
+          ),
         if (_busy) ...[
           const SizedBox(height: 6),
           LinearProgressIndicator(value: _progress > 0 ? _progress : null),

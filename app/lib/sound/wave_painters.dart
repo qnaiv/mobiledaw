@@ -314,3 +314,97 @@ class AdsrPainter extends CustomPainter {
   @override
   bool shouldRepaint(AdsrPainter old) => old.a != a || old.d != d || old.s != s || old.r != r;
 }
+
+/// LFO の波形プレビュー（0=正弦、1=三角、2=矩形、3=のこぎり。2周期分）
+class LfoWavePainter extends CustomPainter {
+  const LfoWavePainter({required this.wave, required this.color, required this.dim});
+
+  final int wave;
+  final Color color;
+  final Color dim;
+
+  double _shape(double ph) {
+    switch (wave) {
+      case 1: // 三角（-1→+1→-1）
+        return ph < 0.5 ? -1 + 4 * ph : 3 - 4 * ph;
+      case 2: // 矩形
+        return ph < 0.5 ? 1.0 : -1.0;
+      case 3: // のこぎり（-1→+1）
+        return -1 + 2 * ph;
+      default: // 正弦
+        return math.sin(ph * 2 * math.pi);
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final mid = size.height / 2;
+    canvas.drawLine(Offset(0, mid), Offset(size.width, mid), Paint()..color = dim.withValues(alpha: 0.35)..strokeWidth = 1);
+    final amp = mid - 5;
+    final path = Path();
+    const steps = 160;
+    for (var i = 0; i <= steps; i++) {
+      final x = i / steps;
+      final v = _shape((x * 2) % 1.0);
+      final px = x * size.width;
+      final py = mid - v * amp;
+      if (i == 0) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
+      }
+    }
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.2);
+  }
+
+  @override
+  bool shouldRepaint(LfoWavePainter old) => old.wave != wave;
+}
+
+/// グライドの概念図：低い音から高い音へ、グライド量に応じて指数的に近づく。
+/// 薄い段差が「グライドなし」の形、色の曲線が実際の音程の動き。
+class GlidePainter extends CustomPainter {
+  const GlidePainter({required this.glideUnit, required this.color, required this.dim});
+
+  /// 0〜1（glideS の対数スケール上の位置）
+  final double glideUnit;
+  final Color color;
+  final Color dim;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final base = size.height - 4;
+    canvas.drawLine(Offset(0, base), Offset(size.width, base), Paint()..color = dim.withValues(alpha: 0.35)..strokeWidth = 1);
+    final lowY = size.height * 0.74;
+    final highY = size.height * 0.24;
+    const stepX = 0.32;
+    // グライドなし（段差）
+    final step = Path()
+      ..moveTo(0, lowY)
+      ..lineTo(stepX * size.width, lowY)
+      ..lineTo(stepX * size.width, highY)
+      ..lineTo(size.width, highY);
+    canvas.drawPath(step, Paint()..color = dim.withValues(alpha: 0.45)..style = PaintingStyle.stroke..strokeWidth = 1.4);
+    // 実際の動き（グライド 0 では段差に一致）
+    final k = 0.4 + glideUnit * 16;
+    final norm = 1 - math.exp(-k);
+    final path = Path()..moveTo(0, lowY);
+    const steps = 120;
+    for (var i = 0; i <= steps; i++) {
+      final x = i / steps;
+      double y;
+      if (x <= stepX) {
+        y = lowY;
+      } else {
+        final t = (x - stepX) / (1 - stepX);
+        final v = norm <= 0 ? 1.0 : (1 - math.exp(-k * t)) / norm;
+        y = lowY + (highY - lowY) * v;
+      }
+      path.lineTo(x * size.width, y);
+    }
+    canvas.drawPath(path, Paint()..color = color..style = PaintingStyle.stroke..strokeWidth = 2.2);
+  }
+
+  @override
+  bool shouldRepaint(GlidePainter old) => old.glideUnit != glideUnit;
+}
