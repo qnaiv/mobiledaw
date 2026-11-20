@@ -116,7 +116,61 @@ enum {
     MDAW_FX_SIDECHAIN_ATTACK_S = 70, /* 引っ込むまでの時間。既定 0.002 で従来と同じ */
     MDAW_FX_SIDECHAIN_HOLD_S = 71,   /* 引っ込んだまま保つ時間。既定 0 */
     MDAW_FX_SIDECHAIN_CURVE = 72,    /* 戻りの形。2 = (1-x)^2 で従来と同じ。小さいほど直線 */
-    MDAW_FX_END = 73,
+    MDAW_FX_GRANULAR = 73,           /* グラニュラー（直近の音を粒にして撒く）の混ぜ 0〜1（0 = なし） */
+    MDAW_FX_GRANULAR_SIZE_MS = 74,   /* 粒の長さ 10〜500 ms */
+    MDAW_FX_GRANULAR_DENSITY = 75,   /* 1秒に出す粒の数 1〜80 */
+    MDAW_FX_GRANULAR_POSITION_S = 76,/* 書き込み位置からどれだけ前の音を拾うか 0〜3.9 秒（Phase 2 でバッファ全域へ拡張） */
+    MDAW_FX_GRANULAR_SPRAY = 77,     /* 拾う位置の散らばり 0〜1（最大 ±0.4 秒） */
+    MDAW_FX_GRANULAR_PITCH = 78,     /* 粒の再生ピッチ -24〜24 半音 */
+    MDAW_FX_GRANULAR_PITCH_SPREAD = 79, /* 粒ごとのピッチのばらつき 0〜12 半音（±） */
+    MDAW_FX_END = 80,
+
+    /* グラニュラーの追加パラメータ。FX ブロック（40〜79）の後ろはシンセ拡張
+       （80〜85）が使うため、87/88 に置く。ルーティングは範囲ではなく
+       パラメータ仕様テーブル引きなので、飛び番でも問題ない。 */
+    MDAW_FX_GRANULAR_FREEZE = 87,    /* 0/1：リングへの書き込みを止め、粒だけ回し続ける */
+    MDAW_FX_GRANULAR_FEEDBACK = 88,  /* 粒の出力をリング入力へ戻す量 0〜0.9 */
+
+    /* Phase 2（アンビエントFX）。表引きルーティングなので飛び ID でも効く */
+    MDAW_FX_GRANULAR_TEXTURE = 89,   /* 粒の質感 0〜1（〜0.75=包絡の形、0.75〜=後段ディフューザー） */
+    MDAW_FX_GRANULAR_TIMING_RANDOM = 90, /* 粒発生の確率化 0〜1（0=周期的、1=完全確率的） */
+    MDAW_FX_GRANULAR_SIZE_RANDOM = 91,   /* 粒ごとの長さのばらつき 0〜1 */
+    MDAW_FX_GRANULAR_REVERSE_CHANCE = 92,/* 粒が逆再生になる確率 0〜1 */
+    MDAW_FX_GRANULAR_ROAM = 93,      /* 拾う位置の自律走査の深さ 0〜1（±1.5 秒まで） */
+    MDAW_FX_GRANULAR_ROAM_SPEED = 94,/* 走査の速さ 0.01〜0.5 Hz */
+    MDAW_FX_SHIMMER = 95,            /* シマーリバーブ（ピッチシフトを戻すリバーブ）の混ぜ 0〜1 */
+    MDAW_FX_SHIMMER_SIZE = 96,       /* シマーの広さ・残響の長さ 0〜1 */
+    MDAW_FX_SHIMMER_AMOUNT = 97,     /* +12 半音シフトを戻す量 0〜1 */
+    MDAW_FX_SHIMMER_TONE = 98,       /* 戻し経路の明るさ 0〜1 */
+    MDAW_FX_TAPE = 99,               /* テープ（揺れと劣化）の混ぜ 0〜1 */
+    MDAW_FX_TAPE_WOW = 100,          /* ワウフラッターの深さ 0〜1 */
+    MDAW_FX_TAPE_SAT = 101,          /* テープの飽和 0〜1 */
+    MDAW_FX_TAPE_HISS = 102,         /* ヒスノイズの量 0〜1（入力があるときだけ出る） */
+    MDAW_FX_DELAY_DIV = 103,         /* ディレイの長さ 0=4分 1=付点8分 2=8分 3=16分 4=1小節（整数） */
+    MDAW_FX_DELAY_PINGPONG = 104,    /* 0/1：左右を交互に跳ねさせる */
+
+    /* グラニュラー楽器（Phase 2.5）: サンプラーの素材全体を粒で鳴らすモードの
+       パラメータ。105〜 は未使用帯（grep 確認済み）。FX のグラニュラーとは別系統で、
+       mdaw_set_track_sampler_param でのみ設定する（保存は名前ベース JSON）。
+       仕様表は sampler.h の kGranularSamplerParamSpecs が単一の情報源 */
+    MDAW_SAMPLER_GRANULAR = 105,          /* 0/1：グラニュラーモード */
+    MDAW_SAMPLER_GRANULAR_SIZE_MS = 106,  /* 粒の長さ 10〜500 ms */
+    MDAW_SAMPLER_GRANULAR_DENSITY = 107,  /* 1秒に出す粒の数 1〜80 */
+    MDAW_SAMPLER_GRANULAR_POSITION = 108, /* 読み位置（素材全体に対する割合 0〜1） */
+    MDAW_SAMPLER_GRANULAR_SPRAY = 109,    /* 拾う位置の散らばり 0〜1（最大 ±0.4 秒） */
+    MDAW_SAMPLER_GRANULAR_TEXTURE = 110,  /* 粒の質感 0〜1（〜0.75=包絡の形、0.75〜=拡散） */
+    MDAW_SAMPLER_GRANULAR_PITCH_SPREAD = 111, /* 粒ごとのピッチのばらつき 0〜12 半音（±） */
+    MDAW_SAMPLER_GRANULAR_TIMING_RANDOM = 112, /* 粒発生の確率化 0〜1 */
+    MDAW_SAMPLER_GRANULAR_SIZE_RANDOM = 113,   /* 粒ごとの長さのばらつき 0〜1 */
+    MDAW_SAMPLER_GRANULAR_REVERSE = 114,  /* 粒が逆再生になる確率 0〜1 */
+    MDAW_SAMPLER_GRANULAR_POSITION_MODE = 115, /* 位置モード 0=全体クロール 1=曲位置同期 2=狭域ループ（整数） */
+    MDAW_SAMPLER_GRANULAR_ROAM = 116,     /* 拾う位置の自律走査の深さ 0〜1（±1.5 秒まで） */
+    MDAW_SAMPLER_GRANULAR_ROAM_SPEED = 117, /* 走査の速さ 0.01〜0.5 Hz */
+    MDAW_SAMPLER_GRANULAR_FEEDBACK = 118, /* 粒の出力を素材の時間軸へ戻す量 0〜0.9 */
+    MDAW_SAMPLER_GRANULAR_FREEZE = 119,   /* 0/1：読み位置を凍らせて粒だけ回し続ける */
+    MDAW_SAMPLER_GRANULAR_PITCH_QUANTIZE = 120, /* 0/1：粒ピッチを和音の音程セットから選ぶ */
+    MDAW_SAMPLER_GRANULAR_PITCH_DRIFT = 121,    /* 基準ピッチの漂い 0〜6 半音（±） */
+    MDAW_SAMPLER_GRANULAR_END = 122,
 
     /* オートメーション専用の対象：トラック音量（ミキサーの gain、0〜2）。
        mdaw_set_track_param では使わず、クリップのオートメーションの対象としてだけ使う */
@@ -175,6 +229,8 @@ MDAW_API const char* mdaw_kit_error(mdaw_engine* engine, const char* kit_id); /*
    設定一式の差し替えで Undo できる */
 MDAW_API int32_t mdaw_set_track_sampler(mdaw_engine* engine, mdaw_id track_id, const char* kit_id, const char* sound_name,
                                         int32_t root_note, float gain, float start);
+/* グラニュラー楽器のパラメータを1つ変える（MDAW_SAMPLER_GRANULAR_* の ID。Undo できる） */
+MDAW_API int32_t mdaw_set_track_sampler_param(mdaw_engine* engine, mdaw_id track_id, int32_t param_id, float value);
 MDAW_API mdaw_id mdaw_add_track(mdaw_engine* engine, const char* name, uint32_t color_argb);
 MDAW_API int32_t mdaw_rename_track(mdaw_engine* engine, mdaw_id track_id, const char* name); /* 1〜64バイト */
 /* トラックの音量（0〜2、1 = そのまま）・パン（-1 左〜1 右）・ミュート・ソロ。変わらなければ 0 */
@@ -217,6 +273,15 @@ MDAW_API int32_t mdaw_set_clip_automation(mdaw_engine* engine, mdaw_id clip_id, 
                                           const float* values, int32_t count);
 /* 音色の確定（Undo できる）。動かしている最中は mdaw_set_track_param_live で音だけ変え、離した時にこれを呼ぶ */
 MDAW_API int32_t mdaw_set_track_param(mdaw_engine* engine, mdaw_id track_id, int32_t param_id, float value);
+
+/* FX チェーンの編集（いずれも Undo できる）。unit_type は 0=lowcut 1=eq 2=saturation
+   3=chorus 4=comp 5=ott 6=bitcrush 7=stutter 8=granular 9=delay 10=reverb。
+   チェーンは最大 12 ユニット。unit_index は mdaw_project_json の fxChain の並び順。 */
+MDAW_API int32_t mdaw_fx_add_unit(mdaw_engine* engine, mdaw_id track_id, int32_t unit_type);
+MDAW_API int32_t mdaw_fx_remove_unit(mdaw_engine* engine, mdaw_id track_id, int32_t unit_index);
+MDAW_API int32_t mdaw_fx_move_unit(mdaw_engine* engine, mdaw_id track_id, int32_t from_index, int32_t to_index);
+MDAW_API int32_t mdaw_fx_set_unit_enabled(mdaw_engine* engine, mdaw_id track_id, int32_t unit_index, int32_t enabled);
+MDAW_API int32_t mdaw_fx_set_unit_param(mdaw_engine* engine, mdaw_id track_id, int32_t unit_index, int32_t param_id, float value);
 MDAW_API int32_t mdaw_set_track_param_live(mdaw_engine* engine, mdaw_id track_id, int32_t param_id, float value);
 
 /* 1ジェスチャーの間の編集を1つの Undo にまとめる（入れ子可） */
@@ -239,6 +304,12 @@ MDAW_API double mdaw_output_latency_ms(mdaw_engine* engine); /* 不明なら -1 
 MDAW_API int64_t mdaw_frames_rendered(mdaw_engine* engine);
 MDAW_API int32_t mdaw_xrun_count(mdaw_engine* engine);       /* 不明なら -1 */
 MDAW_API int32_t mdaw_active_voices(mdaw_engine* engine);
+
+/* ミキサーのメーター用ピーク（線形、0〜。最後に読んでからの最大値で、読むと 0 に戻る。
+   音声スレッドは最大値を書くだけなので軽い。減衰は UI 側で付けること。
+   トラックが無ければ 0。マスターは仕上げを通した後の最終ミックスのピーク） */
+MDAW_API float mdaw_track_peak(mdaw_engine* engine, mdaw_id track_id);
+MDAW_API float mdaw_master_peak(mdaw_engine* engine);
 
 /* 書き出し：今の曲を wav（48kHz・24bit・ステレオ）にする。別スレッドで計算し、すぐ戻る。
    track_id が 0 なら曲全体（仕上げのコンプ・リミッターあり）、それ以外はそのトラックだけ（仕上げなし）。

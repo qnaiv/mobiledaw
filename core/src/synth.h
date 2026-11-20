@@ -71,6 +71,7 @@ inline bool operator!=(const SynthParams& a, const SynthParams& b) noexcept { re
 // SynthParams を mdaw.h の MDAW_PARAM_* で読み書きする（範囲外の値は丸める）
 bool getSynthParam(const SynthParams& s, int paramId, float& out) noexcept;
 bool setSynthParam(SynthParams& s, int paramId, float value) noexcept;
+bool isSynthParamId(int paramId) noexcept; // 仕様表に在るシンセのパラメータか
 
 // 2次の状態変数フィルター（TPT）。係数は呼ぶ側が間引いて更新する
 struct Svf {

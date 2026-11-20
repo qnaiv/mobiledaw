@@ -59,6 +59,40 @@ struct Mixer {
     bool solo = false;
 };
 
+// グラニュラー楽器の設定（Phase 2.5、方式②）: サンプラーの素材全体を粒で鳴らす。
+// 全項目 float（FX の FxParams と同じ流儀。トグル・整数も float で持ち、丸めは
+// 仕様表 kGranularSamplerParamSpecs の integer フラグで行う）。
+// enabled が 0 の間はサンプラーは従来どおり（ビット一致）。
+struct GranularSamplerSettings {
+    float enabled = 0.0f;        // 0/1: グラニュラーモード
+    float sizeMs = 240.0f;       // 粒の長さ 10〜500 ms
+    float density = 40.0f;       // 1秒に出す粒の数 1〜80
+    float position = 0.0f;       // 読み位置（素材全体に対する割合 0〜1）
+    float spray = 0.4f;          // 拾う位置の散らばり 0〜1（最大 ±0.4 秒）
+    float texture = 0.7f;        // 粒の質感 0〜1（〜0.75=包絡の形、0.75〜=拡散）
+    float pitchSpread = 0.3f;    // 粒ごとのピッチのばらつき 0〜12 半音（±）
+    float timingRandom = 0.7f;   // 粒発生の確率化 0〜1
+    float sizeRandom = 0.3f;     // 粒ごとの長さのばらつき 0〜1
+    float reverseChance = 0.0f;  // 粒が逆再生になる確率 0〜1
+    float positionMode = 0.0f;   // 0=全体クロール 1=曲位置同期 2=狭域ループ（整数）
+    float roam = 0.2f;           // 拾う位置の自律走査の深さ 0〜1（±1.5 秒まで）
+    float roamSpeed = 0.07f;     // 走査の速さ 0.01〜0.5 Hz
+    float feedback = 0.3f;       // 粒の出力を素材の時間軸へ戻す量 0〜0.9
+    float freeze = 0.0f;         // 0/1: 読み位置を凍らせる
+    float pitchQuantize = 0.0f;  // 0/1: 粒ピッチを和音の音程セットから選ぶ
+    float pitchDrift = 0.0f;     // 基準ピッチの漂い 0〜6 半音（±）
+
+    bool operator==(const GranularSamplerSettings& o) const noexcept {
+        return enabled == o.enabled && sizeMs == o.sizeMs && density == o.density && position == o.position
+               && spray == o.spray && texture == o.texture && pitchSpread == o.pitchSpread
+               && timingRandom == o.timingRandom && sizeRandom == o.sizeRandom && reverseChance == o.reverseChance
+               && positionMode == o.positionMode && roam == o.roam && roamSpeed == o.roamSpeed
+               && feedback == o.feedback && freeze == o.freeze && pitchQuantize == o.pitchQuantize
+               && pitchDrift == o.pitchDrift;
+    }
+    bool operator!=(const GranularSamplerSettings& o) const noexcept { return !(*this == o); }
+};
+
 // サンプラー楽器の設定（4つ目の楽器）。素材はインストール済みキットの音を1つ借りる。
 // kitId が空ならサンプラーではない。シンセ／キットの設定は別に残してあるので、
 // サンプラーをやめれば（kitId を空にすれば）元の楽器にそのまま戻る。
@@ -68,10 +102,11 @@ struct SamplerSettings {
     int rootNote = 60;     // 基準音程 0〜127（この音程で原音の速さで鳴る）
     float gain = 1.0f;     // 0〜2
     float start = 0.0f;    // 再生開始位置 0〜1（サンプルの長さに対する割合）
+    GranularSamplerSettings granular; // グラニュラーモード（enabled=0 なら従来どおり）
 
     bool operator==(const SamplerSettings& o) const noexcept {
         return kitId == o.kitId && soundName == o.soundName && rootNote == o.rootNote && gain == o.gain
-               && start == o.start;
+               && start == o.start && granular == o.granular;
     }
     bool operator!=(const SamplerSettings& o) const noexcept { return !(*this == o); }
 };
@@ -83,7 +118,11 @@ struct Track {
     SynthParams synth;           // シンセの設定（他の楽器にしても残す）
     std::string kitId;           // 空ならシンセ、入っていればそのドラムキット（kits/<id>）を鳴らす
     SamplerSettings sampler;     // サンプラー設定。kitId が入っていればキットより優先（楽器 = サンプラー）
-    FxParams fx;                 // トラックのエフェクト（音色を替えても残る）
+    FxParams fx;                 // トラック直属のエフェクト値＋移行時の互換ビュー（音色を替えても残る）
+    // FX チェーン（順序付きユニット列）。fx は「トラック直属（サイドチェイン／センド）＋
+    // 各種別の最初のユニットの担当項目を重ねた読み取り互換ビュー」で、読み込み時に作る。
+    // チェーンが空のトラックは「fx から固定順フルチェーンを組む」扱い（エンジン／保存側）。
+    std::vector<FxUnit> fxChain;
     Mixer mixer;
 
     // このトラックの楽器がサンプラーか

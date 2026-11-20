@@ -251,6 +251,21 @@ private:
     SamplerSettings old_;
 };
 
+// グラニュラー楽器のパラメータを1つ変える（MDAW_SAMPLER_GRANULAR_*。丸めは仕様表）
+class SetTrackSamplerParam final : public Command {
+public:
+    SetTrackSamplerParam(Id trackId, int paramId, float value) : trackId_(trackId), paramId_(paramId), value_(value) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetTrackSamplerParam"; }
+
+private:
+    Id trackId_;
+    int paramId_;
+    float value_;
+    SamplerSettings old_;
+};
+
 // 曲の名前（1〜64バイト、前後の空白は落とす）
 class SetProjectTitle final : public Command {
 public:
@@ -357,6 +372,91 @@ private:
     int paramId_;
     float value_;
     float old_ = 0.0f;
+    // FX パラメータのときの巻き戻し用（チェーンの自動有効化なども含めて戻す）
+    bool fxTouched_ = false;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
+};
+
+// ---- FX チェーン ------------------------------------------------------------
+// いずれもチェーンが空のトラックでは、まずフラット値から固定順フルチェーンを
+// 実体化してから操作する。revert はチェーンとフラット互換ビューを丸ごと戻す。
+
+class AddFxUnit final : public Command {
+public:
+    AddFxUnit(Id trackId, FxUnitType type) : trackId_(trackId), type_(type) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "AddFxUnit"; }
+
+private:
+    Id trackId_;
+    FxUnitType type_;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
+};
+
+class RemoveFxUnit final : public Command {
+public:
+    RemoveFxUnit(Id trackId, int index) : trackId_(trackId), index_(index) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "RemoveFxUnit"; }
+
+private:
+    Id trackId_;
+    int index_;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
+};
+
+class MoveFxUnit final : public Command {
+public:
+    MoveFxUnit(Id trackId, int from, int to) : trackId_(trackId), from_(from), to_(to) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "MoveFxUnit"; }
+
+private:
+    Id trackId_;
+    int from_;
+    int to_;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
+};
+
+class SetFxUnitEnabled final : public Command {
+public:
+    SetFxUnitEnabled(Id trackId, int index, bool enabled) : trackId_(trackId), index_(index), enabled_(enabled) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetFxUnitEnabled"; }
+
+private:
+    Id trackId_;
+    int index_;
+    bool enabled_;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
+};
+
+class SetFxUnitParam final : public Command {
+public:
+    SetFxUnitParam(Id trackId, int index, int paramId, float value)
+        : trackId_(trackId), index_(index), paramId_(paramId), value_(value) {}
+    bool apply(Project& p) override;
+    void revert(Project& p) override;
+    const char* name() const override { return "SetFxUnitParam"; }
+    float appliedValue() const noexcept { return applied_; }
+
+private:
+    Id trackId_;
+    int index_;
+    int paramId_;
+    float value_;
+    float applied_ = 0.0f;
+    FxParams oldFx_;
+    std::vector<FxUnit> oldChain_;
 };
 
 // 複数のコマンドを1つの Undo 単位にまとめる（「線」ツールで生まれた複数ノートなど）

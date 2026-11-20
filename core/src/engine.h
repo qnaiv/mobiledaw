@@ -75,6 +75,16 @@ public:
     // 音声スレッドが使い終えたスナップショットを解放する（publish の中でも呼ばれる）
     void collectRetired();
 
+    // ---- どのスレッドからでも（表示用ピーク） ----
+    // 最後に読んでからの最大値（線形）。読むと 0 に戻る。減衰は UI 側で付ける。
+    // 音声スレッドはブロックごとに atomic へ最大値を書くだけで、確保・ロックはしない。
+    float trackPeak(int slot) noexcept {
+        if (slot < 0 || slot >= kMaxSlots)
+            return 0.0f;
+        return trackPeaks_[static_cast<size_t>(slot)].exchange(0.0f, std::memory_order_relaxed);
+    }
+    float masterPeak() noexcept { return masterPeak_.exchange(0.0f, std::memory_order_relaxed); }
+
     // ---- どのスレッドからでも（表示用） ----
     double sampleRate() const noexcept { return sampleRate_.load(std::memory_order_relaxed); }
     int64_t framesRendered() const noexcept { return framesRendered_.load(std::memory_order_relaxed); }
@@ -94,6 +104,7 @@ private:
         Id trackId = kNoId;
         SynthParams snapParams;         // 直前のスナップショットの値（変わったときだけ反映する）
         FxParams snapFx;
+        FxChainState snapChain;         // 直前のスナップショットのチェーン（変わったときだけ反映する）
         PlaybackSnapshot::NoteSet held; // シーケンサーが鳴らしている音
         float autoGain = -1.0f;          // オートメーションが決めた音量（<0 = 掛かっていない。素の gain を使う）
         float gainL = 0.0f, gainR = 0.0f; // なめらかに追従させる現在値
@@ -101,6 +112,13 @@ private:
         float duck = 0.0f;              // サイドチェインで今引っ込んでいる量（0〜1）
         float duckStart = 0.0f;
     };
+
+    // ピーク保持値を value まで引き上げる（音声スレッド専用。読み手の exchange と競合しても安全）
+    static void raisePeak(std::atomic<float>& peak, float value) noexcept {
+        float cur = peak.load(std::memory_order_relaxed);
+        while (value > cur && !peak.compare_exchange_weak(cur, value, std::memory_order_relaxed)) {
+        }
+    }
 
     bool push(const Event& e) noexcept { return queue_.push(e); }
     void handle(const Event& e) noexcept;
@@ -143,6 +161,10 @@ private:
     int64_t loopStart_ = 0;   // 範囲ループ（loopEnd_ が 0 なら曲全体）
     int64_t loopEnd_ = 0;
     size_t cursor_ = 0;       // 次に見るイベント
+
+    // メーター用ピーク保持（音声スレッドが raise し、UI スレッドが exchange で読む）
+    std::array<std::atomic<float>, kMaxSlots> trackPeaks_;
+    std::atomic<float> masterPeak_{0.0f};
 
     std::atomic<double> sampleRate_{48000.0};
     std::atomic<int64_t> framesRendered_{0};

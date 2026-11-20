@@ -39,6 +39,7 @@ struct SnapshotTrack {
     int samplerSound = -1;      // samplerKit->sounds の添字（名前から解決。解決できなければ -1 = 鳴らない）
     SamplerSettings sampler;    // サンプラーの設定（rootNote / gain / start を使う）
     FxParams fx;
+    FxChainState fxChain; // トラックの FX チェーン（固定長・確保なし）
     float gain = 0.8f;
     float pan = 0.0f;
     bool audible = true; // ミュート・ソロを反映した結果
